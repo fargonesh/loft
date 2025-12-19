@@ -1,0 +1,15 @@
+learn "std";
+
+def Vector {
+    x: num,
+    y: num
+}
+
+impl Mul for Vector {
+    fn mul(self, other: Vector) -> Vector {
+        return Vector {
+            x: self.x * other.x,
+            y: self.y * other.y,
+        }
+    }
+}

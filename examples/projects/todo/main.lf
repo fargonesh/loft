@@ -1,0 +1,25 @@
+// Todo List Manager - Task management demonstration
+
+def Todo {
+    id: num,
+    title: str,
+}
+
+term.println("=== Todo List Manager ===\n");
+
+fn create_todo(id: num, title: str) -> num {
+    let todo = Todo {
+        id: id,
+        title: title,
+    };
+    term.println("Created todo:");
+    term.println(title);
+    return todo.id;
+}
+
+// Create todos
+let id1 = create_todo(1, "Write documentation");
+let id2 = create_todo(2, "Add tests");
+let id3 = create_todo(3, "Release version");
+
+term.println("\n=== Todo Manager Complete ===");

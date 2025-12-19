@@ -1,0 +1,73 @@
+// Advanced FFI Example: Creating a wrapper library
+//
+// This example demonstrates how to create a reusable wrapper
+// for a C library, making it easier and safer to use.
+
+// Define a MathLib wrapper object
+def MathLib {
+    lib: FfiLibrary,
+}
+
+impl MathLib {
+    // Constructor to load the library
+    fn new() -> MathLib {
+        let lib = ffi.load("libm.so.6");
+        return MathLib { lib: lib };
+    }
+    
+    // Wrapper for sqrt
+    fn sqrt(self, x: num) -> num {
+        let sqrt_fn = self.lib.symbol("sqrt");
+        return sqrt_fn.call("f64(f64)", x);
+    }
+    
+    // Wrapper for sin
+    fn sin(self, x: num) -> num {
+        let sin_fn = self.lib.symbol("sin");
+        return sin_fn.call("f64(f64)", x);
+    }
+    
+    // Wrapper for cos
+    fn cos(self, x: num) -> num {
+        let cos_fn = self.lib.symbol("cos");
+        return cos_fn.call("f64(f64)", x);
+    }
+    
+    // Wrapper for pow
+    fn pow(self, x: num, y: num) -> num {
+        let pow_fn = self.lib.symbol("pow");
+        return pow_fn.call("f64(f64, f64)", x, y);
+    }
+    
+    // Wrapper for abs (absolute value for doubles)
+    fn abs(self, x: num) -> num {
+        let fabs_fn = self.lib.symbol("fabs");
+        return fabs_fn.call("f64(f64)", x);
+    }
+    
+    // Wrapper for floor
+    fn floor(self, x: num) -> num {
+        let floor_fn = self.lib.symbol("floor");
+        return floor_fn.call("f64(f64)", x);
+    }
+    
+    // Wrapper for ceil
+    fn ceil(self, x: num) -> num {
+        let ceil_fn = self.lib.symbol("ceil");
+        return ceil_fn.call("f64(f64)", x);
+    }
+}
+
+// Create an instance of the wrapper
+let math_lib = MathLib.new();
+
+// Now we can use it with a clean, type-safe interface
+term.println("Square root of 25: " + math_lib.sqrt(25.0).to_string());
+term.println("Sine of π/2: " + math_lib.sin(1.5707963267948966).to_string());
+term.println("Cosine of 0: " + math_lib.cos(0.0).to_string());
+term.println("2 to the power of 8: " + math_lib.pow(2.0, 8.0).to_string());
+term.println("Absolute value of -42.5: " + math_lib.abs(-42.5).to_string());
+term.println("Floor of 3.7: " + math_lib.floor(3.7).to_string());
+term.println("Ceiling of 3.2: " + math_lib.ceil(3.2).to_string());
+
+term.println("\nWrapper library demonstration complete!");

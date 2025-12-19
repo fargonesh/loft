@@ -1,0 +1,896 @@
+{
+  "builtins": {
+    "term": {
+      "kind": "struct",
+      "documentation": "Terminal builtin for interacting with the terminal",
+      "methods": {
+        "println": {
+          "params": ["...values"],
+          "return_type": "void",
+          "documentation": "Print values to the terminal with a newline"
+        },
+        "print": {
+          "params": ["...values"],
+          "return_type": "void",
+          "documentation": "Print values to the terminal without a newline"
+        },
+        "color": {
+          "params": ["color: str"],
+          "return_type": "void",
+          "documentation": "Set the terminal text color. Supported colors: black, red, green, yellow, blue, magenta/purple, cyan, white, reset"
+        },
+        "clear": {
+          "params": [],
+          "return_type": "void",
+          "documentation": "Clear the terminal screen"
+        },
+        "size": {
+          "params": [],
+          "return_type": "Array<num>",
+          "documentation": "Get the terminal size as an array [width, height]"
+        },
+        "read_line": {
+          "params": [],
+          "return_type": "str",
+          "documentation": "Read a line of input from the user"
+        }
+      }
+    },
+    "math": {
+      "kind": "struct",
+      "documentation": "Math builtin providing mathematical operations and constants",
+      "constants": {
+        "PI": {
+          "type": "num",
+          "documentation": "The mathematical constant π (pi) ≈ 3.14159"
+        },
+        "E": {
+          "type": "num",
+          "documentation": "The mathematical constant e (Euler's number) ≈ 2.71828"
+        },
+        "TAU": {
+          "type": "num",
+          "documentation": "The mathematical constant τ (tau) = 2π ≈ 6.28318"
+        }
+      },
+      "methods": {
+        "round": {
+          "params": ["x: num"],
+          "return_type": "num",
+          "documentation": "Round a number to the nearest integer"
+        },
+        "floor": {
+          "params": ["x: num"],
+          "return_type": "num",
+          "documentation": "Round down to the nearest integer"
+        },
+        "ceil": {
+          "params": ["x: num"],
+          "return_type": "num",
+          "documentation": "Round up to the nearest integer"
+        },
+        "abs": {
+          "params": ["x: num"],
+          "return_type": "num",
+          "documentation": "Get the absolute value of a number"
+        },
+        "sign": {
+          "params": ["x: num"],
+          "return_type": "num",
+          "documentation": "Get the sign of a number (-1, 0, or 1)"
+        },
+        "min": {
+          "params": ["a: num", "b: num"],
+          "return_type": "num",
+          "documentation": "Get the minimum of two numbers"
+        },
+        "max": {
+          "params": ["a: num", "b: num"],
+          "return_type": "num",
+          "documentation": "Get the maximum of two numbers"
+        },
+        "clamp": {
+          "params": ["value: num", "min: num", "max: num"],
+          "return_type": "num",
+          "documentation": "Clamp a value between min and max"
+        },
+        "pow": {
+          "params": ["base: num", "exponent: num"],
+          "return_type": "num",
+          "documentation": "Raise a number to a power"
+        },
+        "sqrt": {
+          "params": ["x: num"],
+          "return_type": "num",
+          "documentation": "Calculate the square root"
+        },
+        "exp": {
+          "params": ["x: num"],
+          "return_type": "num",
+          "documentation": "Calculate e^x"
+        },
+        "ln": {
+          "params": ["x: num"],
+          "return_type": "num",
+          "documentation": "Calculate the natural logarithm (base e)"
+        },
+        "log10": {
+          "params": ["x: num"],
+          "return_type": "num",
+          "documentation": "Calculate the base-10 logarithm"
+        },
+        "log": {
+          "params": ["value: num", "base: num"],
+          "return_type": "num",
+          "documentation": "Calculate the logarithm with a custom base"
+        },
+        "sin": {
+          "params": ["x: num"],
+          "return_type": "num",
+          "documentation": "Calculate sine (radians)"
+        },
+        "cos": {
+          "params": ["x: num"],
+          "return_type": "num",
+          "documentation": "Calculate cosine (radians)"
+        },
+        "tan": {
+          "params": ["x: num"],
+          "return_type": "num",
+          "documentation": "Calculate tangent (radians)"
+        },
+        "asin": {
+          "params": ["x: num"],
+          "return_type": "num",
+          "documentation": "Calculate arcsine (returns radians)"
+        },
+        "acos": {
+          "params": ["x: num"],
+          "return_type": "num",
+          "documentation": "Calculate arccosine (returns radians)"
+        },
+        "atan": {
+          "params": ["x: num"],
+          "return_type": "num",
+          "documentation": "Calculate arctangent (returns radians)"
+        },
+        "atan2": {
+          "params": ["y: num", "x: num"],
+          "return_type": "num",
+          "documentation": "Calculate the arctangent of y/x, handling quadrants correctly"
+        }
+      }
+    },
+    "fs": {
+      "kind": "struct",
+      "documentation": "File system builtin providing file system operations",
+      "methods": {
+        "read": {
+          "params": ["path: str"],
+          "return_type": "str",
+          "documentation": "Read entire file contents as a string"
+        },
+        "write": {
+          "params": ["path: str", "content: str"],
+          "return_type": "void",
+          "documentation": "Write string contents to a file (overwrites)"
+        },
+        "append": {
+          "params": ["path: str", "content: str"],
+          "return_type": "void",
+          "documentation": "Append string contents to a file"
+        },
+        "exists": {
+          "params": ["path: str"],
+          "return_type": "bool",
+          "documentation": "Check if a file or directory exists"
+        },
+        "is_file": {
+          "params": ["path: str"],
+          "return_type": "bool",
+          "documentation": "Check if path is a file"
+        },
+        "is_dir": {
+          "params": ["path: str"],
+          "return_type": "bool",
+          "documentation": "Check if path is a directory"
+        },
+        "create_dir": {
+          "params": ["path: str"],
+          "return_type": "void",
+          "documentation": "Create a directory (creates parent directories if needed)"
+        },
+        "remove_file": {
+          "params": ["path: str"],
+          "return_type": "void",
+          "documentation": "Remove a file"
+        },
+        "remove_dir": {
+          "params": ["path: str"],
+          "return_type": "void",
+          "documentation": "Remove a directory"
+        },
+        "list_dir": {
+          "params": ["path: str"],
+          "return_type": "Array<str>",
+          "documentation": "List contents of a directory"
+        },
+        "copy": {
+          "params": ["source: str", "destination: str"],
+          "return_type": "void",
+          "documentation": "Copy a file"
+        },
+        "rename": {
+          "params": ["old_path: str", "new_path: str"],
+          "return_type": "void",
+          "documentation": "Rename or move a file"
+        },
+        "metadata": {
+          "params": ["path: str"],
+          "return_type": "Array<num>",
+          "documentation": "Get file metadata as an array [size, is_file, is_dir]"
+        }
+      }
+    },
+    "time": {
+      "kind": "struct",
+      "documentation": "Time builtin for time-related operations",
+      "methods": {
+        "now": {
+          "params": [],
+          "return_type": "num",
+          "documentation": "Get the current Unix timestamp in milliseconds"
+        },
+        "perf_now": {
+          "params": [],
+          "return_type": "num",
+          "documentation": "Get high-resolution performance timing"
+        },
+        "sleep": {
+          "params": ["ms: num"],
+          "return_type": "Promise<void>",
+          "documentation": "Sleep for the specified number of milliseconds (returns a promise)"
+        }
+      }
+    },
+    "string": {
+      "kind": "module",
+      "documentation": "String utility functions",
+      "methods": {
+        "join": {
+          "params": ["array: Array", "delimiter: str"],
+          "return_type": "str",
+          "documentation": "Join an array of values with a delimiter"
+        }
+      }
+    },
+    "array": {
+      "kind": "module",
+      "documentation": "Array utility functions",
+      "methods": {
+        "zip": {
+          "params": ["arr1: Array", "arr2: Array"],
+          "return_type": "Array<Array>",
+          "documentation": "Zip two arrays together"
+        },
+        "chain": {
+          "params": ["...arrays: Array"],
+          "return_type": "Array",
+          "documentation": "Concatenate multiple arrays"
+        }
+      }
+    },
+    "web": {
+      "kind": "struct",
+      "documentation": "Web API for HTTP requests with comprehensive async support",
+      "methods": {
+        "request": {
+          "params": ["url: str"],
+          "return_type": "RequestBuilder",
+          "documentation": "Create a new HTTP request builder for the given URL"
+        },
+        "get": {
+          "params": ["url: str"],
+          "return_type": "Promise<Response>",
+          "documentation": "Perform a GET request to the specified URL"
+        },
+        "post": {
+          "params": ["url: str", "body?: Buffer"],
+          "return_type": "Promise<Response>",
+          "documentation": "Perform a POST request with optional body"
+        },
+        "put": {
+          "params": ["url: str", "body?: Buffer"],
+          "return_type": "Promise<Response>",
+          "documentation": "Perform a PUT request with optional body"
+        },
+        "delete": {
+          "params": ["url: str"],
+          "return_type": "Promise<Response>",
+          "documentation": "Perform a DELETE request to the specified URL"
+        },
+        "buffer": {
+          "params": ["data: str | Array<num>"],
+          "return_type": "Buffer",
+          "documentation": "Create a Buffer from string or array of bytes (0-255)"
+        },
+        "method": {
+          "params": ["method: str"],
+          "return_type": "RequestBuilder",
+          "documentation": "Set HTTP method (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, TRACE, CONNECT)"
+        },
+        "header": {
+          "params": ["key: str", "value: str"],
+          "return_type": "RequestBuilder",
+          "documentation": "Add a header to the request"
+        },
+        "body": {
+          "params": ["buffer: Buffer"],
+          "return_type": "RequestBuilder",
+          "documentation": "Set the request body as a Buffer"
+        },
+        "timeout": {
+          "params": ["milliseconds: num"],
+          "return_type": "RequestBuilder",
+          "documentation": "Set request timeout in milliseconds"
+        },
+        "followRedirects": {
+          "params": ["follow: bool"],
+          "return_type": "RequestBuilder",
+          "documentation": "Set whether to follow HTTP redirects automatically"
+        },
+        "send": {
+          "params": [],
+          "return_type": "Promise<Response>",
+          "documentation": "Execute the HTTP request and return a Promise<Response>"
+        },
+        "json": {
+          "params": [],
+          "return_type": "Promise<Object>",
+          "documentation": "Parse response body as JSON (call on Response object)"
+        },
+        "text": {
+          "params": [],
+          "return_type": "Promise<str>",
+          "documentation": "Get response body as text (call on Response object)"
+        }
+      }
+    },
+    "json": {
+      "kind": "struct",
+      "documentation": "JSON parsing and stringification utilities",
+      "methods": {
+        "parse": {
+          "params": ["json_string: str"],
+          "return_type": "Object",
+          "documentation": "Parse a JSON string into a Twang value"
+        },
+        "stringify": {
+          "params": ["value: any"],
+          "return_type": "str",
+          "documentation": "Convert a Twang value to a JSON string"
+        },
+        "stringify_pretty": {
+          "params": ["value: any"],
+          "return_type": "str",
+          "documentation": "Convert a Twang value to a pretty-printed JSON string"
+        }
+      }
+    },
+    "console": {
+      "kind": "struct",
+      "documentation": "Console logging utilities similar to JavaScript console API",
+      "methods": {
+        "log": {
+          "params": ["...values"],
+          "return_type": "void",
+          "documentation": "Log values to console"
+        },
+        "error": {
+          "params": ["...values"],
+          "return_type": "void",
+          "documentation": "Log an error message to console"
+        },
+        "warn": {
+          "params": ["...values"],
+          "return_type": "void",
+          "documentation": "Log a warning message to console"
+        },
+        "info": {
+          "params": ["...values"],
+          "return_type": "void",
+          "documentation": "Log an info message to console"
+        },
+        "debug": {
+          "params": ["...values"],
+          "return_type": "void",
+          "documentation": "Log a debug message to console"
+        }
+      }
+    },
+    "object": {
+      "kind": "struct",
+      "documentation": "Object manipulation utilities similar to JavaScript Object methods",
+      "methods": {
+        "keys": {
+          "params": ["object: Object"],
+          "return_type": "Array<str>",
+          "documentation": "Get all keys from an object"
+        },
+        "values": {
+          "params": ["object: Object"],
+          "return_type": "Array<any>",
+          "documentation": "Get all values from an object"
+        },
+        "entries": {
+          "params": ["object: Object"],
+          "return_type": "Array<Array>",
+          "documentation": "Get all entries from an object as [key, value] pairs"
+        },
+        "has": {
+          "params": ["object: Object", "key: str"],
+          "return_type": "bool",
+          "documentation": "Check if object has a property"
+        },
+        "assign": {
+          "params": ["target: Object", "...sources: Object"],
+          "return_type": "Object",
+          "documentation": "Assign properties from source objects to target object"
+        },
+        "from_entries": {
+          "params": ["entries: Array<Array>"],
+          "return_type": "Object",
+          "documentation": "Create an object from entries [[key, value], ...]"
+        },
+        "size": {
+          "params": ["object: Object"],
+          "return_type": "num",
+          "documentation": "Get the number of properties in an object"
+        }
+      }
+    },
+    "encoding": {
+      "kind": "struct",
+      "documentation": "Encoding and decoding utilities for various formats",
+      "methods": {
+        "base64_encode": {
+          "params": ["data: str"],
+          "return_type": "str",
+          "documentation": "Encode a string to base64"
+        },
+        "base64_decode": {
+          "params": ["encoded: str"],
+          "return_type": "str",
+          "documentation": "Decode a base64 string"
+        },
+        "url_encode": {
+          "params": ["data: str"],
+          "return_type": "str",
+          "documentation": "URL encode a string"
+        },
+        "url_decode": {
+          "params": ["encoded: str"],
+          "return_type": "str",
+          "documentation": "URL decode a string"
+        },
+        "to_bytes": {
+          "params": ["data: str"],
+          "return_type": "Array<num>",
+          "documentation": "Convert string to bytes array"
+        },
+        "from_bytes": {
+          "params": ["bytes: Array<num>"],
+          "return_type": "str",
+          "documentation": "Convert bytes array to string"
+        }
+      }
+    },
+    "random": {
+      "kind": "struct",
+      "documentation": "Random number generation utilities",
+      "methods": {
+        "random": {
+          "params": [],
+          "return_type": "num",
+          "documentation": "Generate a random number between 0 and 1"
+        },
+        "range": {
+          "params": ["min: num", "max: num"],
+          "return_type": "num",
+          "documentation": "Generate a random integer in range [min, max)"
+        },
+        "choice": {
+          "params": ["array: Array"],
+          "return_type": "any",
+          "documentation": "Pick a random element from an array"
+        },
+        "shuffle": {
+          "params": ["array: Array"],
+          "return_type": "Array",
+          "documentation": "Shuffle an array randomly"
+        },
+        "seed": {
+          "params": ["seed: num"],
+          "return_type": "void",
+          "documentation": "Set the random seed for reproducible random numbers"
+        }
+      }
+    }
+  },
+  "string_methods": {
+    "split": {
+      "params": ["delimiter: str"],
+      "return_type": "Array<str>",
+      "documentation": "Split a string by a delimiter"
+    },
+    "trim": {
+      "params": [],
+      "return_type": "str",
+      "documentation": "Remove whitespace from both ends"
+    },
+    "trim_start": {
+      "params": [],
+      "return_type": "str",
+      "documentation": "Remove whitespace from the start"
+    },
+    "trim_end": {
+      "params": [],
+      "return_type": "str",
+      "documentation": "Remove whitespace from the end"
+    },
+    "to_upper": {
+      "params": [],
+      "return_type": "str",
+      "documentation": "Convert to uppercase"
+    },
+    "to_lower": {
+      "params": [],
+      "return_type": "str",
+      "documentation": "Convert to lowercase"
+    },
+    "replace": {
+      "params": ["pattern: str", "replacement: str"],
+      "return_type": "str",
+      "documentation": "Replace all occurrences of a pattern"
+    },
+    "starts_with": {
+      "params": ["prefix: str"],
+      "return_type": "bool",
+      "documentation": "Check if string starts with prefix"
+    },
+    "ends_with": {
+      "params": ["suffix: str"],
+      "return_type": "bool",
+      "documentation": "Check if string ends with suffix"
+    },
+    "contains": {
+      "params": ["substring: str"],
+      "return_type": "bool",
+      "documentation": "Check if string contains a substring"
+    },
+    "length": {
+      "params": [],
+      "return_type": "num",
+      "documentation": "Get the length of the string"
+    },
+    "len": {
+      "params": [],
+      "return_type": "num",
+      "documentation": "Get the length of the string (alias for length)"
+    },
+    "substring": {
+      "params": ["start: num", "end?: num"],
+      "return_type": "str",
+      "documentation": "Get a substring. End is optional"
+    },
+    "repeat": {
+      "params": ["count: num"],
+      "return_type": "str",
+      "documentation": "Repeat a string n times"
+    },
+    "pad_start": {
+      "params": ["length: num", "char?: str"],
+      "return_type": "str",
+      "documentation": "Pad string to length at start. Char defaults to space"
+    },
+    "pad_end": {
+      "params": ["length: num", "char?: str"],
+      "return_type": "str",
+      "documentation": "Pad string to length at end. Char defaults to space"
+    }
+  },
+  "array_methods": {
+    "length": {
+      "params": [],
+      "return_type": "num",
+      "documentation": "Get the length of the array"
+    },
+    "len": {
+      "params": [],
+      "return_type": "num",
+      "documentation": "Get the length of the array (alias for length)"
+    },
+    "is_empty": {
+      "params": [],
+      "return_type": "bool",
+      "documentation": "Check if array is empty"
+    },
+    "push": {
+      "params": ["value: any"],
+      "return_type": "Array",
+      "documentation": "Add element to end (returns new array)"
+    },
+    "pop": {
+      "params": [],
+      "return_type": "any",
+      "documentation": "Get and remove last element"
+    },
+    "remove_last": {
+      "params": [],
+      "return_type": "Array",
+      "documentation": "Remove last element (returns new array)"
+    },
+    "get": {
+      "params": ["index: num"],
+      "return_type": "any",
+      "documentation": "Get element at index"
+    },
+    "set": {
+      "params": ["index: num", "value: any"],
+      "return_type": "Array",
+      "documentation": "Set element at index (returns new array)"
+    },
+    "slice": {
+      "params": ["start: num", "end: num"],
+      "return_type": "Array",
+      "documentation": "Get a slice of the array"
+    },
+    "reverse": {
+      "params": [],
+      "return_type": "Array",
+      "documentation": "Reverse the array (returns new array)"
+    },
+    "flatten": {
+      "params": [],
+      "return_type": "Array",
+      "documentation": "Flatten array of arrays by one level"
+    },
+    "sort": {
+      "params": [],
+      "return_type": "Array",
+      "documentation": "Sort array of numbers (returns new array)"
+    },
+    "unique": {
+      "params": [],
+      "return_type": "Array",
+      "documentation": "Remove duplicates (returns new array)"
+    },
+    "includes": {
+      "params": ["value: any"],
+      "return_type": "bool",
+      "documentation": "Check if array contains a value"
+    },
+    "index_of": {
+      "params": ["value: any"],
+      "return_type": "num",
+      "documentation": "Find the index of a value (-1 if not found)"
+    },
+    "first": {
+      "params": [],
+      "return_type": "any",
+      "documentation": "Get the first element"
+    },
+    "last": {
+      "params": [],
+      "return_type": "any",
+      "documentation": "Get the last element"
+    },
+    "take": {
+      "params": ["n: num"],
+      "return_type": "Array",
+      "documentation": "Take first n elements"
+    },
+    "skip": {
+      "params": ["n: num"],
+      "return_type": "Array",
+      "documentation": "Skip first n elements"
+    },
+    "sum": {
+      "params": [],
+      "return_type": "num",
+      "documentation": "Sum all numbers in array"
+    },
+    "average": {
+      "params": [],
+      "return_type": "num",
+      "documentation": "Average of all numbers in array"
+    }
+  },
+  "types": {
+    "Response": {
+      "kind": "struct",
+      "documentation": "HTTP Response object returned from web requests",
+      "fields": {
+        "status": {
+          "type": "num",
+          "documentation": "HTTP status code (e.g., 200, 404, 500)"
+        },
+        "headers": {
+          "type": "Headers",
+          "documentation": "HTTP response headers"
+        },
+        "body": {
+          "type": "Promise<Buffer>",
+          "documentation": "Response body as a Promise<Buffer>"
+        }
+      },
+      "methods": {
+        "json": {
+          "params": [],
+          "return_type": "Promise<Object>",
+          "documentation": "Parse response body as JSON"
+        },
+        "text": {
+          "params": [],
+          "return_type": "Promise<str>",
+          "documentation": "Get response body as text"
+        }
+      }
+    },
+    "RequestBuilder": {
+      "kind": "struct",
+      "documentation": "HTTP Request builder for constructing and sending HTTP requests",
+      "fields": {
+        "url": {
+          "type": "str",
+          "documentation": "The target URL for the request"
+        },
+        "method": {
+          "type": "str",
+          "documentation": "HTTP method (GET, POST, PUT, DELETE, etc.)"
+        },
+        "headers": {
+          "type": "Headers",
+          "documentation": "HTTP request headers"
+        },
+        "body": {
+          "type": "Buffer",
+          "documentation": "Request body data"
+        },
+        "timeout": {
+          "type": "num",
+          "documentation": "Request timeout in milliseconds"
+        },
+        "followRedirects": {
+          "type": "bool",
+          "documentation": "Whether to follow HTTP redirects"
+        }
+      },
+      "methods": {
+        "method": {
+          "params": ["method: str"],
+          "return_type": "RequestBuilder",
+          "documentation": "Set HTTP method (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, TRACE, CONNECT)"
+        },
+        "header": {
+          "params": ["key: str", "value: str"],
+          "return_type": "RequestBuilder",
+          "documentation": "Add a header to the request"
+        },
+        "body": {
+          "params": ["buffer: Buffer"],
+          "return_type": "RequestBuilder",
+          "documentation": "Set the request body as a Buffer"
+        },
+        "timeout": {
+          "params": ["milliseconds: num"],
+          "return_type": "RequestBuilder",
+          "documentation": "Set request timeout in milliseconds"
+        },
+        "followRedirects": {
+          "params": ["follow: bool"],
+          "return_type": "RequestBuilder",
+          "documentation": "Set whether to follow HTTP redirects automatically"
+        },
+        "send": {
+          "params": [],
+          "return_type": "Promise<Response>",
+          "documentation": "Execute the HTTP request and return a Promise<Response>"
+        }
+      }
+    },
+    "Buffer": {
+      "kind": "struct",
+      "documentation": "Binary data buffer",
+      "fields": {
+        "data": {
+          "type": "Array<num>",
+          "documentation": "Raw byte data as an array of numbers (0-255)"
+        },
+        "length": {
+          "type": "num",
+          "documentation": "Length of the buffer in bytes"
+        }
+      },
+      "methods": {}
+    },
+    "Headers": {
+      "kind": "struct",
+      "documentation": "HTTP headers collection",
+      "fields": {},
+      "methods": {}
+    }
+  },
+  "traits": {
+    "Add": {
+      "documentation": "Trait for addition operation (+)",
+      "methods": {
+        "add": {
+          "params": ["self", "other: any"],
+          "return_type": "any",
+          "documentation": "Add this value to another value"
+        }
+      }
+    },
+    "Sub": {
+      "documentation": "Trait for subtraction operation (-)",
+      "methods": {
+        "sub": {
+          "params": ["self", "other: any"],
+          "return_type": "any",
+          "documentation": "Subtract another value from this value"
+        }
+      }
+    },
+    "Mul": {
+      "documentation": "Trait for multiplication operation (*)",
+      "methods": {
+        "mul": {
+          "params": ["self", "other: any"],
+          "return_type": "any",
+          "documentation": "Multiply this value by another value"
+        }
+      }
+    },
+    "Div": {
+      "documentation": "Trait for division operation (/)",
+      "methods": {
+        "div": {
+          "params": ["self", "other: any"],
+          "return_type": "any",
+          "documentation": "Divide this value by another value"
+        }
+      }
+    },
+    "Index": {
+      "documentation": "Trait for indexing operation ([])",
+      "methods": {
+        "index": {
+          "params": ["self", "index: any"],
+          "return_type": "any",
+          "documentation": "Get a value at the specified index"
+        }
+      }
+    },
+    "ToString": {
+      "documentation": "Trait for string conversion",
+      "methods": {
+        "to_string": {
+          "params": ["self"],
+          "return_type": "str",
+          "documentation": "Convert the value to a string representation"
+        }
+      }
+    },
+    "Printable": {
+      "documentation": "Trait for values that can be printed to the terminal",
+      "methods": {
+        "print": {
+          "params": ["self"],
+          "return_type": "str",
+          "documentation": "Return a string representation for printing"
+        }
+      }
+    }
+  }
+}

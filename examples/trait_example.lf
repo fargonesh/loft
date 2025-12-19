@@ -1,0 +1,33 @@
+def Vector {
+    x: num,
+    y: num
+}
+
+impl Mul for Vector {
+    fn mul(self, other: Vector) -> Vector {
+        return Vector {
+            x: self.x * other.x,
+            y: self.y * other.y,
+        };
+    }
+}
+trait Test {
+}
+// Impl V - doesnt autocmplete 'Vector'
+impl Vector {
+    fn x_comp(self) -> num {
+        self.x  // No autocomplete after 'self.'
+        // Also self should be a keyword in the syntax highlighting
+    }
+}
+impl Printable for Vector {
+    fn print(self) -> str {
+        return "Vector(" + self.x + ", " + self.y + ")";
+    }
+}
+let v1 = Vector {
+    x: 2,
+    y: 3
+};
+// let v2 = Vector { x: 4, y: 5 };
+term.print(v1);

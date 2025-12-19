@@ -1,0 +1,14 @@
+enum Result {
+    Ok(num),
+    Err(str),
+}
+
+let ok_val = Result.Ok(42);
+let unwrapped1 = ok_val?;
+term.println("Unwrapped Ok:");
+term.println(unwrapped1);
+
+let err_val = Result.Err("error occurred");
+let unwrapped2 = err_val?;
+term.println("Unwrapped Err:");
+term.println(unwrapped2);

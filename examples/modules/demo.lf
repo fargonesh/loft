@@ -1,0 +1,24 @@
+// Demonstrate module imports
+
+learn "./math_utils";
+learn "./string_utils";
+
+term.println("=== Math Utilities ===");
+let squared = math_utils.square(7);
+term.println("7 squared:");
+term.println(squared);
+
+let added = math_utils.add(15, 25);
+term.println("15 + 25:");
+term.println(added);
+
+term.println("\n=== String Utilities ===");
+let joined = string_utils.concat("Hello, ", "World!");
+term.println("Concatenated:");
+term.println(joined);
+
+term.println("\n=== Using Multiple Modules ===");
+let calc = math_utils.cube(4);
+let message = string_utils.concat("Result: ", "done");
+term.println(calc);
+term.println(message);

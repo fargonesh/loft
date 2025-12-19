@@ -1,0 +1,30 @@
+// File Processor - Closure demonstration
+
+term.println("=== File Processor ===\n");
+
+// Higher-order function
+fn transform(value: num, func: any) -> num {
+    return func(value);
+}
+
+// Closures
+let multiplier = 2;
+let double = (x: num) => x * multiplier;
+
+let offset = 10;
+let add_offset = (x: num) => x + offset;
+
+// Process data
+let data = 5;
+term.println("Original:");
+term.println(data);
+
+let doubled = transform(data, double);
+term.println("After doubling:");
+term.println(doubled);
+
+let final_val = transform(doubled, add_offset);
+term.println("After adding offset:");
+term.println(final_val);
+
+term.println("\n=== File Processor Complete ===");

@@ -1,0 +1,38 @@
+// FFI Simple Example: Quick and easy FFI calls
+//
+// This example demonstrates the simplified API for calling
+// foreign functions without explicitly getting symbols first.
+
+// Load the math library
+let libm = ffi.load("libm.so.6");
+
+// Call functions directly with: lib.call("symbol", "signature", args...)
+term.println("Using simplified API:");
+
+// sqrt(16.0)
+let result1 = libm.call("sqrt", "f64(f64)", 16.0);
+term.println("sqrt(16.0) = " + result1.to_string());
+
+// sin(π/2) ≈ 1.0
+let result2 = libm.call("sin", "f64(f64)", 1.5707963267948966);
+term.println("sin(π/2) ≈ " + result2.to_string());
+
+// cos(0.0) = 1.0
+let result3 = libm.call("cos", "f64(f64)", 0.0);
+term.println("cos(0.0) = " + result3.to_string());
+
+// pow(3.0, 4.0) = 81.0
+let result4 = libm.call("pow", "f64(f64, f64)", 3.0, 4.0);
+term.println("pow(3.0, 4.0) = " + result4.to_string());
+
+// More math functions
+let result5 = libm.call("floor", "f64(f64)", 3.7);
+term.println("floor(3.7) = " + result5.to_string());
+
+let result6 = libm.call("ceil", "f64(f64)", 3.2);
+term.println("ceil(3.2) = " + result6.to_string());
+
+let result7 = libm.call("fabs", "f64(f64)", -42.5);
+term.println("fabs(-42.5) = " + result7.to_string());
+
+term.println("\nSimplified FFI demonstration complete!");

@@ -1,0 +1,77 @@
+// Comprehensive enum and pattern matching example
+
+// Simple enum with unit variants
+enum Color {
+    Red,
+    Green,
+    Blue,
+}
+
+// Enum with tuple variants
+enum Shape {
+    Circle(num),
+    Rectangle(num, num),
+    Triangle(num, num, num),
+}
+
+// Enum for error handling (Option-like)
+enum Maybe {
+    Some(str),
+    None,
+}
+
+term.println("=== Testing Unit Variants ===");
+let color = Color.Red;
+term.println(color);
+
+let color_name = match color {
+    Color.Red => "red",
+    Color.Green => "green",
+    Color.Blue => "blue",
+};
+term.println(color_name);
+
+term.println("\n=== Testing Tuple Variants ===");
+let circle = Shape.Circle(5);
+term.println(circle);
+
+let area = match circle {
+    Shape.Circle(r) => {
+        term.println("Calculating circle area");
+        let pi = 3.14159;
+        pi * r * r
+    },
+    Shape.Rectangle(w, h) => w * h,
+    Shape.Triangle(a, b, c) => {
+        // Heron's formula
+        let s = (a + b + c) / 2;
+        term.println("Triangle area calculation not fully implemented");
+        0
+    },
+};
+term.println(area);
+
+let rect = Shape.Rectangle(10, 20);
+let rect_area = match rect {
+    Shape.Circle(r) => 3.14159 * r * r,
+    Shape.Rectangle(w, h) => w * h,
+    Shape.Triangle(a, b, c) => 0,
+};
+term.println(rect_area);
+
+term.println("\n=== Testing Option-like Pattern ===");
+let some_value = Maybe.Some("Hello, World!");
+let message = match some_value {
+    Maybe.Some(val) => val,
+    Maybe.None => "No value",
+};
+term.println(message);
+
+let no_value = Maybe.None;
+let empty_message = match no_value {
+    Maybe.Some(val) => val,
+    Maybe.None => "Empty!",
+};
+term.println(empty_message);
+
+term.println("\n=== Pattern Matching Complete! ===");

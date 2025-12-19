@@ -1,0 +1,13 @@
+learn "./math_utils";
+
+let result = math_utils.square(5);
+term.println("Square of 5:");
+term.println(result);
+
+let cubed = math_utils.cube(3);
+term.println("Cube of 3:");
+term.println(cubed);
+
+let sum = math_utils.add(10, 20);
+term.println("10 + 20:");
+term.println(sum);

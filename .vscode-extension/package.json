@@ -1,0 +1,53 @@
+{
+  "name": "loft",
+  "displayName": "loft Language Support",
+  "description": "Language support for loft programming language with syntax highlighting and LSP features",
+  "version": "0.2.0",
+  "publisher": "loft",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tascord/twang"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:loft"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "loft.restartLanguageServer",
+        "title": "Restart Language Server",
+        "category": "loft"
+      }
+    ],
+    "languages": [
+      {
+        "id": "loft",
+        "aliases": [
+          "loft",
+          "loft"
+        ],
+        "extensions": [
+          ".lf"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "loft",
+        "scopeName": "source.loft",
+        "path": "./syntaxes/loft.tmLanguage.json"
+      }
+    ]
+  },
+  "dependencies": {
+    "vscode-languageclient": "^8.1.0"
+  }
+}

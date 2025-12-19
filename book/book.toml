@@ -1,0 +1,16 @@
+[book]
+title = "loft Programming Language Guide"
+authors = ["loft Contributors"]
+description = "A comprehensive guide to the loft programming language, covering language features, standard library, and internal architecture."
+language = "en"
+src = "src"
+
+[build]
+build-dir = "book"
+create-missing = false
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/tascord/twang"
+edit-url-template = "https://github.com/tascord/twang/edit/main/book/{path}"

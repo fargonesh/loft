@@ -1,0 +1,99 @@
+// Comprehensive showcase of loft features
+
+term.println("=== LOFT LANGUAGE SHOWCASE ===\n");
+
+// 1. Basic types and operations
+term.println("1. Basic Operations:");
+let num = 42;
+let text = "Hello, loft!";
+let flag = true;
+term.println(num);
+term.println(text);
+
+// 2. Closures
+term.println("\n2. Closures:");
+let multiplier = 3;
+let triple = (x: num) => x * multiplier;
+term.println(triple(7));
+
+// 3. Enums with unit variants
+term.println("\n3. Enums - Unit Variants:");
+enum Status {
+    Active,
+    Inactive,
+    Pending,
+}
+
+let current_status = Status.Active;
+let status_name = match current_status {
+    Status.Active => "System is active",
+    Status.Inactive => "System is inactive",
+    Status.Pending => "System is pending",
+};
+term.println(status_name);
+
+// 4. Enums with tuple variants
+term.println("\n4. Enums - Tuple Variants:");
+enum Data {
+    Number(num),
+    Text(str),
+    Pair(num, num),
+}
+
+let my_data = Data.Pair(10, 20);
+let result = match my_data {
+    Data.Number(n) => n,
+    Data.Text(t) => 0,
+    Data.Pair(a, b) => a + b,
+};
+term.println("Pair sum:");
+term.println(result);
+
+// 5. Option-like enum
+term.println("\n5. Option Pattern:");
+enum Optional {
+    Some(str),
+    None,
+}
+
+let maybe_value = Optional.Some("Found it!");
+let message = match maybe_value {
+    Optional.Some(val) => val,
+    Optional.None => "Nothing here",
+};
+term.println(message);
+
+// 6. Result-like enum
+term.println("\n6. Result Pattern:");
+enum Outcome {
+    Success(num),
+    Failure(str),
+}
+
+let operation = Outcome.Success(100);
+let outcome_msg = match operation {
+    Outcome.Success(val) => "Operation succeeded",
+    Outcome.Failure(err) => "Operation failed",
+};
+term.println(outcome_msg);
+
+// 7. Functions
+term.println("\n7. Functions:");
+fn calculate(a: num, b: num) -> num {
+    return a * b + 10;
+}
+let calc_result = calculate(5, 6);
+term.println(calc_result);
+
+// 8. Structs
+term.println("\n8. Structs:");
+def Point {
+    x: num,
+    y: num,
+}
+
+let p = Point { x: 10, y: 20 };
+term.println(p.x);
+term.println(p.y);
+
+term.println("\n=== SHOWCASE COMPLETE ===");

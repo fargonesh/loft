@@ -1,0 +1,46 @@
+// Comprehensive Error Handling Example
+
+enum Result {
+    Ok(num),
+    Err(str),
+}
+
+enum Option {
+    Some(str),
+    None,
+}
+
+term.println("=== Error Propagation with ? Operator ===\n");
+
+// Example 1: Basic unwrapping
+term.println("1. Basic unwrapping:");
+let success = Result.Ok(100);
+let value = success?;
+term.println(value);
+
+// Example 2: Error propagation
+term.println("\n2. Error propagation:");
+let failure = Result.Err("Something went wrong");
+let error = failure?;
+term.println(error);
+
+// Example 3: Option unwrapping
+term.println("\n3. Option handling:");
+let some_value = Option.Some("Hello!");
+let text = some_value?;
+term.println(text);
+
+let none_value = Option.None;
+let nothing = none_value?;
+term.println(nothing);
+
+// Example 4: Pattern matching for detailed handling
+term.println("\n4. Pattern matching:");
+let result = Result.Err("File not found");
+let message = match result {
+    Result.Ok(val) => "Success!",
+    Result.Err(err) => err,
+};
+term.println(message);
+
+term.println("\n=== Error Handling Complete ===");

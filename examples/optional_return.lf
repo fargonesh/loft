@@ -1,0 +1,14 @@
+// Test optional return types
+
+fn greet(name: str) {
+    term.println("Hello");
+    term.println(name);
+}
+
+fn add(a: num, b: num) -> num {
+    return a + b;
+}
+
+greet("World");
+let sum = add(5, 3);
+term.println(sum);

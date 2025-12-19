@@ -1,0 +1,18 @@
+// Module with exported functions
+
+teach fn square(x: num) -> num {
+    return x * x;
+}
+
+teach fn cube(x: num) -> num {
+    return x * x * x;
+}
+
+// This function is not exported
+fn helper() -> str {
+    return "internal helper";
+}
+
+teach fn add(a: num, b: num) -> num {
+    return a + b;
+}

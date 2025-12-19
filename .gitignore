@@ -1,0 +1,12 @@
+/target
+loft_builtin_macros/target
+**/node_modules
+*.vsix
+.devenv/
+.twlibs/
+registry-storage/
+stdlib-docs/
+www/dist
+result
+.env
+*.log

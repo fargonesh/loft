@@ -1,0 +1,39 @@
+// FFI Example: Using libm (math library) functions via FFI
+//
+// This example demonstrates how to use Twang's FFI system to call
+// native C functions from shared libraries.
+
+// Load the math library (libm)
+// On Linux: libm.so.6
+// On macOS: libm.dylib
+// On Windows: msvcrt.dll (or similar)
+
+
+let lib = ffi.load("libm.so.6");
+
+// Get a symbol (function) from the library
+let sqrt_fn = lib.symbol("sqrt");
+let sin_fn = lib.symbol("sin");
+let cos_fn = lib.symbol("cos");
+let pow_fn = lib.symbol("pow");
+
+// Call the functions with the appropriate signature
+// Signature format: "return_type(arg_type1, arg_type2, ...)"
+
+// sqrt(16.0) = 4.0
+let result1 = sqrt_fn.call("f64(f64)", 16.0);
+term.println("sqrt(16.0) = " + result1.to_string());
+
+// sin(0.0) = 0.0
+let result2 = sin_fn.call("f64(f64)", 0.0);
+term.println("sin(0.0) = " + result2.to_string());
+
+// cos(0.0) = 1.0
+let result3 = cos_fn.call("f64(f64)", 0.0);
+term.println("cos(0.0) = " + result3.to_string());
+
+// pow(2.0, 3.0) = 8.0
+let result4 = pow_fn.call("f64(f64, f64)", 2.0, 3.0);
+term.println("pow(2.0, 3.0) = " + result4.to_string());
+
+term.println("\nFFI demonstration complete!");

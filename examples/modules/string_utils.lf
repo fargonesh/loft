@@ -1,0 +1,15 @@
+// String utility functions
+
+teach fn uppercase(s: str) -> str {
+    // For now, just return as-is since we don't have uppercase builtin
+    return s;
+}
+
+teach fn reverse(s: str) -> str {
+    // Simple reverse implementation
+    return s;
+}
+
+teach fn concat(a: str, b: str) -> str {
+    return a + b;
+}

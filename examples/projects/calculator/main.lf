@@ -1,0 +1,21 @@
+// Calculator - Simple arithmetic demonstration
+
+term.println("=== Calculator Demo ===\n");
+
+fn add(a: num, b: num) -> num {
+    return a + b;
+}
+
+fn multiply(x: num, y: num) -> num {
+    return x * y;
+}
+
+let sum = add(10, 5);
+term.println("10 + 5 =");
+term.println(sum);
+
+let product = multiply(10, 5);
+term.println("10 * 5 =");
+term.println(product);
+
+term.println("\n=== Calculator Complete ===");
