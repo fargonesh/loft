@@ -40,7 +40,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Rust
+      - name: Install Nix
+        if: matrix.os != 'windows-latest'
+        uses: cachix/install-nix-action@v27
+
+      - name: Install devenv
+        if: matrix.os != 'windows-latest'
+        uses: cachix/devenv-action@v1
+
+      - name: Setup Rust (Windows)
+        if: matrix.os == 'windows-latest'
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -54,10 +63,13 @@ jobs:
           sudo apt-get install -y gcc-aarch64-linux-gnu
 
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --target ${{ matrix.target }}
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            cargo build --release --target ${{ matrix.target }}
+          else
+            devenv shell cargo build --release --target ${{ matrix.target }}
+          fi
+        shell: bash
 
       - name: Strip binary (Unix)
         if: matrix.os != 'windows-latest'
@@ -105,23 +117,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+
+      - name: Install devenv
+        uses: cachix/devenv-action@v1
 
       - name: Run tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all-features
+        run: devenv shell cargo test -- --all-features
 
       - name: Run clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
+        run: devenv shell cargo clippy -- -D warnings
 
   build-book:
     name: Build Documentation
