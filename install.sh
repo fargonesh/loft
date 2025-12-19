@@ -4,7 +4,7 @@ set -e
 # loft installation script
 # Usage: curl -fsSL https://loft.fargone.sh/install.sh | sh
 
-REPO="tascord/twang"
+REPO="fargonesh/loft"
 BINARY_NAME="loft"
 
 # Detect OS and architecture

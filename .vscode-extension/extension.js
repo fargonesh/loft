@@ -17,7 +17,7 @@ function activate(context) {
         await restartLanguageServer();
     });
     context.subscriptions.push(restartCommand);
-    outputChannel.appendLine('Registered restart command: twang.restartLanguageServer');
+    outputChannel.appendLine('Registered restart command: loft.restartLanguageServer');
 
     // Start the language server
     startLanguageServer(context);
@@ -104,7 +104,7 @@ async function restartLanguageServer() {
         outputChannel.appendLine('Client restarted successfully');
     } catch (error) {
         outputChannel.appendLine(`ERROR during restart: ${error}`);
-        vscode.window.showErrorMessage(`Failed to restart Twang Language Server: ${error.message}`);
+        vscode.window.showErrorMessage(`Failed to restart Loft Language Server: ${error.message}`);
     }
 }
 

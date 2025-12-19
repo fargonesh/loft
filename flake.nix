@@ -48,7 +48,7 @@
 
           meta = with pkgs.lib; {
             description = "A modern, interpreted programming language with LSP support";
-            homepage = "https://github.com/tascord/twang";
+            homepage = "https://github.com/fargonesh/loft";
             license = licenses.mit;
             maintainers = [ ];
           };

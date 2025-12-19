@@ -53,7 +53,7 @@ impl DocGenerator {
         }
     }
 
-    /// Parse a Twang file and extract documentation items
+    /// Parse a loft file and extract documentation items
     pub fn parse_file<P: AsRef<Path>>(&mut self, path: P) -> Result<(), String> {
         let path = path.as_ref();
         let content = fs::read_to_string(path)
@@ -406,7 +406,7 @@ impl DocGenerator {
         html.push_str("<head>\n");
         html.push_str("    <meta charset=\"UTF-8\">\n");
         html.push_str("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n");
-        html.push_str(&format!("    <title>{} - Twang Documentation</title>\n", package_name));
+        html.push_str(&format!("    <title>{} - loft Documentation</title>\n", package_name));
         html.push_str("    <link rel=\"stylesheet\" href=\"style.css\">\n");
         html.push_str("</head>\n");
         html.push_str("<body>\n");

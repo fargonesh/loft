@@ -363,17 +363,17 @@
         "parse": {
           "params": ["json_string: str"],
           "return_type": "Object",
-          "documentation": "Parse a JSON string into a Twang value"
+          "documentation": "Parse a JSON string into a loft value"
         },
         "stringify": {
           "params": ["value: any"],
           "return_type": "str",
-          "documentation": "Convert a Twang value to a JSON string"
+          "documentation": "Convert a loft value to a JSON string"
         },
         "stringify_pretty": {
           "params": ["value: any"],
           "return_type": "str",
-          "documentation": "Convert a Twang value to a pretty-printed JSON string"
+          "documentation": "Convert a loft value to a pretty-printed JSON string"
         }
       }
     },

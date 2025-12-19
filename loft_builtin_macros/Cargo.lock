@@ -32,7 +32,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "twang_builtin_macros"
+name = "loft_builtin_macros"
 version = "0.1.0"
 dependencies = [
  "proc-macro2",

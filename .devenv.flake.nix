@@ -4,9 +4,9 @@
       vars = {
   version = "1.11.2";
   system = "x86_64-linux";
-  devenv_root = "/home/flora/Projects/twang";
-  project_input_ref = "path:/home/flora/Projects/twang";
-  devenv_dotfile = "/home/flora/Projects/twang/.devenv";
+  devenv_root = "/home/flora/Projects/loft";
+  project_input_ref = "path:/home/flora/Projects/loft";
+  devenv_dotfile = "/home/flora/Projects/loft/.devenv";
   devenv_dotfile_path = ./.devenv;
   devenv_tmpdir = "/run/user/1000";
   devenv_runtime = "/run/user/1000/devenv-362e630";
@@ -17,7 +17,7 @@
   ];
   hostname = "floramobile";
   username = "flora";
-  git_root = "/home/flora/Projects/twang";
+  git_root = "/home/flora/Projects/loft";
   secretspec = null;
 };
     in
@@ -41,9 +41,9 @@
       vars = {
   version = "1.11.2";
   system = "x86_64-linux";
-  devenv_root = "/home/flora/Projects/twang";
-  project_input_ref = "path:/home/flora/Projects/twang";
-  devenv_dotfile = "/home/flora/Projects/twang/.devenv";
+  devenv_root = "/home/flora/Projects/loft";
+  project_input_ref = "path:/home/flora/Projects/loft";
+  devenv_dotfile = "/home/flora/Projects/loft/.devenv";
   devenv_dotfile_path = ./.devenv;
   devenv_tmpdir = "/run/user/1000";
   devenv_runtime = "/run/user/1000/devenv-362e630";
@@ -54,7 +54,7 @@
   ];
   hostname = "floramobile";
   username = "flora";
-  git_root = "/home/flora/Projects/twang";
+  git_root = "/home/flora/Projects/loft";
   secretspec = null;
 };
       devenv =

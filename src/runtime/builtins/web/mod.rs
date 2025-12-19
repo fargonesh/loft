@@ -469,8 +469,8 @@ fn web_json(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
                         let json_value: serde_json::Value = serde_json::from_str(&json_str)
                             .map_err(|e| RuntimeError::new(format!("Invalid JSON: {}", e)))?;
                         
-                        let twang_value = json_to_loft_value(json_value)?;
-                        return Ok(Value::Promise(Box::new(twang_value)));
+                        let loft_value = json_to_loft_value(json_value)?;
+                        return Ok(Value::Promise(Box::new(loft_value)));
                     }
                 }
             }

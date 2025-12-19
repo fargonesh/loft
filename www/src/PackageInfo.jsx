@@ -23,7 +23,7 @@ const PackageInfo = () => {
         description: 'The loft standard library',
         authors: ['The loft Team'],
         license: 'MIT',
-        repository: 'https://github.com/tascord/twang'
+        repository: 'https://github.com/fargonesh/loft'
       }]);
       setLoading(false);
       return;

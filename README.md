@@ -35,8 +35,8 @@ Alternatively, build from source:
 
 ```bash
 # Clone the repository
-git clone https://github.com/tascord/twang.git
-cd twang
+git clone https://github.com/fargonesh/loft.git
+cd loft
 
 # Build the project
 cargo build --release

@@ -110,7 +110,7 @@ if [ ! -f "Cargo.toml" ]; then
 fi
 
 # Step 1: Install the LSP server
-print_status "Installing Twang LSP server to Cargo bin..."
+print_status "Installing loft LSP server to Cargo bin..."
 if cargo install --path . --force --bin loft-lsp; then
     print_success "LSP server installed successfully"
 else
@@ -186,7 +186,7 @@ fi
 
 if [ $? -eq 0 ]; then
     echo ""
-    print_success "🎉 Twang VSCode Extension with LSP installed successfully!"
+    print_success "🎉 loft VSCode Extension with LSP installed successfully!"
     echo ""
     echo "📋 Installation Summary:"
     echo "   Extension: $EXT_DIR"
@@ -203,14 +203,14 @@ if [ $? -eq 0 ]; then
     if [ "$REMOTE_MODE" = true ]; then
         echo "   1. Reload the VSCode window (Ctrl+Shift+P -> 'Developer: Reload Window')"
         echo "   2. Open any .lf file in the remote workspace"
-        echo "   3. Check 'Twang LSP' in Output panel for server logs"
+        echo "   3. Check 'loft LSP' in Output panel for server logs"
         echo "   4. Test auto-completion with Ctrl+Space"
         echo ""
         echo "   Note: For remote SSH, you may need to reload the window instead of restarting VSCode"
     else
         echo "   1. Restart VSCode (close all windows and reopen)"
         echo "   2. Open any .lf file"
-        echo "   3. Check 'Twang LSP' in Output panel for server logs"
+        echo "   3. Check 'loft LSP' in Output panel for server logs"
         echo "   4. Test auto-completion with Ctrl+Space"
     fi
     echo ""

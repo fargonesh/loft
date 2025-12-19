@@ -1,6 +1,6 @@
 // FFI Example: Using libm (math library) functions via FFI
 //
-// This example demonstrates how to use Twang's FFI system to call
+// This example demonstrates how to use loft's FFI system to call
 // native C functions from shared libraries.
 
 // Load the math library (libm)

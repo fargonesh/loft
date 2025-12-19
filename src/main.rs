@@ -420,7 +420,7 @@ fn run_from_manifest() {
             match e {
                 loft::manifest::ManifestError::NotFound => {
                     println!("{}: No manifest.json found in current directory or parent directories", "Error".bright_red().bold());
-                    println!("Run {} to create a new project or specify a file to run", "twang new <project-name>".bright_cyan());
+                    println!("Run {} to create a new project or specify a file to run", "loft new <project-name>".bright_cyan());
                 }
                 _ => {
                     println!("{}: Failed to load manifest.json: {}", "Error".bright_red().bold(), e);
@@ -444,7 +444,7 @@ fn run_new(name: &str) {
         
         let project_name = current_dir.file_name()
             .and_then(|n| n.to_str())
-            .unwrap_or("twang-project")
+            .unwrap_or("loft-project")
             .to_string();
             
         (current_dir, project_name)
@@ -531,11 +531,11 @@ term.println("The answer is:", y);
     println!();
     if name == "." {
         println!("To get started:");
-        println!("  {} {}", "twang".bright_cyan(), ".");
+        println!("  {} {}", "loft".bright_cyan(), ".");
     } else {
         println!("To get started:");
         println!("  {} {}", "cd".bright_cyan(), name);
-        println!("  {} {}", "twang".bright_cyan(), ".");
+        println!("  {} {}", "loft".bright_cyan(), ".");
     }
 }
 
@@ -550,7 +550,7 @@ fn run_add(dep_name: &str, dep_path: Option<&str>, version_constraint: Option<&s
     
     if !manifest_path.exists() {
         println!("{}: No manifest.json found in current directory", "Error".bright_red().bold());
-        println!("Run {} to create a new project", "twang new <project-name>".bright_cyan());
+        println!("Run {} to create a new project", "loft new <project-name>".bright_cyan());
         std::process::exit(1);
     }
     
@@ -779,7 +779,7 @@ fn run_update(specific_package: Option<&str>) {
     
     if !manifest_path.exists() {
         println!("{}: No manifest.json found in current directory", "Error".bright_red().bold());
-        println!("Run {} to create a new project", "twang new <project-name>".bright_cyan());
+        println!("Run {} to create a new project", "loft new <project-name>".bright_cyan());
         std::process::exit(1);
     }
     

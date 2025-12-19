@@ -12,5 +12,5 @@ create-missing = false
 [output.html]
 default-theme = "light"
 preferred-dark-theme = "navy"
-git-repository-url = "https://github.com/tascord/twang"
-edit-url-template = "https://github.com/tascord/twang/edit/main/book/{path}"
+git-repository-url = "https://github.com/fargonesh/loft"
+edit-url-template = "https://github.com/fargonesh/loft/edit/main/book/{path}"
