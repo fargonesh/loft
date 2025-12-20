@@ -137,10 +137,16 @@ jobs:
               BRANCH_NAME=$(git log -1 --pretty=%B | grep -oP "(?<=Merge branch ')[^']+" || echo "")
             fi
             
-            if [[ $BRANCH_NAME =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-              echo "name=v$BRANCH_NAME" >> $GITHUB_OUTPUT
+            # If still empty, check if the commit message itself looks like a version (for squashed PRs)
+            if [[ -z "$BRANCH_NAME" ]]; then
+              BRANCH_NAME=$(git log -1 --pretty=%B | head -n 1 | grep -oP "^v?[0-9]+\.[0-9]+\.[0-9]+[^ ]*" || echo "")
+            fi
+
+            if [[ $BRANCH_NAME =~ ^v?([0-9]+\.[0-9]+\.[0-9]+.*) ]]; then
+              VERSION=${BASH_REMATCH[1]}
+              echo "name=v$VERSION" >> $GITHUB_OUTPUT
             else
-              echo "No version-like branch name found in merge commit. Skipping release."
+              echo "No version-like branch name or commit message found. Skipping release."
               exit 0
             fi
           fi
