@@ -25,6 +25,40 @@ fn term_println(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     Ok(Value::Unit)
 }
 
+/// Alias for println (for console migration)
+#[loft_builtin(term.log)]
+fn term_log(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    term_println(this, args)
+}
+
+/// Alias for println with [ERROR] prefix
+#[loft_builtin(term.error)]
+fn term_error(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    print!("\x1B[31m[ERROR]\x1B[0m ");
+    term_println(this, args)
+}
+
+/// Alias for println with [WARN] prefix
+#[loft_builtin(term.warn)]
+fn term_warn(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    print!("\x1B[33m[WARN]\x1B[0m ");
+    term_println(this, args)
+}
+
+/// Alias for println with [INFO] prefix
+#[loft_builtin(term.info)]
+fn term_info(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    print!("\x1B[34m[INFO]\x1B[0m ");
+    term_println(this, args)
+}
+
+/// Alias for println with [DEBUG] prefix
+#[loft_builtin(term.debug)]
+fn term_debug(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    print!("\x1B[36m[DEBUG]\x1B[0m ");
+    term_println(this, args)
+}
+
 /// Clear the terminal screen
 #[loft_builtin(term.clear)]
 fn term_clear(_this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
