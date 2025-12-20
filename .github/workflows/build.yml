@@ -131,10 +131,10 @@ jobs:
             echo "name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           else
             # Try to get branch name from merge commit
-            BRANCH_NAME=$(git log -1 --pretty=%B | grep -oP 'Merge pull request #[0-9]+ from [^/]+/\K[^ ]+' || echo "")
+            BRANCH_NAME=$(git log -1 --pretty=%B | grep -oP "Merge pull request #[0-9]+ from [^/]+/\K[^ ]+" || echo "")
             if [[ -z "$BRANCH_NAME" ]]; then
               # Fallback to checking if the commit message contains a version-like string
-              BRANCH_NAME=$(git log -1 --pretty=%B | grep -oP '(?<=Merge branch \')[^\']+' || echo "")
+              BRANCH_NAME=$(git log -1 --pretty=%B | grep -oP "(?<=Merge branch ')[^']+" || echo "")
             fi
             
             if [[ $BRANCH_NAME =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
@@ -158,7 +158,7 @@ jobs:
           tag_name: ${{ steps.tag.outputs.name }}
           files: artifacts/**/*
           draft: false
-          prerelease: contains(steps.tag.outputs.name, '-')
+          prerelease: ${{ contains(steps.tag.outputs.name, '-') }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
