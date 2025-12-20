@@ -4850,7 +4850,7 @@ impl LanguageServer for LoftLanguageServer {
                     }));
                 }
                 
-                // Offer to migrate console.* to term.* (since they're now merged)
+                // Offer to migrate console.* to term.* (since console is now removed)
                 if word == "console" {
                     let line_text = line.trim();
                     if line_text.contains("console.") {

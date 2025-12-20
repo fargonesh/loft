@@ -39,7 +39,6 @@
 - [Math (math)](./stdlib/math.md)
 - [File System (fs)](./stdlib/fs.md)
 - [Time (time)](./stdlib/time.md)
-- [Console (console)](./stdlib/console.md)
 
 # Tools and Development
 
