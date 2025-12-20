@@ -8,7 +8,6 @@ pub mod collections;
 pub mod io;
 pub mod web;
 pub mod json;
-pub mod console;
 pub mod object;
 pub mod encoding;
 pub mod random;

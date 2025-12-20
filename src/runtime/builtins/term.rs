@@ -168,7 +168,7 @@ fn format_value(value: &Value) -> String {
     }
 }
 
-/// Log values to console (alias for term.println)
+/// Log values to the terminal
 #[loft_builtin(term.log)]
 fn term_log(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     for (i, arg) in args.iter().enumerate() {
@@ -181,7 +181,7 @@ fn term_log(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     Ok(Value::Unit)
 }
 
-/// Log an error message to console
+/// Log an error message to the terminal
 #[loft_builtin(term.error)]
 fn term_error(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     eprint!("[ERROR] ");
@@ -195,7 +195,7 @@ fn term_error(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     Ok(Value::Unit)
 }
 
-/// Log a warning message to console
+/// Log a warning message to the terminal
 #[loft_builtin(term.warn)]
 fn term_warn(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     eprint!("[WARN] ");
@@ -209,7 +209,7 @@ fn term_warn(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     Ok(Value::Unit)
 }
 
-/// Log an info message to console
+/// Log an info message to the terminal
 #[loft_builtin(term.info)]
 fn term_info(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     print!("[INFO] ");
@@ -223,7 +223,7 @@ fn term_info(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     Ok(Value::Unit)
 }
 
-/// Log a debug message to console
+/// Log a debug message to the terminal
 #[loft_builtin(term.debug)]
 fn term_debug(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     print!("[DEBUG] ");
@@ -248,7 +248,7 @@ pub fn create_term_builtin() -> BuiltinStruct {
     term.add_method("size", term_size as BuiltinMethod);
     term.add_method("color", term_color as BuiltinMethod);
     
-    // Console-style methods (merged from console module)
+    // Logging methods
     term.add_method("log", term_log as BuiltinMethod);
     term.add_method("error", term_error as BuiltinMethod);
     term.add_method("warn", term_warn as BuiltinMethod);
