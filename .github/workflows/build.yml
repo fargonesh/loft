@@ -40,36 +40,39 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Nix
-        if: matrix.os != 'windows-latest'
-        uses: cachix/install-nix-action@v27
-
-      - name: Install devenv
-        if: matrix.os != 'windows-latest'
-        uses: cachix/devenv-action@v1
-
-      - name: Setup Rust (Windows)
-        if: matrix.os == 'windows-latest'
+      - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           target: ${{ matrix.target }}
           override: true
 
+      - name: Install dependencies
+        if: matrix.os != 'windows-latest'
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt-get update
+            sudo apt-get install -y libssl-dev pkg-config lld mold
+            if [ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]; then
+              sudo dpkg --add-architecture arm64
+              sudo apt-get update
+              sudo apt-get install -y libssl-dev:arm64
+            fi
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            brew install openssl pkg-config
+          fi
+        shell: bash
+
       - name: Install cross-compilation tools (Linux ARM64)
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
-          sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu
 
       - name: Build
-        run: |
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            cargo build --release --target ${{ matrix.target }}
-          else
-            devenv shell cargo build --release --target ${{ matrix.target }}
-          fi
-        shell: bash
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --target ${{ matrix.target }}
 
       - name: Strip binary (Unix)
         if: matrix.os != 'windows-latest'
@@ -117,17 +120,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Nix
-        uses: cachix/install-nix-action@v27
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
 
-      - name: Install devenv
-        uses: cachix/devenv-action@v1
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev pkg-config lld mold
+        shell: bash
 
       - name: Run tests
-        run: devenv shell cargo test -- --all-features
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-features
 
       - name: Run clippy
-        run: devenv shell cargo clippy -- -D warnings
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -- -D warnings
 
   build-book:
     name: Build Documentation
