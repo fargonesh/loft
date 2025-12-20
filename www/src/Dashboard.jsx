@@ -121,9 +121,9 @@ const Dashboard = () => {
                   placeholder="Token Name (e.g. CI/CD)" 
                   value={newTokenName}
                   onChange={(e) => setNewTokenName(e.target.value)}
-                  className="flex-1"
+                  className="flex-1 py-2"
                 />
-                <Button onClick={createToken} variant="primary">Create Token</Button>
+                <Button onClick={createToken} className='text-white'>Create Token</Button>
               </div>
 
               {createdToken && (
@@ -149,7 +149,7 @@ const Dashboard = () => {
                         <Text className="font-medium text-bio-black">{token.name}</Text>
                         <Text className="text-xs text-gray-500">Created on {new Date(token.created_at).toLocaleDateString()}</Text>
                       </div>
-                      <Button onClick={() => revokeToken(token.id)} variant="danger" size="sm" className="text-red-600 hover:bg-red-50 border-red-200">Revoke</Button>
+                      <Button onClick={() => revokeToken(token.id)} className="text-red-600 hover:bg-red-50 border-red-200">Revoke</Button>
                     </div>
                   ))
                 ) : (
