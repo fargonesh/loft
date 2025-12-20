@@ -179,7 +179,7 @@ mod tests {
         match result.unwrap() {
             Value::Number(n) => {
                 let val = n.to_i64().unwrap();
-                assert!(val >= 1 && val < 10);
+                assert!((1..10).contains(&val));
             },
             _ => panic!("Expected number"),
         }

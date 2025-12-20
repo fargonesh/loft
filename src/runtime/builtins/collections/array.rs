@@ -310,7 +310,7 @@ fn array_average(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 fn array_join(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::Array(arr) => {
-            let delimiter = if let Some(arg) = args.get(0) {
+            let delimiter = if let Some(arg) = args.first() {
                 match arg {
                     Value::String(s) => s.as_str(),
                     _ => return Err(RuntimeError::new("join() delimiter must be a string")),

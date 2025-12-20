@@ -2,7 +2,7 @@ use super::permissions::PermissionManager;
 use std::cell::RefCell;
 
 thread_local! {
-    static PERMISSION_MANAGER: RefCell<Option<PermissionManager>> = RefCell::new(None);
+    static PERMISSION_MANAGER: RefCell<Option<PermissionManager>> = const { RefCell::new(None) };
 }
 
 /// Initialize the permission manager for the current thread

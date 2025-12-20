@@ -75,7 +75,7 @@ fn scan_rust_file(path: &Path, builtins: &mut BuiltinInfo) -> std::io::Result<()
                 // Add to builtins structure
                 let module = builtins
                     .entry(module_name.clone())
-                    .or_insert_with(HashMap::new);
+                    .or_default();
 
                 let mut method_info = HashMap::new();
                 method_info.insert("documentation".to_string(), serde_json::Value::String(doc));

@@ -17,7 +17,7 @@ fn fs_read_file(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
         Value::String(path) => {
             // Check read permission
             check_read_permission(path, Some("fs.read()"))
-                .map_err(|e| RuntimeError::new(e))?;
+                .map_err(RuntimeError::new)?;
             
             fs::read_to_string(path)
                 .map(Value::String)
@@ -38,7 +38,7 @@ fn fs_write_file(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
         (Value::String(path), Value::String(content)) => {
             // Check write permission
             check_write_permission(path, Some("fs.write()"))
-                .map_err(|e| RuntimeError::new(e))?;
+                .map_err(RuntimeError::new)?;
             
             fs::write(path, content)
                 .map(|_| Value::Unit)
@@ -60,7 +60,7 @@ fn fs_append_file(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
         (Value::String(path), Value::String(content)) => {
             // Check write permission
             check_write_permission(path, Some("fs.append()"))
-                .map_err(|e| RuntimeError::new(e))?;
+                .map_err(RuntimeError::new)?;
             
             use std::fs::OpenOptions;
             use std::io::Write;
@@ -89,7 +89,7 @@ fn fs_exists(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
         Value::String(path) => {
             // Check read permission
             check_read_permission(path, Some("fs.exists()"))
-                .map_err(|e| RuntimeError::new(e))?;
+                .map_err(RuntimeError::new)?;
             
             Ok(Value::Boolean(Path::new(path).exists()))
         }
@@ -108,7 +108,7 @@ fn fs_is_file(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
         Value::String(path) => {
             // Check read permission
             check_read_permission(path, Some("fs.is_file()"))
-                .map_err(|e| RuntimeError::new(e))?;
+                .map_err(RuntimeError::new)?;
             
             Ok(Value::Boolean(Path::new(path).is_file()))
         }
@@ -127,7 +127,7 @@ fn fs_is_dir(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
         Value::String(path) => {
             // Check read permission
             check_read_permission(path, Some("fs.is_dir()"))
-                .map_err(|e| RuntimeError::new(e))?;
+                .map_err(RuntimeError::new)?;
             
             Ok(Value::Boolean(Path::new(path).is_dir()))
         }
@@ -146,7 +146,7 @@ fn fs_create_dir(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
         Value::String(path) => {
             // Check write permission
             check_write_permission(path, Some("fs.create_dir()"))
-                .map_err(|e| RuntimeError::new(e))?;
+                .map_err(RuntimeError::new)?;
             
             fs::create_dir_all(path)
                 .map(|_| Value::Unit)
@@ -167,7 +167,7 @@ fn fs_remove_file(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
         Value::String(path) => {
             // Check write permission
             check_write_permission(path, Some("fs.remove_file()"))
-                .map_err(|e| RuntimeError::new(e))?;
+                .map_err(RuntimeError::new)?;
             
             fs::remove_file(path)
                 .map(|_| Value::Unit)
@@ -188,7 +188,7 @@ fn fs_remove_dir(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
         Value::String(path) => {
             // Check write permission
             check_write_permission(path, Some("fs.remove_dir()"))
-                .map_err(|e| RuntimeError::new(e))?;
+                .map_err(RuntimeError::new)?;
             
             fs::remove_dir_all(path)
                 .map(|_| Value::Unit)
@@ -209,7 +209,7 @@ fn fs_list_dir(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
         Value::String(path) => {
             // Check read permission
             check_read_permission(path, Some("fs.list_dir()"))
-                .map_err(|e| RuntimeError::new(e))?;
+                .map_err(RuntimeError::new)?;
             
             fs::read_dir(path)
                 .map_err(|e| RuntimeError::new(format!("Failed to read directory: {}", e)))
@@ -243,10 +243,10 @@ fn fs_copy(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
         (Value::String(src), Value::String(dst)) => {
             // Check read permission for source
             check_read_permission(src, Some("fs.copy()"))
-                .map_err(|e| RuntimeError::new(e))?;
+                .map_err(RuntimeError::new)?;
             // Check write permission for destination
             check_write_permission(dst, Some("fs.copy()"))
-                .map_err(|e| RuntimeError::new(e))?;
+                .map_err(RuntimeError::new)?;
             
             fs::copy(src, dst)
                 .map(|_| Value::Unit)
@@ -267,9 +267,9 @@ fn fs_rename(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
         (Value::String(src), Value::String(dst)) => {
             // Check write permission for both source and destination
             check_write_permission(src, Some("fs.rename()"))
-                .map_err(|e| RuntimeError::new(e))?;
+                .map_err(RuntimeError::new)?;
             check_write_permission(dst, Some("fs.rename()"))
-                .map_err(|e| RuntimeError::new(e))?;
+                .map_err(RuntimeError::new)?;
             
             fs::rename(src, dst)
                 .map(|_| Value::Unit)
@@ -290,19 +290,19 @@ fn fs_metadata(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
         Value::String(path) => {
             // Check read permission
             check_read_permission(path, Some("fs.metadata()"))
-                .map_err(|e| RuntimeError::new(e))?;
+                .map_err(RuntimeError::new)?;
             
             fs::metadata(path)
                 .map_err(|e| RuntimeError::new(format!("Failed to get metadata: {}", e)))
-                .and_then(|metadata| {
+                .map(|metadata| {
                     use rust_decimal::Decimal;
                     
                     // Return an array with [size, is_file, is_dir]
-                    Ok(Value::Array(vec![
+                    Value::Array(vec![
                         Value::Number(Decimal::from(metadata.len())),
                         Value::Boolean(metadata.is_file()),
                         Value::Boolean(metadata.is_dir()),
-                    ]))
+                    ])
                 })
         }
         _ => Err(RuntimeError::new("fs.metadata() argument must be a string")),

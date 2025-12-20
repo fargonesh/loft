@@ -553,8 +553,7 @@ impl LoftLanguageServer {
         ];
         
         for (prefix, _) in &patterns {
-            if line.starts_with(prefix) {
-                let rest = &line[prefix.len()..];
+            if let Some(rest) = line.strip_prefix(prefix) {
                 // Extract the name (stop at whitespace, colon, or parenthesis)
                 if let Some(name) = rest.split(|c: char| c.is_whitespace() || c == ':' || c == '(' || c == '{')
                     .next() {
@@ -592,7 +591,7 @@ impl LoftLanguageServer {
                 } 
                 // Check builtin traits
                 else if let Some(trait_def) = stdlib_types.traits.get(trait_name) {
-                    for (method_name, _) in &trait_def.methods {
+                    for method_name in trait_def.methods.keys() {
                         required_methods.push(method_name.clone());
                     }
                 } else {
@@ -873,7 +872,7 @@ impl LoftLanguageServer {
         lines: &[&str],
     ) {
         let mut found_terminal = false;
-        for (_idx, stmt) in stmts.iter().enumerate() {
+        for stmt in stmts.iter() {
             if found_terminal {
                 // Code after return/break/continue is unreachable
                 if let Some(line_num) = Self::get_stmt_line(stmt, lines) {
@@ -920,7 +919,7 @@ impl LoftLanguageServer {
         lines: &[&str],
     ) {
         let mut found_terminal = false;
-        for (_idx, stmt) in stmts.iter().enumerate() {
+        for stmt in stmts.iter() {
             if found_terminal {
                 // Code after return/break/continue is unreachable
                 if let Some(line_num) = Self::get_stmt_line(stmt, lines) {
@@ -1001,10 +1000,8 @@ impl LoftLanguageServer {
         lines: &[&str],
     ) {
         match stmt {
-            Stmt::VarDecl { value, .. } => {
-                if let Some(expr) = value {
-                    Self::check_expr_with_imports(expr, symbols, used_vars, used_imports, diagnostics, lines);
-                }
+            Stmt::VarDecl { value: Some(expr), .. } => {
+                Self::check_expr_with_imports(expr, symbols, used_vars, used_imports, diagnostics, lines);
             }
             Stmt::FunctionDecl { body, .. } => {
                 if let Stmt::Block(stmts) = body.as_ref() {
@@ -1014,10 +1011,8 @@ impl LoftLanguageServer {
             Stmt::Expr(expr) => {
                 Self::check_expr_with_imports(expr, symbols, used_vars, used_imports, diagnostics, lines);
             }
-            Stmt::Return(value) => {
-                if let Some(expr) = value {
-                    Self::check_expr_with_imports(expr, symbols, used_vars, used_imports, diagnostics, lines);
-                }
+            Stmt::Return(Some(expr)) => {
+                Self::check_expr_with_imports(expr, symbols, used_vars, used_imports, diagnostics, lines);
             }
             Stmt::Assign { value, .. } => {
                 Self::check_expr_with_imports(value, symbols, used_vars, used_imports, diagnostics, lines);
@@ -1053,10 +1048,8 @@ impl LoftLanguageServer {
         lines: &[&str],
     ) {
         match stmt {
-            Stmt::VarDecl { value, .. } => {
-                if let Some(expr) = value {
-                    Self::check_expr(expr, symbols, used_vars, diagnostics, lines);
-                }
+            Stmt::VarDecl { value: Some(expr), .. } => {
+                Self::check_expr(expr, symbols, used_vars, diagnostics, lines);
             }
             Stmt::FunctionDecl { body, .. } => {
                 if let Stmt::Block(stmts) = body.as_ref() {
@@ -1066,10 +1059,8 @@ impl LoftLanguageServer {
             Stmt::Expr(expr) => {
                 Self::check_expr(expr, symbols, used_vars, diagnostics, lines);
             }
-            Stmt::Return(value) => {
-                if let Some(expr) = value {
-                    Self::check_expr(expr, symbols, used_vars, diagnostics, lines);
-                }
+            Stmt::Return(Some(expr)) => {
+                Self::check_expr(expr, symbols, used_vars, diagnostics, lines);
             }
             Stmt::Assign { value, .. } => {
                 Self::check_expr(value, symbols, used_vars, diagnostics, lines);
@@ -1163,7 +1154,7 @@ impl LoftLanguageServer {
                     if let Some(symbol) = symbols.iter().find(|s| s.name == *func_name) {
                         if let SymbolKind::Function { params, .. } = &symbol.kind {
                             if params.len() != args.len() {
-                                if let Some(line_num) = Self::find_identifier_line(&func_name, lines) {
+                                if let Some(line_num) = Self::find_identifier_line(func_name, lines) {
                                     diagnostics.push(Diagnostic {
                                         range: Range {
                                             start: Position {
@@ -1304,7 +1295,7 @@ impl LoftLanguageServer {
                     if let Some(symbol) = symbols.iter().find(|s| s.name == *func_name) {
                         if let SymbolKind::Function { params, .. } = &symbol.kind {
                             if params.len() != args.len() {
-                                if let Some(line_num) = Self::find_identifier_line(&func_name, lines) {
+                                if let Some(line_num) = Self::find_identifier_line(func_name, lines) {
                                     diagnostics.push(Diagnostic {
                                         range: Range {
                                             start: Position {
@@ -1569,7 +1560,7 @@ impl LoftLanguageServer {
                     };
                     
                     let final_type = var_type.as_ref()
-                        .map(|t| Self::type_to_string(t))
+                        .map(Self::type_to_string)
                         .or(inferred_type);
                     
                     symbols.push(SymbolInfo {
@@ -1594,7 +1585,7 @@ impl LoftLanguageServer {
                     symbols.push(SymbolInfo {
                         name: name.clone(),
                         kind: SymbolKind::Constant {
-                            const_type: const_type.as_ref().map(|t| Self::type_to_string(t)).unwrap_or_else(|| "unknown".to_string()),
+                            const_type: const_type.as_ref().map(Self::type_to_string).unwrap_or_else(|| "unknown".to_string()),
                         },
                         detail: Some(format!("const {}", name)),
                         documentation: None,
@@ -1862,7 +1853,7 @@ impl LoftLanguageServer {
             Type::Generic { base, type_args } => {
                 format!("{}<{}>", base, 
                     type_args.iter()
-                        .map(|t| Self::type_to_string(t))
+                        .map(Self::type_to_string)
                         .collect::<Vec<_>>()
                         .join(", ")
                 )
@@ -1870,7 +1861,7 @@ impl LoftLanguageServer {
             Type::Function { params, return_type } => {
                 format!("fn({}) -> {}", 
                     params.iter()
-                        .map(|t| Self::type_to_string(t))
+                        .map(Self::type_to_string)
                         .collect::<Vec<_>>()
                         .join(", "),
                     Self::type_to_string(return_type)
@@ -2222,7 +2213,7 @@ impl LoftLanguageServer {
                 text.push_str("```loft\n");
                 text.push_str("fn ");
                 text.push_str(&symbol.name);
-                text.push_str("(");
+                text.push('(');
                 text.push_str(&params.iter()
                     .map(|(n, t)| format!("{}: {}", n, t))
                     .collect::<Vec<_>>()
@@ -2240,7 +2231,7 @@ impl LoftLanguageServer {
                 for (field_name, field_type) in fields {
                     text.push_str(&format!("    {}: {},\n", field_name, field_type));
                 }
-                text.push_str("}");
+                text.push('}');
                 text.push_str("\n```\n\n");
                 text.push_str("_(struct)_");
                 
@@ -3625,7 +3616,7 @@ impl LanguageServer for LoftLanguageServer {
                 
                 let mut detail = symbol.detail.clone().unwrap_or_default();
                 if let Some(source_uri) = &symbol.source_uri {
-                    detail.push_str(&format!(" (from {})", source_uri.split('/').last().unwrap_or(source_uri)));
+                    detail.push_str(&format!(" (from {})", source_uri.split('/').next_back().unwrap_or(source_uri)));
                 }
                 
                 items.push(CompletionItem {
@@ -4978,19 +4969,10 @@ impl LanguageServer for LoftLanguageServer {
             let trimmed = line.trim();
             
             // Function/struct/trait definitions
-            if trimmed.starts_with("fn ") || trimmed.starts_with("teach fn ") {
-                if trimmed.contains('{') {
-                    brace_stack.push((line_num, FoldingRangeKind::Region));
-                }
-            } else if trimmed.starts_with("def ") || trimmed.starts_with("teach def ") {
-                if trimmed.contains('{') {
-                    brace_stack.push((line_num, FoldingRangeKind::Region));
-                }
-            } else if trimmed.starts_with("trait ") || trimmed.starts_with("teach trait ") {
-                if trimmed.contains('{') {
-                    brace_stack.push((line_num, FoldingRangeKind::Region));
-                }
-            } else if trimmed.starts_with("impl ") {
+            if trimmed.starts_with("fn ") || trimmed.starts_with("teach fn ") ||
+               trimmed.starts_with("def ") || trimmed.starts_with("teach def ") ||
+               trimmed.starts_with("trait ") || trimmed.starts_with("teach trait ") ||
+               trimmed.starts_with("impl ") {
                 if trimmed.contains('{') {
                     brace_stack.push((line_num, FoldingRangeKind::Region));
                 }
@@ -5075,7 +5057,7 @@ impl LanguageServer for LoftLanguageServer {
                 if fuzzy_match(&symbol.name.to_lowercase(), &query) {
                     let location = Location {
                         uri: Uri::from_str(uri_str).unwrap(),
-                        range: symbol.range.unwrap_or_else(|| Range::default()),
+                        range: symbol.range.unwrap_or_else(Range::default),
                     };
 
                     let lsp_kind = match &symbol.kind {
@@ -5455,7 +5437,7 @@ pub async fn run_server() {
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
 
-    let (service, socket) = LspService::new(|client| LoftLanguageServer::new(client));
+    let (service, socket) = LspService::new(LoftLanguageServer::new);
     Server::new(stdin, stdout, socket).serve(service).await;
 }
 
@@ -5963,7 +5945,7 @@ let e = fs.read("file.txt");
         // Test that member completions work for Response type
         use tower_lsp::LspService;
         
-        let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
+        let (service, _) = LspService::new(LoftLanguageServer::new);
         let server = service.inner();
         
         // Simulate a document with a Response variable
@@ -6020,7 +6002,7 @@ let response = await web.get("https://google.com");
         // Test that member completions work for RequestBuilder type
         use tower_lsp::LspService;
         
-        let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
+        let (service, _) = LspService::new(LoftLanguageServer::new);
         let server = service.inner();
         
         // Simulate a document with a RequestBuilder variable
@@ -6079,7 +6061,7 @@ let req = web.request("https://api.example.com");
         // b. // Should show Response fields and methods
         use tower_lsp::LspService;
         
-        let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
+        let (service, _) = LspService::new(LoftLanguageServer::new);
         let server = service.inner();
         
         // Simulate the exact code from the issue
@@ -6343,7 +6325,7 @@ let w = 4;"#;
     #[tokio::test]
     async fn test_inlay_hints() {
         // Test inlay hints for type inference
-        let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
+        let (service, _) = LspService::new(LoftLanguageServer::new);
         let server = service.inner();
 
         let uri = "file:///test.loft".to_string();
@@ -6428,13 +6410,13 @@ let name = "Alice";"#;
         // Should have hints for variables with inferred types
         assert!(hints.is_some());
         let hints = hints.unwrap();
-        assert!(hints.len() >= 1); // At least one hint (for variables with types)
+        assert!(!hints.is_empty()); // At least one hint (for variables with types)
     }
 
     #[tokio::test]
     async fn test_folding_ranges() {
         // Test folding ranges for code structure
-        let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
+        let (service, _) = LspService::new(LoftLanguageServer::new);
         let server = service.inner();
 
         let uri = "file:///test.loft".to_string();
@@ -6483,7 +6465,7 @@ def Point {
     #[tokio::test]
     async fn test_workspace_symbols() {
         // Test workspace symbol search
-        let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
+        let (service, _) = LspService::new(LoftLanguageServer::new);
         let server = service.inner();
 
         let uri = "file:///test.loft".to_string();
@@ -6557,7 +6539,7 @@ def Point {
     #[tokio::test]
     async fn test_document_links() {
         // Test document link detection for URLs
-        let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
+        let (service, _) = LspService::new(LoftLanguageServer::new);
         let server = service.inner();
 
         let uri = "file:///test.loft".to_string();
@@ -6593,7 +6575,7 @@ let url = "https://github.com/fargonesh/loft";
     #[tokio::test]
     async fn test_code_lens() {
         // Test code lens for reference counts
-        let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
+        let (service, _) = LspService::new(LoftLanguageServer::new);
         let server = service.inner();
 
         let uri = "file:///test.loft".to_string();
@@ -6674,7 +6656,7 @@ let result2 = add(3, 4);"#;
     #[tokio::test]
     async fn test_call_hierarchy() {
         // Test call hierarchy preparation
-        let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
+        let (service, _) = LspService::new(LoftLanguageServer::new);
         let server = service.inner();
 
         let uri = "file:///test.loft".to_string();
@@ -6787,7 +6769,7 @@ fn calculate() -> num {
 
     #[tokio::test]
     async fn test_document_formatting() {
-        let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
+        let (service, _) = LspService::new(LoftLanguageServer::new);
         let server = service.inner();
 
         let uri = "file:///test.loft".to_string();
@@ -6843,7 +6825,7 @@ term.println(result);
 
     #[tokio::test]
     async fn test_range_formatting() {
-        let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
+        let (service, _) = LspService::new(LoftLanguageServer::new);
         let server = service.inner();
 
         let uri = "file:///test.loft".to_string();
@@ -6902,7 +6884,7 @@ fn well_formatted() -> void {
 
     #[tokio::test]
     async fn test_unused_variable_diagnostic() {
-        let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
+        let (service, _) = LspService::new(LoftLanguageServer::new);
         let server = service.inner();
 
         let uri = "file:///test.loft".to_string();
@@ -6935,7 +6917,7 @@ fn well_formatted() -> void {
 
     #[tokio::test]
     async fn test_function_arity_diagnostic() {
-        let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
+        let (service, _) = LspService::new(LoftLanguageServer::new);
         let server = service.inner();
 
         let uri = "file:///test.loft".to_string();
@@ -6970,7 +6952,7 @@ fn main() -> void {
 
     #[tokio::test]
     async fn test_undefined_identifier_diagnostic() {
-        let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
+        let (service, _) = LspService::new(LoftLanguageServer::new);
         let server = service.inner();
 
         let uri = "file:///test.loft".to_string();
@@ -7001,7 +6983,7 @@ fn main() -> void {
 
     #[tokio::test]
     async fn test_cross_file_references() {
-        let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
+        let (service, _) = LspService::new(LoftLanguageServer::new);
         let server = service.inner();
 
         // File 1: defines and exports a function
@@ -7060,6 +7042,6 @@ fn main() -> void {
         
         // Should have at least 1 reference (the definition itself)
         // Cross-file references depend on import resolution which may need further work
-        assert!(locations.len() >= 1, "Expected at least 1 reference, found: {}", locations.len());
+        assert!(!locations.is_empty(), "Expected at least 1 reference, found: {}", locations.len());
     }
 }

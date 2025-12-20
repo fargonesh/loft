@@ -16,8 +16,8 @@ fn time_sleep(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     
     let duration_ms = match &args[0] {
         Value::Number(n) => {
-            let ms = n.to_f64().unwrap_or(0.0) as u64;
-            ms
+            
+            n.to_f64().unwrap_or(0.0) as u64
         }
         _ => return Err(RuntimeError::new("time.sleep() argument must be a number (milliseconds)")),
     };
@@ -48,7 +48,7 @@ fn time_perf_now(_this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     // In a real implementation, this would be more sophisticated
     static START_TIME: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
     
-    let start = START_TIME.get_or_init(|| Instant::now());
+    let start = START_TIME.get_or_init(Instant::now);
     let elapsed = start.elapsed();
     let millis = elapsed.as_millis() as f64;
     

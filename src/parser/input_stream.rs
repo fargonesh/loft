@@ -97,7 +97,7 @@ impl InputStream<'_> {
             message: msg.to_string(),
             help: None,
             len,
-            source: NamedSource::new(self.path.clone(), source_text),
+            source: Box::new(NamedSource::new(self.path.clone(), source_text)),
         }
     }
 }
@@ -111,7 +111,7 @@ pub struct Error {
     pub message: String,
     pub help: Option<String>,
     pub len: Option<usize>,
-    pub source: NamedSource<String>,
+    pub source: Box<NamedSource<String>>,
 }
 
 impl Display for Error {
@@ -133,11 +133,11 @@ impl Diagnostic for Error {
     fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
         self.help
             .as_ref()
-            .map(|c| Box::new(c) as Box<dyn std::fmt::Display>)
+            .map(|c| Box::new(c.clone()) as Box<dyn std::fmt::Display>)
     }
 
     fn source_code(&self) -> Option<&dyn miette::SourceCode> {
-        Some(&self.source)
+        Some(self.source.as_ref())
     }
 
     fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {

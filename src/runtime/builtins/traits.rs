@@ -4,7 +4,6 @@ use loft_builtin_macros::loft_builtin;
 
 /// These are builtin methods that can be called on any value
 /// They map to the trait implementations
-
 /// add method - adds two values (wraps Add trait)
 #[loft_builtin(value.add)]
 pub fn builtin_add(this: &Value, args: &[Value]) -> RuntimeResult<Value> {

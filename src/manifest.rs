@@ -139,7 +139,7 @@ mod tests {
             dependencies: HashMap::new(),
         };
         
-        let result = manifest.resolve_import(&vec!["myproject".to_string()]).unwrap();
+        let result = manifest.resolve_import(&["myproject".to_string()]).unwrap();
         assert_eq!(result, "src/main.lf");
     }
 
@@ -155,7 +155,7 @@ mod tests {
             dependencies,
         };
         
-        let result = manifest.resolve_import(&vec!["utils".to_string()]).unwrap();
+        let result = manifest.resolve_import(&["utils".to_string()]).unwrap();
         assert_eq!(result, "./deps/utils");
     }
 }

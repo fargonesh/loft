@@ -34,7 +34,5 @@ This project is licensed under the MIT license. See [LICENSE](./LICENSE.md) for 
 
 ## Links
 
-- **Documentation**: [Full language guide](./book/)
-- **Implementation Report**: [See what's complete](IMPLEMENTATION_REPORT.md)
-- **Adoption Timeline**: [Development roadmap](ADOPTION_TIMELINE.md)
+- **Documentation**: [Full language guide](https://loft.fargone.sh/docs/introduction.md)
 - **Package Registry**: [loft.fargone.sh](https://loft.fargone.sh)

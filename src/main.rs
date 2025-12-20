@@ -100,7 +100,7 @@ enum Commands {
 
 fn should_append_semicolon(input: &str) -> bool {
     let trimmed = input.trim();
-    !vec!["let", "const", "fn", "struct", "impl", "trait", "enum", "if", "while", "for", "match"]
+    !["let", "const", "fn", "struct", "impl", "trait", "enum", "if", "while", "for", "match"]
         .iter()
         .any(|keyword| trimmed.starts_with(keyword)) 
         && !trimmed.ends_with(';')
@@ -288,9 +288,9 @@ fn print_help() {
     println!("{}", "loft REPL Help:".bright_cyan().bold());
     println!("{}", "================".bright_cyan());
     println!("{}", "Commands:".bright_yellow().bold());
-    println!("  {}     - {}", "help".bright_green(), "Show this help message");
-    println!("  {}    - {}", "clear".bright_green(), "Clear the screen");
-    println!("  {}     - {}", "exit".bright_green(), "Exit the REPL");
+    println!("  {}     - Show this help message", "help".bright_green());
+    println!("  {}    - Clear the screen", "clear".bright_green());
+    println!("  {}     - Exit the REPL", "exit".bright_green());
     println!();
     println!("{}", "Examples:".bright_yellow().bold());
     println!("  {}", "2 + 3 * 4".bright_white());
@@ -495,7 +495,7 @@ fn run_new(name: &str) {
     });
     
     match fs::write(&manifest_path, serde_json::to_string_pretty(&manifest).unwrap()) {
-        Ok(_) => println!("  {} {}", "Created".bright_green(), "manifest.json"),
+        Ok(_) => println!("  {} manifest.json", "Created".bright_green()),
         Err(e) => {
             println!("{}: Failed to write manifest.json: {}", "Error".bright_red().bold(), e);
             std::process::exit(1);
@@ -516,14 +516,14 @@ term.println("The answer is:", y);
     let main_path = src_dir.join("main.lf");
     if !main_path.exists() {
         match fs::write(&main_path, main_content) {
-            Ok(_) => println!("  {} {}", "Created".bright_green(), "src/main.lf"),
+            Ok(_) => println!("  {} src/main.lf", "Created".bright_green()),
             Err(e) => {
                 println!("{}: Failed to write src/main.lf: {}", "Error".bright_red().bold(), e);
                 std::process::exit(1);
             }
         }
     } else {
-        println!("  {} {} (already exists)", "Skipped".bright_yellow(), "src/main.lf");
+        println!("  {} src/main.lf (already exists)", "Skipped".bright_yellow());
     }
     
     println!();
@@ -531,11 +531,11 @@ term.println("The answer is:", y);
     println!();
     if name == "." {
         println!("To get started:");
-        println!("  {} {}", "loft".bright_cyan(), ".");
+        println!("  {} .", "loft".bright_cyan());
     } else {
         println!("To get started:");
         println!("  {} {}", "cd".bright_cyan(), name);
-        println!("  {} {}", "loft".bright_cyan(), ".");
+        println!("  {} .", "loft".bright_cyan());
     }
 }
 
@@ -864,11 +864,10 @@ fn run_update(specific_package: Option<&str>) {
         for pkg in &packages {
             if let Some(ver_str) = pkg["version"].as_str() {
                 if let Ok(ver) = semver::Version::parse(ver_str) {
-                    if version_req.matches(&ver) {
-                        if best_match.is_none() || best_match.as_ref().unwrap().1 < ver {
+                    if version_req.matches(&ver)
+                        && (best_match.is_none() || best_match.as_ref().unwrap().1 < ver) {
                             best_match = Some((ver_str.to_string(), ver));
                         }
-                    }
                 }
             }
         }
@@ -930,7 +929,6 @@ fn run_update(specific_package: Option<&str>) {
         
         fs::create_dir_all(&package_dir).unwrap_or_else(|e| {
             println!("    {}: Failed to create package directory: {}", "Error".bright_red().bold(), e);
-            return;
         });
         
         // Extract tarball
@@ -1020,7 +1018,7 @@ fn run_doc(output_dir: &str) {
 
     // Generate HTML documentation
     let output_path = Path::new(output_dir);
-    match doc_gen.generate_html(&output_path, &manifest.name) {
+    match doc_gen.generate_html(output_path, &manifest.name) {
         Ok(_) => {
             println!();
             println!("{}", "Documentation generated successfully!".bright_green().bold());
@@ -1056,7 +1054,7 @@ fn run_stdlib_doc(output_dir: &str) {
 
     println!("Generating HTML...");
     let output_path = Path::new(output_dir);
-    match doc_gen.generate_html(&output_path) {
+    match doc_gen.generate_html(output_path) {
         Ok(_) => {
             println!();
             println!("{}", "Standard library documentation generated successfully!".bright_green().bold());
@@ -1307,20 +1305,18 @@ fn run_format(path: Option<&str>, check: bool) {
                 println!("  {} {}", "✓".dimmed(), display_path.dimmed());
             }
             unchanged_count += 1;
+        } else if check {
+            println!("  {} {}", "✗".bright_red(), display_path.bright_white());
+            formatted_count += 1;
         } else {
-            if check {
-                println!("  {} {}", "✗".bright_red(), display_path.bright_white());
-                formatted_count += 1;
-            } else {
-                match fs::write(file_path, formatted_content) {
-                    Ok(_) => {
-                        println!("  {} {}", "✓".bright_green(), display_path.bright_white());
-                        formatted_count += 1;
-                    }
-                    Err(e) => {
-                        println!("{}: Failed to write '{}': {}", "Error".bright_red().bold(), display_path, e);
-                        error_count += 1;
-                    }
+            match fs::write(file_path, formatted_content) {
+                Ok(_) => {
+                    println!("  {} {}", "✓".bright_green(), display_path.bright_white());
+                    formatted_count += 1;
+                }
+                Err(e) => {
+                    println!("{}: Failed to write '{}': {}", "Error".bright_red().bold(), display_path, e);
+                    error_count += 1;
                 }
             }
         }

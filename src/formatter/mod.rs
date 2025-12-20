@@ -17,6 +17,12 @@ pub struct Formatter {
     indent_size: usize,
 }
 
+impl Default for Formatter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Formatter {
     pub fn new() -> Self {
         Self { indent_size: 4 }

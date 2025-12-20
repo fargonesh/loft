@@ -245,7 +245,7 @@ impl<'a> Parser<'a> {
     pub fn parse(&mut self) -> Result<Vec<Stmt>> {
         let mut statements = Vec::new();
 
-        while let Some(_) = self.peek()? {
+        while (self.peek()?).is_some() {
             statements.push(self.parse_statement()?);
         }
 
@@ -1026,59 +1026,55 @@ impl<'a> Parser<'a> {
         let mut left = self.parse_primary_expr()?;
         
         // Handle postfix operations but NOT struct literals
-        loop {
-            if let Some(token) = self.peek()? {
-                match token {
-                    Token::Punct(ref p) if p == "(" => {
-                        // Function call
-                        self.next()?; // consume '('
-                        let mut args = Vec::new();
-                        
-                        while let Some(token) = self.peek()? {
-                            if self.is_punct(&token, ")") {
-                                break;
-                            }
-                            args.push(self.parse_expression()?);
-                            if let Some(token) = self.peek()? {
-                                if self.is_punct(&token, ",") {
-                                    self.next()?; // consume ','
-                                }
+        while let Some(token) = self.peek()? {
+            match token {
+                Token::Punct(ref p) if p == "(" => {
+                    // Function call
+                    self.next()?; // consume '('
+                    let mut args = Vec::new();
+                    
+                    while let Some(token) = self.peek()? {
+                        if self.is_punct(&token, ")") {
+                            break;
+                        }
+                        args.push(self.parse_expression()?);
+                        if let Some(token) = self.peek()? {
+                            if self.is_punct(&token, ",") {
+                                self.next()?; // consume ','
                             }
                         }
-                        
-                        self.expect_punct(")")?;
-                        left = Expr::Call {
-                            func: Box::new(left),
-                            args,
-                        };
                     }
-                    Token::Op(ref p) if p == "." => {
-                        // Field access
-                        self.next()?; // consume '.'
-                        let field_token = self.next()?;
-                        let field = match field_token {
-                            Some(Token::Ident(name)) => name,
-                            _ => return Err(self.tokens.croak("Expected field name after '.'".to_string(), None)),
-                        };
-                        left = Expr::FieldAccess {
-                            object: Box::new(left),
-                            field,
-                        };
-                    }
-                    Token::Punct(ref p) if p == "[" => {
-                        // Array index
-                        self.next()?; // consume '['
-                        let index = self.parse_expression()?;
-                        self.expect_punct("]")?;
-                        left = Expr::Index {
-                            array: Box::new(left),
-                            index: Box::new(index),
-                        };
-                    }
-                    _ => break,
+                    
+                    self.expect_punct(")")?;
+                    left = Expr::Call {
+                        func: Box::new(left),
+                        args,
+                    };
                 }
-            } else {
-                break;
+                Token::Op(ref p) if p == "." => {
+                    // Field access
+                    self.next()?; // consume '.'
+                    let field_token = self.next()?;
+                    let field = match field_token {
+                        Some(Token::Ident(name)) => name,
+                        _ => return Err(self.tokens.croak("Expected field name after '.'".to_string(), None)),
+                    };
+                    left = Expr::FieldAccess {
+                        object: Box::new(left),
+                        field,
+                    };
+                }
+                Token::Punct(ref p) if p == "[" => {
+                    // Array index
+                    self.next()?; // consume '['
+                    let index = self.parse_expression()?;
+                    self.expect_punct("]")?;
+                    left = Expr::Index {
+                        array: Box::new(left),
+                        index: Box::new(index),
+                    };
+                }
+                _ => break,
             }
         }
         
@@ -1091,49 +1087,45 @@ impl<'a> Parser<'a> {
         let mut expr = self.parse_pattern_primary()?;
         
         // Handle postfix operations but don't interpret { as struct literal
-        loop {
-            if let Some(token) = self.peek()? {
-                match token {
-                    Token::Punct(ref p) if p == "(" => {
-                        // Function call or enum constructor
-                        self.next()?; // consume '('
-                        let mut args = Vec::new();
-                        
-                        while let Some(token) = self.peek()? {
-                            if self.is_punct(&token, ")") {
-                                break;
-                            }
-                            args.push(self.parse_pattern_expr()?);
-                            if let Some(token) = self.peek()? {
-                                if self.is_punct(&token, ",") {
-                                    self.next()?; // consume ','
-                                }
+        while let Some(token) = self.peek()? {
+            match token {
+                Token::Punct(ref p) if p == "(" => {
+                    // Function call or enum constructor
+                    self.next()?; // consume '('
+                    let mut args = Vec::new();
+                    
+                    while let Some(token) = self.peek()? {
+                        if self.is_punct(&token, ")") {
+                            break;
+                        }
+                        args.push(self.parse_pattern_expr()?);
+                        if let Some(token) = self.peek()? {
+                            if self.is_punct(&token, ",") {
+                                self.next()?; // consume ','
                             }
                         }
-                        
-                        self.expect_punct(")")?;
-                        expr = Expr::Call {
-                            func: Box::new(expr),
-                            args,
-                        };
                     }
-                    Token::Op(ref p) if p == "." => {
-                        // Field access
-                        self.next()?; // consume '.'
-                        let field_token = self.next()?;
-                        let field = match field_token {
-                            Some(Token::Ident(name)) => name,
-                            _ => return Err(self.tokens.croak("Expected field name after '.'".to_string(), None)),
-                        };
-                        expr = Expr::FieldAccess {
-                            object: Box::new(expr),
-                            field,
-                        };
-                    }
-                    _ => break,
+                    
+                    self.expect_punct(")")?;
+                    expr = Expr::Call {
+                        func: Box::new(expr),
+                        args,
+                    };
                 }
-            } else {
-                break;
+                Token::Op(ref p) if p == "." => {
+                    // Field access
+                    self.next()?; // consume '.'
+                    let field_token = self.next()?;
+                    let field = match field_token {
+                        Some(Token::Ident(name)) => name,
+                        _ => return Err(self.tokens.croak("Expected field name after '.'".to_string(), None)),
+                    };
+                    expr = Expr::FieldAccess {
+                        object: Box::new(expr),
+                        field,
+                    };
+                }
+                _ => break,
             }
         }
         
@@ -1404,50 +1396,46 @@ impl<'a> Parser<'a> {
 
     // Parse postfix operations like function calls, field access, and indexing
     fn parse_postfix(&mut self, mut expr: Expr) -> Result<Expr> {
-        loop {
-            if let Some(token) = self.peek()? {
-                match token {
-                    Token::Punct(ref p) if p == "(" => {
-                        expr = self.parse_call(expr)?;
-                    }
-                    Token::Op(ref op) if op == "." => {
-                        self.next()?; // consume '.'
-                        let field = match self.next()? {
-                            Some(Token::Ident(name)) => name,
-                            _ => return Err(self.tokens.croak("Expected field name after '.'".to_string(), None)),
-                        };
-                        expr = Expr::FieldAccess {
-                            object: Box::new(expr),
-                            field,
-                        };
-                    }
-                    Token::Punct(ref p) if p == "[" => {
-                        self.next()?; // consume '['
-                        let index = self.parse_expression()?;
-                        self.expect_punct("]")?;
-                        expr = Expr::Index {
-                            array: Box::new(expr),
-                            index: Box::new(index),
-                        };
-                    }
-                    Token::Punct(ref p) if p == "{" => {
-                        // Check if this is a struct literal (identifier followed by {)
-                        if let Expr::Ident(name) = expr {
-                            expr = self.parse_struct_literal(name)?;
-                        } else {
-                            // Not a struct literal, break out
-                            break;
-                        }
-                    }
-                    Token::Op(ref op) if op == "?" => {
-                        // Error propagation operator
-                        self.next()?; // consume '?'
-                        expr = Expr::Try(Box::new(expr));
-                    }
-                    _ => break,
+        while let Some(token) = self.peek()? {
+            match token {
+                Token::Punct(ref p) if p == "(" => {
+                    expr = self.parse_call(expr)?;
                 }
-            } else {
-                break;
+                Token::Op(ref op) if op == "." => {
+                    self.next()?; // consume '.'
+                    let field = match self.next()? {
+                        Some(Token::Ident(name)) => name,
+                        _ => return Err(self.tokens.croak("Expected field name after '.'".to_string(), None)),
+                    };
+                    expr = Expr::FieldAccess {
+                        object: Box::new(expr),
+                        field,
+                    };
+                }
+                Token::Punct(ref p) if p == "[" => {
+                    self.next()?; // consume '['
+                    let index = self.parse_expression()?;
+                    self.expect_punct("]")?;
+                    expr = Expr::Index {
+                        array: Box::new(expr),
+                        index: Box::new(index),
+                    };
+                }
+                Token::Punct(ref p) if p == "{" => {
+                    // Check if this is a struct literal (identifier followed by {)
+                    if let Expr::Ident(name) = expr {
+                        expr = self.parse_struct_literal(name)?;
+                    } else {
+                        // Not a struct literal, break out
+                        break;
+                    }
+                }
+                Token::Op(ref op) if op == "?" => {
+                    // Error propagation operator
+                    self.next()?; // consume '?'
+                    expr = Expr::Try(Box::new(expr));
+                }
+                _ => break,
             }
         }
         Ok(expr)
@@ -1556,38 +1544,33 @@ impl<'a> Parser<'a> {
         let mut found_arrow = false;
         
         // Look ahead to find ) => pattern
-        loop {
-            match self.next()? {
-                Some(token) => {
-                    tokens_to_restore.push(token.clone());
-                    
-                    match &token {
-                        Token::Punct(p) if p == ")" && depth == 0 => {
-                            // Check next two tokens for =>
-                            if let Some(Token::Op(op1)) = self.next()? {
-                                tokens_to_restore.push(Token::Op(op1.clone()));
-                                if op1 == "=" {
-                                    if let Some(Token::Op(op2)) = self.next()? {
-                                        tokens_to_restore.push(Token::Op(op2.clone()));
-                                        if op2 == ">" {
-                                            found_arrow = true;
-                                        }
-                                    }
+        while let Some(token) = self.next()? {
+            tokens_to_restore.push(token.clone());
+            
+            match &token {
+                Token::Punct(p) if p == ")" && depth == 0 => {
+                    // Check next two tokens for =>
+                    if let Some(Token::Op(op1)) = self.next()? {
+                        tokens_to_restore.push(Token::Op(op1.clone()));
+                        if op1 == "=" {
+                            if let Some(Token::Op(op2)) = self.next()? {
+                                tokens_to_restore.push(Token::Op(op2.clone()));
+                                if op2 == ">" {
+                                    found_arrow = true;
                                 }
                             }
-                            break;
                         }
-                        Token::Punct(p) if p == "(" => depth += 1,
-                        Token::Punct(p) if p == ")" => depth -= 1,
-                        _ => {}
                     }
-                    
-                    // Safety limit
-                    if tokens_to_restore.len() > 100 {
-                        break;
-                    }
+                    break;
                 }
-                None => break,
+                Token::Punct(p) if p == "(" => depth += 1,
+                Token::Punct(p) if p == ")" => depth -= 1,
+                _ => {}
+            }
+            
+            // Safety limit
+            if tokens_to_restore.len() > 100 {
+                break;
             }
         }
         
@@ -1890,7 +1873,7 @@ mod tests {
         match &result[0] {
             Stmt::FunctionDecl { name, is_exported, params, .. } => {
                 assert_eq!(name, "add");
-                assert_eq!(*is_exported, true);
+                assert!(*is_exported);
                 assert_eq!(params.len(), 2);
             }
             _ => panic!("Expected function declaration"),
@@ -2198,7 +2181,7 @@ mod tests {
         match &result[0] {
             Stmt::FunctionDecl { name, is_async, .. } => {
                 assert_eq!(name, "fetch_data");
-                assert_eq!(*is_async, true);
+                assert!(*is_async);
             }
             _ => panic!("Expected async function declaration"),
         }

@@ -75,7 +75,7 @@ fn math_asin(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     match &args[0] {
         Value::Number(n) => {
             let n_f64 = n.to_f64().ok_or_else(|| RuntimeError::new("Invalid number"))?;
-            if n_f64 < -1.0 || n_f64 > 1.0 {
+            if !(-1.0..=1.0).contains(&n_f64) {
                 return Err(RuntimeError::new("math.asin() argument must be between -1 and 1"));
             }
             let result = n_f64.asin();
@@ -98,7 +98,7 @@ fn math_acos(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     match &args[0] {
         Value::Number(n) => {
             let n_f64 = n.to_f64().ok_or_else(|| RuntimeError::new("Invalid number"))?;
-            if n_f64 < -1.0 || n_f64 > 1.0 {
+            if !(-1.0..=1.0).contains(&n_f64) {
                 return Err(RuntimeError::new("math.acos() argument must be between -1 and 1"));
             }
             let result = n_f64.acos();

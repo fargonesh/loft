@@ -388,7 +388,7 @@ fn web_send(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
             
             // Check network permission
             check_net_permission(&host, Some("web.send()"))
-                .map_err(|e| RuntimeError::new(e))?;
+                .map_err(RuntimeError::new)?;
             
             let method_str = if let Some(Value::String(method)) = fields.get("method") {
                 method.clone()

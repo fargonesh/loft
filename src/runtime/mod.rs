@@ -84,7 +84,7 @@ pub type RuntimeResult<T> = Result<T, RuntimeError>;
 pub struct RuntimeError {
     pub message: String,
     pub path: Option<String>,
-    pub source: Option<NamedSource<String>>,
+    pub source: Option<Box<NamedSource<String>>>,
     pub position: Option<usize>,
     pub len: Option<usize>,
 }
@@ -110,7 +110,7 @@ impl RuntimeError {
         Self {
             message: message.into(),
             path: Some(path.clone()),
-            source: Some(NamedSource::new(path, source_code)),
+            source: Some(Box::new(NamedSource::new(path, source_code))),
             position: Some(position),
             len: Some(len),
         }
@@ -126,7 +126,7 @@ impl RuntimeError {
         Self {
             message: message.into(),
             path: Some(path.clone()),
-            source: Some(NamedSource::new(path, source_code)),
+            source: Some(Box::new(NamedSource::new(path, source_code))),
             position: None,
             len: None,
         }
@@ -147,7 +147,7 @@ impl Diagnostic for RuntimeError {
     }
 
     fn source_code(&self) -> Option<&dyn miette::SourceCode> {
-        self.source.as_ref().map(|s| s as &dyn miette::SourceCode)
+        self.source.as_ref().map(|s| s.as_ref() as &dyn miette::SourceCode)
     }
 
     fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
@@ -179,6 +179,12 @@ impl Diagnostic for RuntimeError {
 
 pub struct Environment {
     scopes: Vec<HashMap<String, Value>>,
+}
+
+impl Default for Environment {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Environment {
@@ -242,6 +248,14 @@ impl Environment {
     }
 }
 
+type MethodSignature = (
+    Vec<(String, crate::parser::Type)>,
+    Option<crate::parser::Type>,
+    Box<Stmt>,
+    Option<String>,
+);
+type EnumVariants = Vec<(String, Option<Vec<crate::parser::Type>>)>;
+
 pub struct Interpreter {
     env: Environment,
     source_path: Option<String>,
@@ -250,14 +264,20 @@ pub struct Interpreter {
     traits: HashMap<String, Vec<TraitMethod>>,
     // Track impl blocks: type_name -> method_name -> (params, return_type, body)
     // Format: type_name -> method_name -> (params, return_type, body, trait_name_if_any)
-    impl_methods: HashMap<String, HashMap<String, (Vec<(String, crate::parser::Type)>, Option<crate::parser::Type>, Box<Stmt>, Option<String>)>>,
+    impl_methods: HashMap<String, HashMap<String, MethodSignature>>,
     // Track enum declarations: enum_name -> variants
     // Format: enum_name -> Vec<(variant_name, Option<Vec<Type>>)>
-    enums: HashMap<String, Vec<(String, Option<Vec<Type>>)>>,
+    enums: HashMap<String, EnumVariants>,
     // Module cache: module_path -> exported_values
     module_cache: HashMap<String, HashMap<String, Value>>,
     // Current module's exports
     exports: HashMap<String, Value>,
+}
+
+impl Default for Interpreter {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Interpreter {
@@ -479,7 +499,7 @@ impl Interpreter {
                 }
 
                 // Store methods for this type (with optional trait association)
-                let type_methods = self.impl_methods.entry(type_name).or_insert_with(HashMap::new);
+                let type_methods = self.impl_methods.entry(type_name).or_default();
                 
                 // Process each method in the impl block
                 for method_stmt in methods {
@@ -967,7 +987,7 @@ impl Interpreter {
                 let value = self.eval_expr(*expr)?;
                 
                 // Check if it's an enum variant
-                if let Value::EnumVariant { enum_name, variant_name, values } = &value {
+                if let Value::EnumVariant { enum_name: _, variant_name, values } = &value {
                     // Check if this is an Err/Error variant
                     if variant_name.to_lowercase().contains("err") {
                         // This is an error - propagate it by returning the error variant
@@ -1334,32 +1354,6 @@ impl Interpreter {
             Value::EnumVariant { enum_name, .. } => enum_name.clone(),
             Value::EnumConstructor { enum_name, .. } => format!("{}_constructor", enum_name),
             Value::Module { name, .. } => format!("module_{}", name),
-        }
-    }
-    
-    /// Check if a value matches an expected type name
-    fn check_type(&self, value: &Value, expected_type: &str) -> bool {
-        let actual_type = self.type_of(value);
-        
-        // "any" matches anything
-        if expected_type == "any" {
-            return true;
-        }
-        
-        // Check for exact match
-        if actual_type == expected_type {
-            return true;
-        }
-        
-        // Special cases
-        match (expected_type, value) {
-            // Array types
-            ("array", Value::Array(_)) => true,
-            // Function types
-            ("function", Value::Function { .. }) => true,
-            ("function", Value::Closure { .. }) => true,
-            ("function", Value::BuiltinFn(_)) => true,
-            _ => false,
         }
     }
     
