@@ -85,7 +85,7 @@ const Layout = ({ children, fullWidth = false }) => {
             <div>
               <h4 className="font-bold mb-4 text-sm uppercase tracking-wider opacity-70">Community</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="https://github.com/tascord/loft" target="_blank" rel="noreferrer" className="hover:text-bio-green">GitHub</a></li>
+                <li><a href="https://github.com/fargonesh/loft" target="_blank" rel="noreferrer" className="hover:text-bio-green">GitHub</a></li>
                 <li><a href="#" className="hover:text-bio-green">Discord</a></li>
                 <li><a href="#" className="hover:text-bio-green">Twitter</a></li>
               </ul>
