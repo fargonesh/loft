@@ -1112,7 +1112,7 @@ impl LoftLanguageServer {
                 // Check if identifier is defined
                 if !symbols.iter().any(|s| &s.name == name) {
                     // Check if it's a builtin (term, math, etc.)
-                    let builtin_modules = ["term", "math", "time", "web", "fs", "console", "json", "encoding", "random"];
+                    let builtin_modules = ["term", "math", "time", "web", "fs", "json", "encoding", "random"];
                     if !builtin_modules.contains(&name.as_str()) {
                         if let Some(line_num) = Self::find_identifier_line(name, lines) {
                             let line = lines[line_num];
@@ -1188,7 +1188,7 @@ impl LoftLanguageServer {
                 Self::check_expr_with_imports(object, symbols, used_vars, used_imports, diagnostics, lines);
                 // Mark module as used if it's a builtin
                 if let Expr::Ident(obj_name) = object.as_ref() {
-                    let builtin_modules = ["term", "math", "time", "web", "fs", "console", "json", "encoding", "random"];
+                    let builtin_modules = ["term", "math", "time", "web", "fs", "json", "encoding", "random"];
                     if builtin_modules.contains(&obj_name.as_str()) {
                         used_imports.insert(obj_name.clone());
                     }
@@ -1252,7 +1252,7 @@ impl LoftLanguageServer {
                 if !symbols.iter().any(|s| &s.name == name) {
                     // Check if it's a builtin (term, math, etc.)
                     // TODO: This list should be centralized and synced with runtime builtins
-                    let builtin_modules = ["term", "math", "time", "web", "fs", "console", "json", "encoding", "random"];
+                    let builtin_modules = ["term", "math", "time", "web", "fs", "json", "encoding", "random"];
                     if !builtin_modules.contains(&name.as_str()) {
                         if let Some(line_num) = Self::find_identifier_line(name, lines) {
                             // Find the position of the identifier in the line for more precise range
@@ -4850,7 +4850,7 @@ impl LanguageServer for LoftLanguageServer {
                     }));
                 }
                 
-                // Offer to migrate console.* to term.* (since console is now removed)
+                // Offer to migrate console.* to term.* (since they're now merged)
                 if word == "console" {
                     let line_text = line.trim();
                     if line_text.contains("console.") {

@@ -9,6 +9,31 @@
           "return_type": "void",
           "documentation": "Print values to the terminal with a newline"
         },
+        "log": {
+          "params": ["...values"],
+          "return_type": "void",
+          "documentation": "Log values to the terminal (alias for println)"
+        },
+        "error": {
+          "params": ["...values"],
+          "return_type": "void",
+          "documentation": "Log an error message to the terminal"
+        },
+        "warn": {
+          "params": ["...values"],
+          "return_type": "void",
+          "documentation": "Log a warning message to the terminal"
+        },
+        "info": {
+          "params": ["...values"],
+          "return_type": "void",
+          "documentation": "Log an info message to the terminal"
+        },
+        "debug": {
+          "params": ["...values"],
+          "return_type": "void",
+          "documentation": "Log a debug message to the terminal"
+        },
         "print": {
           "params": ["...values"],
           "return_type": "void",
@@ -361,8 +386,8 @@
       "documentation": "JSON parsing and stringification utilities",
       "methods": {
         "parse": {
-          "params": ["json_string: str"],
-          "return_type": "Object",
+          "params": ["json: str"],
+          "return_type": "any",
           "documentation": "Parse a JSON string into a loft value"
         },
         "stringify": {
@@ -374,37 +399,6 @@
           "params": ["value: any"],
           "return_type": "str",
           "documentation": "Convert a loft value to a pretty-printed JSON string"
-        }
-      }
-    },
-    "console": {
-      "kind": "struct",
-      "documentation": "Console logging utilities similar to JavaScript console API",
-      "methods": {
-        "log": {
-          "params": ["...values"],
-          "return_type": "void",
-          "documentation": "Log values to console"
-        },
-        "error": {
-          "params": ["...values"],
-          "return_type": "void",
-          "documentation": "Log an error message to console"
-        },
-        "warn": {
-          "params": ["...values"],
-          "return_type": "void",
-          "documentation": "Log a warning message to console"
-        },
-        "info": {
-          "params": ["...values"],
-          "return_type": "void",
-          "documentation": "Log an info message to console"
-        },
-        "debug": {
-          "params": ["...values"],
-          "return_type": "void",
-          "documentation": "Log a debug message to console"
         }
       }
     },
