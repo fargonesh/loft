@@ -38,7 +38,7 @@ const Layout = ({ children, fullWidth = false }) => {
             <div className="flex items-center gap-4">
               {isLoggedIn ? (
                 <>
-                  <Button onClick={() => navigate('/dashboard')} variant={location.pathname === '/dashboard' ? 'primary' : 'ghost'} size="sm">
+                  <Button onClick={() => navigate('/dashboard')} variant="ghost"size="sm">
                     Dashboard
                   </Button>
                   <Button onClick={handleLogout} variant="ghost" size="sm">
@@ -46,7 +46,7 @@ const Layout = ({ children, fullWidth = false }) => {
                   </Button>
                 </>
               ) : (
-                <Button onClick={handleLogin} variant="primary" size="sm">
+                <Button onClick={handleLogin}size="sm" className='text-white px-2'>
                   Login with GitHub
                 </Button>
               )}

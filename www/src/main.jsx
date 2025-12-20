@@ -11,8 +11,8 @@ import {
 } from 'botanical-ui';
 import { Link } from 'react-router-dom';
 
-import 'botanical-ui/style.css';
 import './index.css';
+import 'botanical-ui/style.css';
 
 import AuthCallback from './AuthCallback';
 import Dashboard from './Dashboard';
@@ -71,7 +71,7 @@ const Home = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 border-none focus:ring-0 text-lg"
           />
-          <Button onClick={searchPackages} variant="primary" className="px-8">Search</Button>
+          <Button onClick={searchPackages}>Search</Button>
         </div>
       </div>
 
