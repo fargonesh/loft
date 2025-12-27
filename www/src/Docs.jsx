@@ -218,12 +218,41 @@ const Docs = () => {
                     ul: ({node, ...props}) => <ul className="list-disc pl-6 mb-6 space-y-2 text-gray-700" {...props} />, 
                     li: ({node, ...props}) => <li className="text-lg" {...props} />, 
                     a: ({node, ...props}) => {
-                        // Handle internal links
-                        if (props.href.startsWith('./')) {
-                            const target = props.href.replace('./', '');
-                            return <Link to={`/docs/${target}`} className="text-bio-green hover:underline font-medium decoration-2 underline-offset-2" {...props}>{props.children}</Link>
+                        const isExternal = props.href.startsWith('http') || props.href.startsWith('//');
+                        if (!isExternal) {
+                            let target = props.href;
+                            if (target.startsWith('./')) {
+                                target = target.replace('./', '');
+                            }
+                            
+                            // Resolve relative path
+                            const currentDir = docPath.includes('/') 
+                                ? docPath.substring(0, docPath.lastIndexOf('/') + 1) 
+                                : '';
+                            
+                            const fullPath = target.startsWith('/') 
+                                ? target.substring(1) 
+                                : currentDir + target;
+
+                            return (
+                                <Link 
+                                    to={`/docs/${fullPath}`} 
+                                    className="text-bio-green hover:underline font-medium decoration-2 underline-offset-2"
+                                >
+                                    {props.children}
+                                </Link>
+                            );
                         }
-                        return <a className="text-bio-green hover:underline font-medium decoration-2 underline-offset-2" {...props} />
+                        return (
+                            <a 
+                                href={props.href}
+                                target="_blank" 
+                                rel="noreferrer" 
+                                className="text-bio-green hover:underline font-medium decoration-2 underline-offset-2"
+                            >
+                                {props.children}
+                            </a>
+                        );
                     }
                   }}
                 >

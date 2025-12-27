@@ -1,0 +1,238 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+    background-color: #fafafa;
+    color: #333;
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 260px;
+    background-color: #fff;
+    border-right: 1px solid #e1e4e8;
+    padding: 20px;
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.sidebar h2 {
+    font-size: 22px;
+    margin-bottom: 20px;
+    color: #24292e;
+}
+
+.sidebar h2 a {
+    color: #24292e;
+    text-decoration: none;
+}
+
+.sidebar h2 a:hover {
+    color: #0366d6;
+}
+
+.nav-section {
+    margin-bottom: 24px;
+}
+
+.nav-section h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6a737d;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.nav-section ul {
+    list-style: none;
+}
+
+.nav-section li {
+    margin-bottom: 4px;
+}
+
+.nav-section a {
+    color: #586069;
+    text-decoration: none;
+    font-size: 14px;
+    display: block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.nav-section a:hover {
+    background-color: #f6f8fa;
+    color: #0366d6;
+}
+
+.content {
+    margin-left: 260px;
+    flex: 1;
+    padding: 40px 60px;
+    max-width: 1200px;
+}
+
+.breadcrumb {
+    font-size: 14px;
+    color: #586069;
+    margin-bottom: 16px;
+}
+
+.breadcrumb a {
+    color: #0366d6;
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+h1 {
+    font-size: 36px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #24292e;
+    border-bottom: 1px solid #e1e4e8;
+    padding-bottom: 16px;
+}
+
+h2 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-top: 32px;
+    margin-bottom: 16px;
+    color: #24292e;
+}
+
+h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #24292e;
+}
+
+h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 16px;
+    margin-bottom: 8px;
+    color: #586069;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.intro {
+    font-size: 16px;
+    color: #586069;
+    margin-bottom: 32px;
+}
+
+.description {
+    font-size: 16px;
+    color: #586069;
+    margin-bottom: 24px;
+}
+
+.item-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.item-card {
+    background-color: #fff;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    padding: 16px;
+    transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.item-card:hover {
+    border-color: #0366d6;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+}
+
+.item-card a {
+    color: #0366d6;
+    text-decoration: none;
+}
+
+.item-card a:hover {
+    text-decoration: underline;
+}
+
+.method-item {
+    background-color: #fff;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+.signature {
+    background-color: #f6f8fa;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 12px 0;
+    overflow-x: auto;
+}
+
+.signature code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 14px;
+    color: #24292e;
+}
+
+.example {
+    background-color: #f6f8fa;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 12px 0;
+    overflow-x: auto;
+}
+
+.example code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 13px;
+    color: #24292e;
+    white-space: pre;
+}
+
+code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 13px;
+    background-color: #f6f8fa;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+p {
+    margin-bottom: 12px;
+}
+
+strong {
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        display: none;
+    }
+    
+    .content {
+        margin-left: 0;
+        padding: 20px;
+    }
+}

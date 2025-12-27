@@ -71,13 +71,12 @@ learn "math/operations";
 
 loft includes several builtin modules:
 
-- `term`: Terminal I/O
+- `term`: Terminal I/O and logging
 - `array`: Array utilities
 - `string`: String operations
 - `math`: Mathematical functions
 - `fs`: File system operations
 - `time`: Time and date functions
-- `console`: Console utilities
 
 No need to import builtins:
 
