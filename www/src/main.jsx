@@ -11,8 +11,8 @@ import {
 } from 'botanical-ui';
 import { Link } from 'react-router-dom';
 
-import './index.css';
 import 'botanical-ui/style.css';
+import './index.css';
 
 import AuthCallback from './AuthCallback';
 import Dashboard from './Dashboard';
