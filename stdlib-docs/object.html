@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>object - loft stdlib</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="sidebar">
+        <h2><a href="index.html">loft stdlib</a></h2>
+        <div class="nav-section">
+            <h3>Primitives</h3>
+            <ul>
+                <li><a href="string.html">str</a></li>
+                <li><a href="array.html">Array</a></li>
+                <li><a href="num.html">num</a></li>
+                <li><a href="bool.html">bool</a></li>
+                <li><a href="void.html">void</a></li>
+            </ul>
+        </div>
+        <div class="nav-section">
+            <h3>Builtins</h3>
+            <ul>
+                <li><a href="array.html">array</a></li>
+                <li><a href="term.html">term</a></li>
+                <li><a href="fs.html">fs</a></li>
+                <li><a href="web.html">web</a></li>
+                <li><a href="object.html">object</a></li>
+                <li><a href="math.html">math</a></li>
+                <li><a href="time.html">time</a></li>
+                <li><a href="json.html">json</a></li>
+                <li><a href="encoding.html">encoding</a></li>
+                <li><a href="random.html">random</a></li>
+                <li><a href="string.html">string</a></li>
+            </ul>
+        </div>
+        <div class="nav-section">
+            <h3>Types</h3>
+            <ul>
+                <li><a href="type-Headers.html">Headers</a></li>
+                <li><a href="type-Response.html">Response</a></li>
+                <li><a href="type-Buffer.html">Buffer</a></li>
+                <li><a href="type-RequestBuilder.html">RequestBuilder</a></li>
+            </ul>
+        </div>
+        <div class="nav-section">
+            <h3>Traits</h3>
+            <ul>
+                <li><a href="trait-Sub.html">Sub</a></li>
+                <li><a href="trait-Mul.html">Mul</a></li>
+                <li><a href="trait-Div.html">Div</a></li>
+                <li><a href="trait-Add.html">Add</a></li>
+                <li><a href="trait-Index.html">Index</a></li>
+                <li><a href="trait-ToString.html">ToString</a></li>
+                <li><a href="trait-Printable.html">Printable</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="content">
+        <div class="breadcrumb"><a href="index.html">stdlib</a> / <span>object</span></div>
+        <h1>object</h1>
+        <p class="description">Object manipulation utilities similar to JavaScript Object methods</p>
+        <h2>Methods</h2>
+        <div class="method-item">
+            <h3 id="values">values</h3>
+            <pre class="signature"><code>object.values(object: Object) -> <a href="array.html">Array</a>&lt;any&gt;</code></pre>
+            <p><strong>Returns:</strong> <code><a href="array.html">Array</a>&lt;any&gt;</code></p>
+            <p>Get all values from an object</p>
+        </div>
+        <div class="method-item">
+            <h3 id="size">size</h3>
+            <pre class="signature"><code>object.size(object: Object) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Get the number of properties in an object</p>
+        </div>
+        <div class="method-item">
+            <h3 id="entries">entries</h3>
+            <pre class="signature"><code>object.entries(object: Object) -> <a href="array.html">Array</a>&lt;<a href="array.html">Array</a>&gt;</code></pre>
+            <p><strong>Returns:</strong> <code><a href="array.html">Array</a>&lt;<a href="array.html">Array</a>&gt;</code></p>
+            <p>Get all entries from an object as [key, value] pairs</p>
+        </div>
+        <div class="method-item">
+            <h3 id="from_entries">from_entries</h3>
+            <pre class="signature"><code>object.from_entries(entries: <a href="array.html">Array</a>&lt;<a href="array.html">Array</a>&gt;) -> Object</code></pre>
+            <p><strong>Returns:</strong> <code>Object</code></p>
+            <p>Create an object from entries [[key, value], ...]</p>
+        </div>
+        <div class="method-item">
+            <h3 id="has">has</h3>
+            <pre class="signature"><code>object.has(object: Object, key: <a href="string.html">str</a>) -> <a href="bool.html">bool</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="bool.html">bool</a></code></p>
+            <p>Check if object has a property</p>
+        </div>
+        <div class="method-item">
+            <h3 id="assign">assign</h3>
+            <pre class="signature"><code>object.assign(target: Object, ...sources: Object) -> Object</code></pre>
+            <p><strong>Returns:</strong> <code>Object</code></p>
+            <p>Assign properties from source objects to target object</p>
+        </div>
+        <div class="method-item">
+            <h3 id="keys">keys</h3>
+            <pre class="signature"><code>object.keys(object: Object) -> <a href="array.html">Array</a>&lt;<a href="string.html">str</a>&gt;</code></pre>
+            <p><strong>Returns:</strong> <code><a href="array.html">Array</a>&lt;<a href="string.html">str</a>&gt;</code></p>
+            <p>Get all keys from an object</p>
+        </div>
+    </div>
+</body>
+</html>
