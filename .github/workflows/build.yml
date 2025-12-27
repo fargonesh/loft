@@ -157,12 +157,34 @@ jobs:
         with:
           path: artifacts
 
+      - name: Prepare Release Assets
+        if: steps.tag.outputs.name != ''
+        shell: bash
+        run: |
+          cd artifacts
+          if [ -d "book" ]; then
+            zip -r loft-docs.zip book/*
+            rm -rf book
+          fi
+          for d in */; do
+            d=${d%/}
+            if [ -f "$d/loft.exe" ]; then
+              mv "$d/loft.exe" "${d}.tmp"
+              rm -rf "$d"
+              mv "${d}.tmp" "$d"
+            elif [ -f "$d/loft" ]; then
+              mv "$d/loft" "${d}.tmp"
+              rm -rf "$d"
+              mv "${d}.tmp" "$d"
+            fi
+          done
+
       - name: Create Release
         if: steps.tag.outputs.name != ''
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.tag.outputs.name }}
-          files: artifacts/**/*
+          files: artifacts/*
           draft: false
           prerelease: ${{ contains(steps.tag.outputs.name, '-') }}
           generate_release_notes: true
