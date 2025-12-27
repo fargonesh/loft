@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>math - loft stdlib</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="sidebar">
+        <h2><a href="index.html">loft stdlib</a></h2>
+        <div class="nav-section">
+            <h3>Primitives</h3>
+            <ul>
+                <li><a href="string.html">str</a></li>
+                <li><a href="array.html">Array</a></li>
+                <li><a href="num.html">num</a></li>
+                <li><a href="bool.html">bool</a></li>
+                <li><a href="void.html">void</a></li>
+            </ul>
+        </div>
+        <div class="nav-section">
+            <h3>Builtins</h3>
+            <ul>
+                <li><a href="array.html">array</a></li>
+                <li><a href="term.html">term</a></li>
+                <li><a href="fs.html">fs</a></li>
+                <li><a href="web.html">web</a></li>
+                <li><a href="object.html">object</a></li>
+                <li><a href="math.html">math</a></li>
+                <li><a href="time.html">time</a></li>
+                <li><a href="json.html">json</a></li>
+                <li><a href="encoding.html">encoding</a></li>
+                <li><a href="random.html">random</a></li>
+                <li><a href="string.html">string</a></li>
+            </ul>
+        </div>
+        <div class="nav-section">
+            <h3>Types</h3>
+            <ul>
+                <li><a href="type-Headers.html">Headers</a></li>
+                <li><a href="type-Response.html">Response</a></li>
+                <li><a href="type-Buffer.html">Buffer</a></li>
+                <li><a href="type-RequestBuilder.html">RequestBuilder</a></li>
+            </ul>
+        </div>
+        <div class="nav-section">
+            <h3>Traits</h3>
+            <ul>
+                <li><a href="trait-Sub.html">Sub</a></li>
+                <li><a href="trait-Mul.html">Mul</a></li>
+                <li><a href="trait-Div.html">Div</a></li>
+                <li><a href="trait-Add.html">Add</a></li>
+                <li><a href="trait-Index.html">Index</a></li>
+                <li><a href="trait-ToString.html">ToString</a></li>
+                <li><a href="trait-Printable.html">Printable</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="content">
+        <div class="breadcrumb"><a href="index.html">stdlib</a> / <span>math</span></div>
+        <h1>math</h1>
+        <p class="description">Math builtin providing mathematical operations and constants</p>
+        <h2>Constants</h2>
+        <div class="method-item">
+            <h3 id="E">E</h3>
+            <pre class="signature"><code>math.E: <a href="num.html">num</a></code></pre>
+            <p>The mathematical constant e (Euler&#39;s number) ≈ 2.71828</p>
+        </div>
+        <div class="method-item">
+            <h3 id="TAU">TAU</h3>
+            <pre class="signature"><code>math.TAU: <a href="num.html">num</a></code></pre>
+            <p>The mathematical constant τ (tau) = 2π ≈ 6.28318</p>
+        </div>
+        <div class="method-item">
+            <h3 id="PI">PI</h3>
+            <pre class="signature"><code>math.PI: <a href="num.html">num</a></code></pre>
+            <p>The mathematical constant π (pi) ≈ 3.14159</p>
+        </div>
+        <h2>Methods</h2>
+        <div class="method-item">
+            <h3 id="max">max</h3>
+            <pre class="signature"><code>math.max(a: <a href="num.html">num</a>, b: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Get the maximum of two numbers</p>
+        </div>
+        <div class="method-item">
+            <h3 id="min">min</h3>
+            <pre class="signature"><code>math.min(a: <a href="num.html">num</a>, b: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Get the minimum of two numbers</p>
+        </div>
+        <div class="method-item">
+            <h3 id="pow">pow</h3>
+            <pre class="signature"><code>math.pow(base: <a href="num.html">num</a>, exponent: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Raise a number to a power</p>
+        </div>
+        <div class="method-item">
+            <h3 id="round">round</h3>
+            <pre class="signature"><code>math.round(x: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Round a number to the nearest integer</p>
+        </div>
+        <div class="method-item">
+            <h3 id="atan">atan</h3>
+            <pre class="signature"><code>math.atan(x: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Calculate arctangent (returns radians)</p>
+        </div>
+        <div class="method-item">
+            <h3 id="ceil">ceil</h3>
+            <pre class="signature"><code>math.ceil(x: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Round up to the nearest integer</p>
+        </div>
+        <div class="method-item">
+            <h3 id="log10">log10</h3>
+            <pre class="signature"><code>math.log10(x: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Calculate the base-10 logarithm</p>
+        </div>
+        <div class="method-item">
+            <h3 id="tan">tan</h3>
+            <pre class="signature"><code>math.tan(x: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Calculate tangent (radians)</p>
+        </div>
+        <div class="method-item">
+            <h3 id="ln">ln</h3>
+            <pre class="signature"><code>math.ln(x: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Calculate the natural logarithm (base e)</p>
+        </div>
+        <div class="method-item">
+            <h3 id="asin">asin</h3>
+            <pre class="signature"><code>math.asin(x: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Calculate arcsine (returns radians)</p>
+        </div>
+        <div class="method-item">
+            <h3 id="acos">acos</h3>
+            <pre class="signature"><code>math.acos(x: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Calculate arccosine (returns radians)</p>
+        </div>
+        <div class="method-item">
+            <h3 id="sin">sin</h3>
+            <pre class="signature"><code>math.sin(x: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Calculate sine (radians)</p>
+        </div>
+        <div class="method-item">
+            <h3 id="atan2">atan2</h3>
+            <pre class="signature"><code>math.atan2(y: <a href="num.html">num</a>, x: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Calculate the arctangent of y/x, handling quadrants correctly</p>
+        </div>
+        <div class="method-item">
+            <h3 id="exp">exp</h3>
+            <pre class="signature"><code>math.exp(x: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Calculate e^x</p>
+        </div>
+        <div class="method-item">
+            <h3 id="clamp">clamp</h3>
+            <pre class="signature"><code>math.clamp(value: <a href="num.html">num</a>, min: <a href="num.html">num</a>, max: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Clamp a value between min and max</p>
+        </div>
+        <div class="method-item">
+            <h3 id="floor">floor</h3>
+            <pre class="signature"><code>math.floor(x: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Round down to the nearest integer</p>
+        </div>
+        <div class="method-item">
+            <h3 id="cos">cos</h3>
+            <pre class="signature"><code>math.cos(x: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Calculate cosine (radians)</p>
+        </div>
+        <div class="method-item">
+            <h3 id="abs">abs</h3>
+            <pre class="signature"><code>math.abs(x: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Get the absolute value of a number</p>
+        </div>
+        <div class="method-item">
+            <h3 id="sign">sign</h3>
+            <pre class="signature"><code>math.sign(x: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Get the sign of a number (-1, 0, or 1)</p>
+        </div>
+        <div class="method-item">
+            <h3 id="sqrt">sqrt</h3>
+            <pre class="signature"><code>math.sqrt(x: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Calculate the square root</p>
+        </div>
+        <div class="method-item">
+            <h3 id="log">log</h3>
+            <pre class="signature"><code>math.log(value: <a href="num.html">num</a>, base: <a href="num.html">num</a>) -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Calculate the logarithm with a custom base</p>
+        </div>
+    </div>
+</body>
+</html>

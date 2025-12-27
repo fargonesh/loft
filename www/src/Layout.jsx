@@ -31,7 +31,7 @@ const Layout = ({ children, fullWidth = false }) => {
               
               <nav className="hidden md:flex gap-6">
                 <Link to="/docs/introduction.md" className="text-sm font-medium hover:text-bio-green transition-colors">Docs</Link>
-                <a href="/d/std" target="_blank" rel="noreferrer" className="text-sm font-medium hover:text-bio-green transition-colors">Std Lib</a>
+                <Link to="/d/std" className="text-sm font-medium hover:text-bio-green transition-colors">Std Lib</Link>
               </nav>
             </div>
 
@@ -78,7 +78,7 @@ const Layout = ({ children, fullWidth = false }) => {
               <h4 className="font-bold mb-4 text-sm uppercase tracking-wider opacity-70">Resources</h4>
               <ul className="space-y-2 text-sm">
                 <li><Link to="/docs/introduction.md" className="hover:text-bio-green">Documentation</Link></li>
-                <li><a href="/d/std" className="hover:text-bio-green">Standard Library</a></li>
+                <li><Link to="/d/std" className="hover:text-bio-green">Standard Library</Link></li>
               </ul>
             </div>
 

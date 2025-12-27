@@ -142,10 +142,10 @@ const Home = () => {
                 </Link>
               </li>
               <li>
-                <a href="/d/std" target="_blank" rel="noreferrer" className="flex items-center gap-2 text-gray-700 hover:text-bio-green transition-colors">
+                <Link to="/d/std" className="flex items-center gap-2 text-gray-700 hover:text-bio-green transition-colors">
                   <span className="w-1.5 h-1.5 rounded-full bg-bio-green"></span>
                   Standard Library
-                </a>
+                </Link>
               </li>
               <li>
                 <Link to="/docs/architecture.md" className="flex items-center gap-2 text-gray-700 hover:text-bio-green transition-colors">
