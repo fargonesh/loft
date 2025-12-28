@@ -77,7 +77,6 @@ loft includes several builtin modules:
 - `math`: Mathematical functions
 - `fs`: File system operations
 - `time`: Time and date functions
-- `console`: Console utilities
 
 No need to import builtins:
 
