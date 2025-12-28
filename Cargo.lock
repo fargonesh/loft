@@ -1005,7 +1005,7 @@ dependencies = [
 
 [[package]]
 name = "loft"
-version = "0.1.0-rc-2"
+version = "0.1.0-rc-3"
 dependencies = [
  "async-trait",
  "atty",
@@ -1039,7 +1039,7 @@ dependencies = [
 
 [[package]]
 name = "loft_builtin_macros"
-version = "0.1.0-rc-2"
+version = "0.1.0-rc-3"
 dependencies = [
  "inventory",
  "proc-macro2",
