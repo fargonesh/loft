@@ -5,6 +5,12 @@ set -e
 # Usage: ./scripts/release.sh <version> [--tag]
 # Example: ./scripts/release.sh 0.1.0-rc-3
 #          ./scripts/release.sh 1.0.0 --tag
+#
+# This script automates the release process for loft:
+# 1. Updates versions in Cargo.toml files
+# 2. Updates Cargo.lock
+# 3. Creates a release branch and PR (default) OR a git tag (--tag)
+# 4. Updates the 'latest' tag for stable releases
 
 VERSION=$1
 TAG_MODE=false
@@ -48,8 +54,18 @@ if [ "$TAG_MODE" = true ]; then
     git add Cargo.toml registry/Cargo.toml loft_builtin_macros/Cargo.toml Cargo.lock
     git commit -m "chore: release v$VERSION"
     git tag -a "v$VERSION" -m "Release v$VERSION"
-    echo "Pushing tag to origin..."
+    
+    # If not a pre-release, also update the 'latest' tag
+    if [[ ! "$VERSION" == *"-"* ]]; then
+        echo "Updating 'latest' tag..."
+        git tag -f latest
+    fi
+
+    echo "Pushing tags to origin..."
     git push origin "v$VERSION"
+    if [[ ! "$VERSION" == *"-"* ]]; then
+        git push origin latest -f
+    fi
     echo "Release v$VERSION tagged and pushed!"
 else
     BRANCH_NAME="$VERSION"
