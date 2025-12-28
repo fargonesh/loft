@@ -10,7 +10,6 @@ loft includes a comprehensive standard library with builtin modules.
 - **math**: Mathematical functions
 - **fs**: File system operations
 - **time**: Time and date handling
-- **console**: Console utilities
 - **json**: JSON parsing and serialization
 - **web**: HTTP client
 
