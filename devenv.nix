@@ -21,6 +21,7 @@
 
   languages.rust = {
     enable = true;
+    targets = [ "wasm32-unknown-unknown" "x86_64-unknown-linux-gnu" ];
     channel = "nightly";
   };
 

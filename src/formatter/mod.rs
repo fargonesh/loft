@@ -254,7 +254,6 @@ impl Formatter {
             }
             Expr::Await(expr) => format!("await {}", self.format_expr(expr)),
             Expr::Async(expr) => format!("async {}", self.format_expr(expr)),
-            Expr::Lazy(expr) => format!("lazy {}", self.format_expr(expr)),
             Expr::TemplateLiteral { parts } => {
                 let parts_str = parts.iter()
                     .map(|p| match p {

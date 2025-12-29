@@ -9,7 +9,7 @@
   devenv_dotfile = "/home/flora/Projects/loft/.devenv";
   devenv_dotfile_path = ./.devenv;
   devenv_tmpdir = "/run/user/1000";
-  devenv_runtime = "/run/user/1000/devenv-362e630";
+  devenv_runtime = "/run/user/1000/devenv-85aefbd";
   devenv_istesting = false;
   devenv_direnvrc_latest_version = 1;
   container_name = null;
@@ -46,7 +46,7 @@
   devenv_dotfile = "/home/flora/Projects/loft/.devenv";
   devenv_dotfile_path = ./.devenv;
   devenv_tmpdir = "/run/user/1000";
-  devenv_runtime = "/run/user/1000/devenv-362e630";
+  devenv_runtime = "/run/user/1000/devenv-85aefbd";
   devenv_istesting = false;
   devenv_direnvrc_latest_version = 1;
   container_name = null;

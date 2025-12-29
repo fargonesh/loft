@@ -48,8 +48,7 @@ pub enum Expr {
     },
     Block(Vec<Stmt>),
     Await(Box<Expr>),
-    Async(Box<Expr>),  // Eager async expression
-    Lazy(Box<Expr>),   // Lazy async expression
+    Async(Box<Expr>),  // Async expression
     TemplateLiteral {
         parts: Vec<TemplatePart>,
     },
@@ -1312,13 +1311,6 @@ impl<'a> Parser<'a> {
                 let expr_with_postfix = self.parse_postfix(expr)?;
                 Ok(Expr::Async(Box::new(expr_with_postfix)))
             }
-            Some(Token::Keyword(k)) if k == "lazy" => {
-                // Parse lazy expression: lazy <expr>
-                // This creates a lazily-evaluated async expression
-                let expr = self.parse_primary_expr()?;
-                let expr_with_postfix = self.parse_postfix(expr)?;
-                Ok(Expr::Lazy(Box::new(expr_with_postfix)))
-            }
             Some(Token::Keyword(k)) if k == "match" => {
                 // Parse match expression
                 self.parse_match_expr()
@@ -2068,30 +2060,28 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_lazy_expr() {
-        let input = "let future = lazy expensive_computation();".to_string();
+    fn test_parse_await_async() {
+        let input = r#"
+            let eager_result = await async fetch_data();
+        "#.to_string();
         let stream = InputStream::new("test", &input);
         let mut parser = Parser::new(stream);
 
         let result = parser.parse().unwrap();
         assert_eq!(result.len(), 1);
 
+        // Test await with async
         match &result[0] {
             Stmt::VarDecl { name, value, .. } => {
-                assert_eq!(name, "future");
+                assert_eq!(name, "eager_result");
                 match value {
-                    Some(Expr::Lazy(expr)) => {
+                    Some(Expr::Await(expr)) => {
                         match &**expr {
-                            Expr::Call { func, .. } => {
-                                match &**func {
-                                    Expr::Ident(n) => assert_eq!(n, "expensive_computation"),
-                                    _ => panic!("Expected function identifier"),
-                                }
-                            }
-                            _ => panic!("Expected function call in lazy"),
+                            Expr::Async(_) => {}
+                            _ => panic!("Expected async expression inside await"),
                         }
                     }
-                    _ => panic!("Expected lazy expression"),
+                    _ => panic!("Expected await expression"),
                 }
             }
             _ => panic!("Expected variable declaration"),

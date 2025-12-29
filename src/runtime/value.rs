@@ -3,6 +3,33 @@ use std::collections::HashMap;
 use crate::parser::{Stmt, Type, Expr};
 use super::builtin::{BuiltinStruct, BuiltinFunction, BuiltinMethod};
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum Thunk {
+    Expr {
+        expr: Expr,
+        env: HashMap<String, Value>,
+    },
+    Stmt {
+        stmt: Stmt,
+        env: HashMap<String, Value>,
+    },
+    Native {
+        callback: BuiltinFunction,
+        args: Vec<Value>,
+    },
+    NativeMethod {
+        method: BuiltinMethod,
+        object: Box<Value>,
+        args: Vec<Value>,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum PromiseState {
+    Pending(Box<Thunk>),
+    Resolved(Box<Value>),
+}
+
 #[derive(Clone)]
 pub enum Value {
     Unit,
@@ -40,7 +67,7 @@ pub enum Value {
         return_type: Option<Type>,
         body: Box<Stmt>,
     },
-    Promise(Box<Value>), // A promise that holds a resolved value
+    Promise(PromiseState),
     EnumVariant {
         enum_name: String,
         variant_name: String,
@@ -83,7 +110,7 @@ impl std::fmt::Debug for Value {
             Value::UserMethod { object, method_name, .. } => {
                 write!(f, "UserMethod {{ object: {:?}, method: {:?} }}", object, method_name)
             }
-            Value::Promise(value) => write!(f, "Promise({:?})", value),
+            Value::Promise(state) => write!(f, "Promise({:?})", state),
             Value::EnumVariant { enum_name, variant_name, values } => {
                 write!(f, "EnumVariant {{ {}::{}, values: {:?} }}", enum_name, variant_name, values)
             }
@@ -124,7 +151,7 @@ impl PartialEq for Value {
             (Value::UserMethod { object: o1, method_name: m1, .. }, Value::UserMethod { object: o2, method_name: m2, .. }) => {
                 o1 == o2 && m1 == m2
             }
-            (Value::Promise(a), Value::Promise(b)) => a == b,
+            (Value::Promise(s1), Value::Promise(s2)) => s1 == s2,
             (Value::EnumVariant { enum_name: e1, variant_name: v1, values: vals1 }, 
              Value::EnumVariant { enum_name: e2, variant_name: v2, values: vals2 }) => {
                 e1 == e2 && v1 == v2 && vals1 == vals2

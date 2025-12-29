@@ -16,12 +16,14 @@ impl BuiltinRegistration {
 }
 
 // This allows builtins to be collected at compile time
+#[cfg(not(target_arch = "wasm32"))]
 inventory::collect!(BuiltinRegistration);
 
 /// Submit a builtin registration to the inventory
 #[macro_export]
 macro_rules! submit_builtin {
     ($name:expr, $factory:expr) => {
+        #[cfg(not(target_arch = "wasm32"))]
         inventory::submit! {
             $crate::runtime::builtin_registry::BuiltinRegistration::new($name, $factory)
         }

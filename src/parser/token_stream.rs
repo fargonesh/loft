@@ -48,7 +48,7 @@ pub struct TokenStream<'a> {
     pub(crate) last_doc_comment: Option<String>,  // Store the last doc comment
 }
 
-pub const KEYWORDS: &[&str] = &["let", "const", "fn", "if", "else", "while", "for", "in", "return", "break", "continue", "match", "def", "enum", "impl", "trait", "async", "await", "lazy", "mut", "true", "false", "learn", "teach"];
+pub const KEYWORDS: &[&str] = &["let", "const", "fn", "if", "else", "while", "for", "in", "return", "break", "continue", "match", "def", "enum", "impl", "trait", "async", "await", "mut", "true", "false", "learn", "teach"];
 pub const OPERATORS: &[char] = &['+', '-', '*', '/', '%', '=', '!', '<', '>', '&', '|', '^', '~', '.', '@', '?'];
 pub const PUNCT: &[char] = &[',', ';', ':', '(', ')', '{', '}', '[', ']'];
 

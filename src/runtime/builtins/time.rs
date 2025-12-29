@@ -1,11 +1,24 @@
 use crate::runtime::builtin::{BuiltinStruct, BuiltinMethod};
-use crate::runtime::value::Value;
+use crate::runtime::value::{Value, PromiseState, Thunk};
 use crate::runtime::{RuntimeError, RuntimeResult};
 use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use loft_builtin_macros::loft_builtin;
+
+/// Internal sleep implementation that actually blocks
+fn actual_sleep(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    let duration_ms = match &args[0] {
+        Value::Number(n) => n.to_f64().unwrap_or(0.0) as u64,
+        _ => return Err(RuntimeError::new("time.sleep() argument must be a number (milliseconds)")),
+    };
+    
+    #[cfg(not(target_arch = "wasm32"))]
+    thread::sleep(Duration::from_millis(duration_ms));
+    
+    Ok(Value::Unit)
+}
 
 /// Sleep for the specified number of milliseconds and return a promise
 #[loft_builtin(time.sleep)]
@@ -14,20 +27,18 @@ fn time_sleep(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
         return Err(RuntimeError::new("time.sleep() requires a duration argument"));
     }
     
-    let duration_ms = match &args[0] {
-        Value::Number(n) => {
-            
-            n.to_f64().unwrap_or(0.0) as u64
-        }
+    // Validate argument type early
+    match &args[0] {
+        Value::Number(_) => {},
         _ => return Err(RuntimeError::new("time.sleep() argument must be a number (milliseconds)")),
     };
     
-    // Actually sleep (this blocks the current thread)
-    // In a real async runtime, this would create a timer future
-    thread::sleep(Duration::from_millis(duration_ms));
-    
-    // Return a promise that resolves to Unit (void)
-    Ok(Value::Promise(Box::new(Value::Unit)))
+    // Return a pending promise that will execute actual_sleep when awaited
+    Ok(Value::Promise(PromiseState::Pending(Box::new(Thunk::NativeMethod {
+        method: actual_sleep,
+        object: Box::new(Value::Unit),
+        args: args.to_vec(),
+    }))))
 }
 
 /// Get the current time in milliseconds since Unix epoch

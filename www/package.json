@@ -13,6 +13,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "botanical-ui": "^4.0.1",
     "fuse.js": "^7.1.0",
     "react": "^19.2.3",

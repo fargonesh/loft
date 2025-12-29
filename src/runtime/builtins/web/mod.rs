@@ -1,5 +1,5 @@
 use crate::runtime::builtin::{BuiltinStruct, BuiltinMethod};
-use crate::runtime::value::Value;
+use crate::runtime::value::{Value, PromiseState};
 use crate::runtime::{RuntimeError, RuntimeResult};
 use crate::runtime::permission_context::check_net_permission;
 use rust_decimal::Decimal;
@@ -184,7 +184,7 @@ impl From<HttpResponse> for Value {
         });
         
         // Body as a Promise<Buffer>
-        fields.insert("body".to_string(), Value::Promise(Box::new(response.body.into())));
+        fields.insert("body".to_string(), Value::Promise(PromiseState::Resolved(Box::new(response.body.into()))));
         
         Value::Struct {
             name: "Response".to_string(),
@@ -447,7 +447,7 @@ fn web_send(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
             let body = Buffer::new(body_bytes.to_vec());
             
             let http_response = HttpResponse::new(status, headers, body);
-            return Ok(Value::Promise(Box::new(http_response.into())));
+            return Ok(Value::Promise(PromiseState::Resolved(Box::new(http_response.into()))));
         }
     }
     
@@ -459,7 +459,7 @@ fn web_send(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 fn web_json(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     if let Value::Struct { name, fields } = this {
         if name == "Response" {
-            if let Some(Value::Promise(body_promise)) = fields.get("body") {
+            if let Some(Value::Promise(PromiseState::Resolved(body_promise))) = fields.get("body") {
                 if let Value::Struct { name: buffer_name, fields: _buffer_fields } = body_promise.as_ref() {
                     if buffer_name == "Buffer" {
                         let buffer = Buffer::try_from(body_promise.as_ref())?;
@@ -470,7 +470,7 @@ fn web_json(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
                             .map_err(|e| RuntimeError::new(format!("Invalid JSON: {}", e)))?;
                         
                         let loft_value = json_to_loft_value(json_value)?;
-                        return Ok(Value::Promise(Box::new(loft_value)));
+                        return Ok(Value::Promise(PromiseState::Resolved(Box::new(loft_value))));
                     }
                 }
             }
@@ -485,12 +485,12 @@ fn web_json(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 fn web_text(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     if let Value::Struct { name, fields } = this {
         if name == "Response" {
-            if let Some(Value::Promise(body_promise)) = fields.get("body") {
+            if let Some(Value::Promise(PromiseState::Resolved(body_promise))) = fields.get("body") {
                 let buffer = Buffer::try_from(body_promise.as_ref())?;
                 let text = buffer.to_string()
                     .map_err(|e| RuntimeError::new(format!("Invalid UTF-8 in response body: {}", e)))?;
                 
-                return Ok(Value::Promise(Box::new(Value::String(text))));
+                return Ok(Value::Promise(PromiseState::Resolved(Box::new(Value::String(text)))));
             }
         }
     }

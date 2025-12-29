@@ -3,6 +3,7 @@ use loft::runtime::{Interpreter, value::Value, permissions::PermissionManager, p
 use clap::{Parser as ClapParser, Subcommand};
 use owo_colors::OwoColorize;
 use miette::GraphicalReportHandler;
+#[cfg(not(target_arch = "wasm32"))]
 use rustyline::{
     error::ReadlineError,
     DefaultEditor,
@@ -49,11 +50,13 @@ enum Commands {
     /// Run demo examples
     Demo,
     /// Create a new loft project
+    #[cfg(not(target_arch = "wasm32"))]
     New {
         /// Name of the project (use '.' for current directory)
         name: String,
     },
     /// Add a dependency to the current project
+    #[cfg(not(target_arch = "wasm32"))]
     Add {
         /// Name of the dependency
         name: String,
@@ -65,23 +68,27 @@ enum Commands {
         version: Option<String>,
     },
     /// Update dependencies according to version constraints
+    #[cfg(not(target_arch = "wasm32"))]
     Update {
         /// Specific package to update (updates all if not specified)
         package: Option<String>,
     },
     /// Generate documentation for the current package
+    #[cfg(not(target_arch = "wasm32"))]
     Doc {
         /// Output directory for generated documentation (defaults to ./docs)
         #[arg(short, long, default_value = "docs")]
         output: String,
     },
     /// Generate standard library documentation
+    #[cfg(not(target_arch = "wasm32"))]
     StdlibDoc {
         /// Output directory for generated documentation (defaults to ./stdlib-docs)
         #[arg(short, long, default_value = "stdlib-docs")]
         output: String,
     },
     /// Format loft source files
+    #[cfg(not(target_arch = "wasm32"))]
     Format {
         /// File or directory to format (use '.' for current directory)
         path: Option<String>,
@@ -90,14 +97,17 @@ enum Commands {
         check: bool,
     },
     /// Log in to the loft registry
+    #[cfg(not(target_arch = "wasm32"))]
     Login {
         /// The API token from the registry dashboard
         token: Option<String>,
     },
     /// Publish the current project to the registry
+    #[cfg(not(target_arch = "wasm32"))]
     Publish,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn should_append_semicolon(input: &str) -> bool {
     let trimmed = input.trim();
     !["let", "const", "fn", "struct", "impl", "trait", "enum", "if", "while", "for", "match"]
@@ -130,23 +140,38 @@ fn main() {
     // Priority: -c flag > file argument > subcommand > REPL
     if let Some(code) = cli.code {
         run_inline_code(&code);
-    } else if let Some(file_path) = cli.file {
+    } else if let Some(_file_path) = cli.file {
         // Check if file_path is "." - run from manifest.json entrypoint
-        if file_path == "." {
-            run_from_manifest();
-        } else {
-            run_file(&file_path);
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            if _file_path == "." {
+                run_from_manifest();
+            } else {
+                run_file(&_file_path);
+            }
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            println!("File execution is not supported on WASM");
         }
     } else if let Some(command) = cli.command {
         match command {
             Commands::Demo => run_demo(),
+            #[cfg(not(target_arch = "wasm32"))]
             Commands::New { name } => run_new(&name),
+            #[cfg(not(target_arch = "wasm32"))]
             Commands::Add { name, path, version } => run_add(&name, path.as_deref(), version.as_deref()),
+            #[cfg(not(target_arch = "wasm32"))]
             Commands::Update { package } => run_update(package.as_deref()),
+            #[cfg(not(target_arch = "wasm32"))]
             Commands::Doc { output } => run_doc(&output),
+            #[cfg(not(target_arch = "wasm32"))]
             Commands::StdlibDoc { output } => run_stdlib_doc(&output),
+            #[cfg(not(target_arch = "wasm32"))]
             Commands::Format { path, check } => run_format(path.as_deref(), check),
+            #[cfg(not(target_arch = "wasm32"))]
             Commands::Login { token } => run_login(token.as_deref()),
+            #[cfg(not(target_arch = "wasm32"))]
             Commands::Publish => run_publish(),
         }
     } else {
@@ -186,104 +211,113 @@ fn run_inline_code(code: &str) {
 }
 
 fn run_repl() {
-    // Clear screen and show banner
-    print!("\x1B[2J\x1B[1;1H");
-    println!("# {} repl", "loft".bright_magenta().bold());
-    println!("{}", "Type 'exit' to exit, 'help' for help".bright_black());
-    println!();
+    #[cfg(target_arch = "wasm32")]
+    {
+        println!("REPL is not supported on WASM");
+    }
 
-    // Set up the editor
-    let mut rl = DefaultEditor::new().unwrap();
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        // Clear screen and show banner
+        print!("\x1B[2J\x1B[1;1H");
+        println!("# {} repl", "loft".bright_magenta().bold());
+        println!("{}", "Type 'exit' to exit, 'help' for help".bright_black());
+        println!();
 
-    let mut interpreter = Interpreter::new();
+        // Set up the editor
+        let mut rl = DefaultEditor::new().unwrap();
 
-    loop {
-        let prompt = format!("{}{} ", ">".dimmed(), " ".white());
-        
-        match rl.readline(&prompt) {
-            Ok(input) => {
-                let trimmed = input.trim();
-                
-                // Handle special commands
-                match trimmed {
-                    "exit" | "quit" => {
-                        println!("{}", "Goodbye!".bright_green().bold());
-                        break;
-                    }
-                    "help" => {
-                        print_help();
-                        continue;
-                    }
-                    "clear" => {
-                        print!("\x1B[2J\x1B[1;1H");
-                        continue;
-                    }
-                    "" => continue,
-                    _ => {}
-                }
+        let mut interpreter = Interpreter::new();
 
-                // Process the input - potentially add semicolon
-                let processed_input = if should_append_semicolon(&input) {
-                    format!("{};", input)
-                } else {
-                    input.clone()
-                };
-
-                // Add to history
-                rl.add_history_entry(&input).ok();
-
-                // Parse and evaluate
-                let stream = InputStream::new("repl", &processed_input);
-                let mut parser = Parser::new(stream);
-                
-                match parser.parse() {
-                    Ok(stmts) => {
-                        if stmts.is_empty() {
+        loop {
+            let prompt = format!("{}{} ", ">".dimmed(), " ".white());
+            
+            match rl.readline(&prompt) {
+                Ok(input) => {
+                    let trimmed = input.trim();
+                    
+                    // Handle special commands
+                    match trimmed {
+                        "exit" | "quit" => {
+                            println!("{}", "Goodbye!".bright_green().bold());
+                            break;
+                        }
+                        "help" => {
+                            print_help();
                             continue;
                         }
-                        
-                        // Create a new interpreter with source context for this line
-                        // Note: In REPL mode, we need to preserve the environment between lines
-                        // So we'll just use the existing interpreter and handle errors simply
-                        match interpreter.eval_program(stmts) {
-                            Ok(result) => {
-                                // Only print non-unit values
-                                if !matches!(result, Value::Unit) {
-                                    println!("{}", format!("{:?}", result).bright_white());
+                        "clear" => {
+                            print!("\x1B[2J\x1B[1;1H");
+                            continue;
+                        }
+                        "" => continue,
+                        _ => {}
+                    }
+
+                    // Process the input - potentially add semicolon
+                    let processed_input = if should_append_semicolon(&input) {
+                        format!("{};", input)
+                    } else {
+                        input.clone()
+                    };
+
+                    // Add to history
+                    rl.add_history_entry(&input).ok();
+
+                    // Parse and evaluate
+                    let stream = InputStream::new("repl", &processed_input);
+                    let mut parser = Parser::new(stream);
+                    
+                    match parser.parse() {
+                        Ok(stmts) => {
+                            if stmts.is_empty() {
+                                continue;
+                            }
+                            
+                            // Create a new interpreter with source context for this line
+                            // Note: In REPL mode, we need to preserve the environment between lines
+                            // So we'll just use the existing interpreter and handle errors simply
+                            match interpreter.eval_program(stmts) {
+                                Ok(result) => {
+                                    // Only print non-unit values
+                                    if !matches!(result, Value::Unit) {
+                                        println!("{}", format!("{:?}", result).bright_white());
+                                    }
+                                }
+                                Err(e) => {
+                                    // Use miette for pretty error printing
+                                    let mut out = String::new();
+                                    let _ = GraphicalReportHandler::default().render_report(&mut out, &e);
+                                    println!("{}", out);
                                 }
                             }
-                            Err(e) => {
-                                // Use miette for pretty error printing
-                                let mut out = String::new();
-                                let _ = GraphicalReportHandler::default().render_report(&mut out, &e);
-                                println!("{}", out);
-                            }
+                        }
+                        Err(e) => {
+                            // Use miette for pretty error printing
+                            let mut out = String::new();
+                            let _ = GraphicalReportHandler::default().render_report(&mut out, &e);
+                            println!("{}", out);
                         }
                     }
-                    Err(e) => {
-                        // Use miette for pretty error printing
-                        let mut out = String::new();
-                        let _ = GraphicalReportHandler::default().render_report(&mut out, &e);
-                        println!("{}", out);
-                    }
                 }
-            }
-            Err(ReadlineError::Interrupted) => {
-                println!("{}", "^C".bright_yellow());
-                continue;
-            }
-            Err(ReadlineError::Eof) => {
-                println!("{}", "^D".bright_yellow());
-                break;
-            }
-            Err(err) => {
-                println!("{}: {:?}", "Error reading input".bright_red().bold(), err);
-                break;
+                Err(ReadlineError::Interrupted) => {
+                    println!("{}", "^C".bright_yellow());
+                    continue;
+                }
+                Err(ReadlineError::Eof) => {
+                    println!("{}", "^D".bright_yellow());
+                    break;
+                }
+                Err(err) => {
+                    println!("Error: {:?}", err);
+                    break;
+                }
             }
         }
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn print_help() {
     println!("{}", "loft REPL Help:".bright_cyan().bold());
     println!("{}", "================".bright_cyan());
@@ -349,6 +383,7 @@ fn run_demo() {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn run_file(path: &str) {
     use std::fs;
     
@@ -394,6 +429,7 @@ fn run_file(path: &str) {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn run_from_manifest() {
     use loft::manifest::Manifest;
     use std::path::Path;
@@ -431,6 +467,7 @@ fn run_from_manifest() {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn run_new(name: &str) {
     use std::fs;
     use std::path::Path;
@@ -539,6 +576,7 @@ term.println("The answer is:", y);
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn run_add(dep_name: &str, dep_path: Option<&str>, version_constraint: Option<&str>) {
     use std::fs;
     use std::path::Path;
@@ -768,6 +806,7 @@ fn run_add(dep_name: &str, dep_path: Option<&str>, version_constraint: Option<&s
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn run_update(specific_package: Option<&str>) {
     use std::fs;
     use std::path::Path;
@@ -953,6 +992,7 @@ fn run_update(specific_package: Option<&str>) {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn run_doc(output_dir: &str) {
     use loft::manifest::Manifest;
     use loft::docgen::DocGenerator;
@@ -1034,6 +1074,7 @@ fn run_doc(output_dir: &str) {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn run_stdlib_doc(output_dir: &str) {
     use loft::docgen::stdlib::StdlibDocGenerator;
     use std::path::Path;
@@ -1070,6 +1111,7 @@ fn run_stdlib_doc(output_dir: &str) {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn run_login(token: Option<&str>) {
     use std::fs;
     use std::io::{self, Write};
@@ -1117,6 +1159,7 @@ fn run_login(token: Option<&str>) {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn run_publish() {
     use loft::manifest::Manifest;
     use std::fs;
@@ -1214,6 +1257,7 @@ fn run_publish() {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn run_format(path: Option<&str>, check: bool) {
     use loft::formatter::TokenFormatter;
     use std::path::Path;

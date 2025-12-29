@@ -5,13 +5,14 @@ pub mod traits;
 pub mod value;
 pub mod permissions;
 pub mod permission_context;
+pub mod output;
 
 use crate::parser::{Expr, Stmt, TraitMethod, Type, InputStream, Parser};
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::path::PathBuf;
 use traits::{call_binop_trait, call_index_trait, ToString};
-use value::Value;
+use value::{Value, Thunk, PromiseState};
 use builtins::init_builtins;
 use miette::{Diagnostic, LabeledSpan, NamedSource};
 
@@ -245,6 +246,10 @@ impl Environment {
             }
         }
         captured
+    }
+
+    pub fn set_all(&mut self, captured: HashMap<String, Value>) {
+        self.scopes = vec![captured];
     }
 }
 
@@ -577,6 +582,31 @@ impl Interpreter {
         }
     }
 
+    pub fn eval_thunk(&mut self, thunk: Thunk) -> RuntimeResult<Value> {
+        match thunk {
+            Thunk::Expr { expr, env } => {
+                let old_scopes = self.env.scopes.clone();
+                self.env.set_all(env);
+                let result = self.eval_expr(expr);
+                self.env.scopes = old_scopes;
+                result
+            }
+            Thunk::Stmt { stmt, env } => {
+                let old_scopes = self.env.scopes.clone();
+                self.env.set_all(env);
+                let result = self.eval_stmt(stmt);
+                self.env.scopes = old_scopes;
+                result
+            }
+            Thunk::Native { callback, args } => {
+                callback(&args)
+            }
+            Thunk::NativeMethod { method, object, args } => {
+                method(&object, &args)
+            }
+        }
+    }
+
     pub fn eval_expr(&mut self, expr: Expr) -> RuntimeResult<Value> {
         match expr {
             Expr::Number(n) => Ok(Value::Number(n)),
@@ -620,23 +650,31 @@ impl Interpreter {
                         // Note: params are stored as (name, type_string)
                         // For now, we skip type validation since we'd need to parse the type strings
                         
-                        // Create new scope for function
-                        self.env.push_scope();
-                        
-                        // Bind parameters
-                        for ((param_name, _), arg_val) in params.iter().zip(arg_vals.iter()) {
-                            self.env.set(param_name.clone(), arg_val.clone());
-                        }
-                        
-                        // Execute function body
-                        let result = self.eval_stmt(*body)?;
-                        
-                        self.env.pop_scope();
-                        
-                        // If async, wrap result in a Promise
+                        // If async, return a pending promise (lazy)
                         if is_async {
-                            Ok(Value::Promise(Box::new(result)))
+                            let captured_env = self.env.capture_all();
+                            let mut thunk_env = captured_env;
+                            for ((param_name, _), arg_val) in params.iter().zip(arg_vals.iter()) {
+                                thunk_env.insert(param_name.clone(), arg_val.clone());
+                            }
+                            
+                            Ok(Value::Promise(PromiseState::Pending(Box::new(Thunk::Stmt {
+                                stmt: *body,
+                                env: thunk_env,
+                            }))))
                         } else {
+                            // Create new scope for function
+                            self.env.push_scope();
+                            
+                            // Bind parameters
+                            for ((param_name, _), arg_val) in params.iter().zip(arg_vals.iter()) {
+                                self.env.set(param_name.clone(), arg_val.clone());
+                            }
+                            
+                            // Execute function body
+                            let result = self.eval_stmt(*body)?;
+                            
+                            self.env.pop_scope();
                             Ok(result)
                         }
                     }
@@ -899,10 +937,14 @@ impl Interpreter {
                 // Evaluate the expression (should be a Promise)
                 let value = self.eval_expr(*expr)?;
                 match value {
-                    Value::Promise(result) => {
-                        // Unlike JavaScript, our promises are already resolved
-                        // since async functions execute immediately
-                        Ok(*result)
+                    Value::Promise(state) => {
+                        match state {
+                            PromiseState::Resolved(val) => Ok(*val),
+                            PromiseState::Pending(thunk) => {
+                                // Evaluate the thunk
+                                self.eval_thunk(*thunk)
+                            }
+                        }
                     }
                     _ => Err(self.error(format!(
                         "Cannot await non-promise value: {:?}",
@@ -911,17 +953,12 @@ impl Interpreter {
                 }
             },
             Expr::Async(expr) => {
-                // Evaluate the expression eagerly and wrap in a Promise
-                // This represents "eager async" - starts execution immediately
-                let result = self.eval_expr(*expr)?;
-                Ok(Value::Promise(Box::new(result)))
-            },
-            Expr::Lazy(expr) => {
-                // Create a lazy future that doesn't execute until awaited
-                // For now, we'll treat it similar to a regular promise
-                // In a full implementation, this would create an unevaluated thunk
-                let result = self.eval_expr(*expr)?;
-                Ok(Value::Promise(Box::new(result)))
+                // Create a pending promise with a thunk
+                let captured_env = self.env.capture_all();
+                Ok(Value::Promise(PromiseState::Pending(Box::new(Thunk::Expr {
+                    expr: *expr,
+                    env: captured_env,
+                }))))
             },
             Expr::ArrayLiteral(elements) => {
                 let mut array_values = Vec::new();
@@ -1575,6 +1612,7 @@ mod tests {
                 return url;
             }
             let promise = fetch_data("test_url");
+            let result = await promise;
         "#.to_string();
         let stream = InputStream::new("test", &input);
         let mut parser = Parser::new(stream);
@@ -1583,12 +1621,10 @@ mod tests {
         let mut interpreter = Interpreter::new();
         interpreter.eval_program(stmts).unwrap();
 
-        // Check that the promise exists
-        if let Some(Value::Promise(value)) = interpreter.env.get("promise") {
-            assert_eq!(**value, Value::String("test_url".to_string()));
-        } else {
-            panic!("Expected promise value");
-        }
+        assert_eq!(
+            interpreter.env.get("result"),
+            Some(&Value::String("test_url".to_string()))
+        );
     }
 
     #[test]
@@ -1785,7 +1821,10 @@ mod tests {
 
     #[test]
     fn test_time_sleep_returns_promise() {
-        let input = r#"let promise = time.sleep(100);"#.to_string();
+        let input = r#"
+            let promise = time.sleep(10);
+            let result = await promise;
+        "#.to_string();
         let stream = InputStream::new("test", &input);
         let mut parser = Parser::new(stream);
         let stmts = parser.parse().unwrap();
@@ -1793,12 +1832,10 @@ mod tests {
         let mut interpreter = Interpreter::new();
         interpreter.eval_program(stmts).unwrap();
 
-        // Check that the promise exists and contains Unit
-        if let Some(Value::Promise(value)) = interpreter.env.get("promise") {
-            assert_eq!(**value, Value::Unit);
-        } else {
-            panic!("Expected promise value from time.sleep()");
-        }
+        assert_eq!(
+            interpreter.env.get("result"),
+            Some(&Value::Unit)
+        );
     }
 
     #[test]

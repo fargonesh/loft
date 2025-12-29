@@ -7,21 +7,39 @@ use loft_builtin_macros::loft_builtin;
 
 /// Print text to the terminal
 #[loft_builtin(term.print)]
-fn term_print(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+pub fn term_print(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    let mut output = String::new();
     for (i, arg) in args.iter().enumerate() {
         if i > 0 {
-            print!(" ");
+            output.push(' ');
         }
-        print!("{}", arg.to_string());
+        output.push_str(&arg.to_string());
     }
+    
+    #[cfg(target_arch = "wasm32")]
+    crate::runtime::output::append_stdout(&output);
+    #[cfg(not(target_arch = "wasm32"))]
+    print!("{}", output);
+    
     Ok(Value::Unit)
 }
 
 /// Print text to the terminal with a newline
 #[loft_builtin(term.println)]
-fn term_println(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    term_print(_this, args)?;
-    println!();
+pub fn term_println(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    let mut output = String::new();
+    for (i, arg) in args.iter().enumerate() {
+        if i > 0 {
+            output.push(' ');
+        }
+        output.push_str(&arg.to_string());
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    crate::runtime::output::append_stdout_ln(&output);
+    #[cfg(not(target_arch = "wasm32"))]
+    println!("{}", output);
+
     Ok(Value::Unit)
 }
 
@@ -34,6 +52,9 @@ fn term_log(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 /// Alias for println with [ERROR] prefix
 #[loft_builtin(term.error)]
 fn term_error(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    #[cfg(target_arch = "wasm32")]
+    crate::runtime::output::append_stdout("\x1B[31m[ERROR]\x1B[0m ");
+    #[cfg(not(target_arch = "wasm32"))]
     print!("\x1B[31m[ERROR]\x1B[0m ");
     term_println(this, args)
 }
@@ -41,6 +62,9 @@ fn term_error(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 /// Alias for println with [WARN] prefix
 #[loft_builtin(term.warn)]
 fn term_warn(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    #[cfg(target_arch = "wasm32")]
+    crate::runtime::output::append_stdout("\x1B[33m[WARN]\x1B[0m ");
+    #[cfg(not(target_arch = "wasm32"))]
     print!("\x1B[33m[WARN]\x1B[0m ");
     term_println(this, args)
 }
@@ -48,6 +72,9 @@ fn term_warn(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 /// Alias for println with [INFO] prefix
 #[loft_builtin(term.info)]
 fn term_info(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    #[cfg(target_arch = "wasm32")]
+    crate::runtime::output::append_stdout("\x1B[34m[INFO]\x1B[0m ");
+    #[cfg(not(target_arch = "wasm32"))]
     print!("\x1B[34m[INFO]\x1B[0m ");
     term_println(this, args)
 }
@@ -55,6 +82,9 @@ fn term_info(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 /// Alias for println with [DEBUG] prefix
 #[loft_builtin(term.debug)]
 fn term_debug(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    #[cfg(target_arch = "wasm32")]
+    crate::runtime::output::append_stdout("\x1B[36m[DEBUG]\x1B[0m ");
+    #[cfg(not(target_arch = "wasm32"))]
     print!("\x1B[36m[DEBUG]\x1B[0m ");
     term_println(this, args)
 }
@@ -62,6 +92,9 @@ fn term_debug(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 /// Clear the terminal screen
 #[loft_builtin(term.clear)]
 fn term_clear(_this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+    #[cfg(target_arch = "wasm32")]
+    crate::runtime::output::clear_stdout();
+    #[cfg(not(target_arch = "wasm32"))]
     print!("\x1B[2J\x1B[1;1H");
     Ok(Value::Unit)
 }

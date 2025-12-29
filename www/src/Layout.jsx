@@ -32,6 +32,7 @@ const Layout = ({ children, fullWidth = false }) => {
               <nav className="hidden md:flex gap-6">
                 <Link to="/docs/introduction.md" className="text-sm font-medium hover:text-bio-green transition-colors">Docs</Link>
                 <Link to="/d/std" className="text-sm font-medium hover:text-bio-green transition-colors">Std Lib</Link>
+                <Link to="/playground" className="text-sm font-medium hover:text-bio-green transition-colors">Playground</Link>
               </nav>
             </div>
 

@@ -1220,7 +1220,7 @@ impl LoftLanguageServer {
             Expr::Lambda { body, .. } => {
                 Self::check_expr_with_imports(body, symbols, used_vars, used_imports, diagnostics, lines);
             }
-            Expr::Await(expr) | Expr::Async(expr) | Expr::Lazy(expr) => {
+            Expr::Await(expr) | Expr::Async(expr) => {
                 Self::check_expr_with_imports(expr, symbols, used_vars, used_imports, diagnostics, lines);
             }
             Expr::Block(stmts) => {
@@ -1347,7 +1347,7 @@ impl LoftLanguageServer {
             Expr::Block(stmts) => {
                 Self::check_stmt_list(stmts, symbols, used_vars, diagnostics, lines);
             }
-            Expr::Await(expr) | Expr::Async(expr) | Expr::Lazy(expr) => {
+            Expr::Await(expr) | Expr::Async(expr) => {
                 Self::check_expr(expr, symbols, used_vars, diagnostics, lines);
             }
             Expr::Lambda { body, .. } => {
@@ -1801,18 +1801,9 @@ impl LoftLanguageServer {
                     _ => None,
                 }
             }
-            Expr::Lazy(inner) => {
-                // For lazy expressions, wrap the inner type in Promise<T>
-                // This represents a lazy future that will evaluate to the inner type
-                if let Some(inner_type) = Self::infer_type_from_expr(inner, symbols, stdlib_types) {
-                    Some(format!("Promise<{}>", inner_type))
-                } else {
-                    Some("Promise<unknown>".to_string())
-                }
-            }
             Expr::Async(inner) => {
                 // For async expressions, wrap the inner type in Promise<T>
-                // This represents an eager future that will evaluate to the inner type
+                // This represents a future that will evaluate to the inner type
                 if let Some(inner_type) = Self::infer_type_from_expr(inner, symbols, stdlib_types) {
                     Some(format!("Promise<{}>", inner_type))
                 } else {

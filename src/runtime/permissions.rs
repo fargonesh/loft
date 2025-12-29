@@ -135,6 +135,11 @@ impl PermissionManager {
                 .map(PathBuf::from)?;
             Some(base_dir.join("loft").join("permissions.json"))
         }
+
+        #[cfg(not(any(target_family = "unix", target_family = "windows")))]
+        {
+            None
+        }
     }
 
     /// Check if a path is within the protected permissions directory

@@ -19,6 +19,7 @@ import Dashboard from './Dashboard';
 import Docs from './Docs';
 import PackageInfo from './PackageInfo';
 import PackageDocs from './PackageDocs';
+import Playground from './Playground';
 import Layout from './Layout';
 
 const Home = () => {
@@ -169,6 +170,7 @@ const App = () => {
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/docs/*" element={<Docs />} />
+        <Route path="/playground" element={<Layout fullWidth><Playground /></Layout>} />
         <Route path="/p/:package" element={<PackageInfo />} />
         <Route path="/d/:package" element={<PackageDocs />} />
       </Routes>

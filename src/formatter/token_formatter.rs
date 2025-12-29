@@ -274,7 +274,6 @@ impl TokenFormatter {
                 | "trait"
                 | "async"
                 | "await"
-                | "lazy"
                 | "mut"
                 | "true"
                 | "false"

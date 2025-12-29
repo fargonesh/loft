@@ -1,4 +1,4 @@
-use super::value::Value;
+use super::value::{Value, PromiseState};
 use super::{RuntimeError, RuntimeResult};
 use rust_decimal::Decimal;
 
@@ -156,7 +156,10 @@ impl ToString for Value {
             Value::BoundMethod { method_name, .. } => format!("<bound method {}>", method_name),
             Value::UserMethod { method_name, .. } => format!("<method {}>", method_name),
             Value::Closure { params, .. } => format!("<closure with {} params>", params.len()),
-            Value::Promise(value) => format!("<promise {}>", value.to_string()),
+            Value::Promise(state) => match state {
+                PromiseState::Resolved(val) => format!("<promise (resolved) {}>", val.to_string()),
+                PromiseState::Pending(_) => "<promise (pending)>".to_string(),
+            },
             Value::EnumVariant { enum_name, variant_name, values } => {
                 if values.is_empty() {
                     format!("{}.{}", enum_name, variant_name)
