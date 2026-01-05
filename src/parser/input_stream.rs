@@ -100,6 +100,12 @@ impl InputStream<'_> {
             source: Box::new(NamedSource::new(self.path.clone(), source_text)),
         }
     }
+
+    pub fn croak_with_help(&self, msg: impl Display, help: impl Display, len: Option<usize>) -> Error {
+        let mut err = self.croak(msg, len);
+        err.help = Some(help.to_string());
+        err
+    }
 }
 
 #[derive(Debug)]

@@ -1,0 +1,15 @@
+let x = 10;
+let increment = () => {
+    x = x + 1;
+    term.println(`Inside closure: x = ${x}`);
+};
+
+term.println(`Before: x = ${x}`);
+increment();
+term.println(`After: x = ${x}`);
+
+if (x == 11) {
+    term.println("SUCCESS: Mutable capture works!");
+} else {
+    term.println(`FAILURE: Mutable capture failed, x is still ${x}`);
+}

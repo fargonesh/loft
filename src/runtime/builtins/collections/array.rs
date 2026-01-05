@@ -1,54 +1,109 @@
 use crate::runtime::builtin::{BuiltinStruct, BuiltinMethod};
 use crate::runtime::value::Value;
-use crate::runtime::{RuntimeError, RuntimeResult};
+use crate::runtime::{RuntimeError, RuntimeResult, Interpreter};
 use crate::runtime::traits::ToString;
 use rust_decimal::Decimal;
 use loft_builtin_macros::loft_builtin;
 
-/// Map function - applies a function to each element (placeholder for now)
-/// Note: Full implementation would require function execution
+/// Map function - applies a function to each element
 #[loft_builtin(array.map)]
-fn array_map(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn array_map(interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    if args.is_empty() {
+        return Err(RuntimeError::new("map() requires a function argument"));
+    }
+    
+    let func = args[0].clone();
+    
     match this {
-        Value::Array(_) => {
-            // Placeholder - full implementation would execute the function on each element
-            Err(RuntimeError::new("map() requires function execution support (coming soon)"))
+        Value::Array(arr) => {
+            let mut result = Vec::with_capacity(arr.len());
+            for item in arr {
+                let val = interpreter.call_value(func.clone(), vec![item.clone()])?;
+                result.push(val);
+            }
+            Ok(Value::Array(result))
         }
         _ => Err(RuntimeError::new("map() can only be called on arrays")),
     }
 }
 
-/// Filter function - filters elements (placeholder for now)
+/// Filter function - filters elements
 #[loft_builtin(array.filter)]
-fn array_filter(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn array_filter(interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    if args.is_empty() {
+        return Err(RuntimeError::new("filter() requires a predicate function argument"));
+    }
+    
+    let predicate = args[0].clone();
+    
     match this {
-        Value::Array(_) => {
-            // Placeholder - full implementation would execute the predicate on each element
-            Err(RuntimeError::new("filter() requires function execution support (coming soon)"))
+        Value::Array(arr) => {
+            let mut result = Vec::new();
+            for item in arr {
+                let val = interpreter.call_value(predicate.clone(), vec![item.clone()])?;
+                if val.is_truthy() {
+                    result.push(item.clone());
+                }
+            }
+            Ok(Value::Array(result))
         }
         _ => Err(RuntimeError::new("filter() can only be called on arrays")),
     }
 }
 
-/// Reduce function - reduces array to single value (placeholder for now)
+/// Reduce function - reduces array to single value
 #[loft_builtin(array.reduce)]
-fn array_reduce(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn array_reduce(interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    if args.is_empty() {
+        return Err(RuntimeError::new("reduce() requires a reducer function argument"));
+    }
+    
+    let reducer = args[0].clone();
+    
     match this {
-        Value::Array(_) => {
-            // Placeholder - full implementation would execute the reducer function
-            Err(RuntimeError::new("reduce() requires function execution support (coming soon)"))
+        Value::Array(arr) => {
+            if arr.is_empty() {
+                if args.len() > 1 {
+                    return Ok(args[1].clone());
+                } else {
+                    return Err(RuntimeError::new("reduce() of empty array with no initial value"));
+                }
+            }
+            
+            let (mut accumulator, start_idx) = if args.len() > 1 {
+                (args[1].clone(), 0)
+            } else {
+                (arr[0].clone(), 1)
+            };
+            
+            for item in &arr[start_idx..] {
+                accumulator = interpreter.call_value(reducer.clone(), vec![accumulator, item.clone()])?;
+            }
+            
+            Ok(accumulator)
         }
         _ => Err(RuntimeError::new("reduce() can only be called on arrays")),
     }
 }
 
-/// Find first element matching predicate (placeholder for now)
+/// Find first element matching predicate
 #[loft_builtin(array.find)]
-fn array_find(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn array_find(interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    if args.is_empty() {
+        return Err(RuntimeError::new("find() requires a predicate function argument"));
+    }
+    
+    let predicate = args[0].clone();
+    
     match this {
-        Value::Array(_) => {
-            // Placeholder - full implementation would execute the predicate
-            Err(RuntimeError::new("find() requires function execution support (coming soon)"))
+        Value::Array(arr) => {
+            for item in arr {
+                let val = interpreter.call_value(predicate.clone(), vec![item.clone()])?;
+                if val.is_truthy() {
+                    return Ok(item.clone());
+                }
+            }
+            Ok(Value::Unit)
         }
         _ => Err(RuntimeError::new("find() can only be called on arrays")),
     }
@@ -56,7 +111,7 @@ fn array_find(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Zip two arrays together
 #[loft_builtin(array.zip)]
-fn array_zip(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn array_zip(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.len() < 2 {
         return Err(RuntimeError::new("zip() requires two array arguments"));
     }
@@ -75,7 +130,7 @@ fn array_zip(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Chain/concatenate multiple arrays
 #[loft_builtin(array.chain)]
-fn array_chain(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn array_chain(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     let mut result = Vec::new();
     
     for arg in args {
@@ -90,7 +145,7 @@ fn array_chain(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Flatten an array of arrays by one level
 #[loft_builtin(array.flatten)]
-fn array_flatten(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn array_flatten(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::Array(arr) => {
             let mut result = Vec::new();
@@ -110,7 +165,7 @@ fn array_flatten(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Reverse an array
 #[loft_builtin(array.reverse)]
-fn array_reverse(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn array_reverse(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::Array(arr) => {
             let mut reversed = arr.clone();
@@ -123,7 +178,7 @@ fn array_reverse(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Sort an array (numbers only for now)
 #[loft_builtin(array.sort)]
-fn array_sort(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn array_sort(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::Array(arr) => {
             // Check if all elements are numbers
@@ -145,7 +200,7 @@ fn array_sort(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Check if array includes a value
 #[loft_builtin(array.includes)]
-fn array_includes(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn array_includes(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("includes() requires a value argument"));
     }
@@ -161,7 +216,7 @@ fn array_includes(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Find the index of a value in an array
 #[loft_builtin(array.index_of)]
-fn array_index_of(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn array_index_of(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("index_of() requires a value argument"));
     }
@@ -180,7 +235,7 @@ fn array_index_of(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Get first element of array
 #[loft_builtin(array.first)]
-fn array_first(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn array_first(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::Array(arr) => {
             if arr.is_empty() {
@@ -195,7 +250,7 @@ fn array_first(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Get last element of array
 #[loft_builtin(array.last)]
-fn array_last(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn array_last(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::Array(arr) => {
             if arr.is_empty() {
@@ -210,7 +265,7 @@ fn array_last(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Take first n elements
 #[loft_builtin(array.take)]
-fn array_take(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn array_take(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("take() requires a count argument"));
     }
@@ -229,7 +284,7 @@ fn array_take(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Skip first n elements
 #[loft_builtin(array.skip)]
-fn array_skip(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn array_skip(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("skip() requires a count argument"));
     }
@@ -248,7 +303,7 @@ fn array_skip(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Get unique elements (dedup)
 #[loft_builtin(array.unique)]
-fn array_unique(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn array_unique(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::Array(arr) => {
             let mut unique = Vec::new();
@@ -265,7 +320,7 @@ fn array_unique(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Sum all numbers in array
 #[loft_builtin(array.sum)]
-fn array_sum(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn array_sum(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::Array(arr) => {
             let mut sum = Decimal::ZERO;
@@ -283,7 +338,7 @@ fn array_sum(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Get average of all numbers in array
 #[loft_builtin(array.average)]
-fn array_average(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn array_average(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::Array(arr) => {
             if arr.is_empty() {
@@ -307,7 +362,7 @@ fn array_average(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Joins an array together by a delimiter
 #[loft_builtin(array.join)]
-fn array_join(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn array_join(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::Array(arr) => {
             let delimiter = if let Some(arg) = args.first() {

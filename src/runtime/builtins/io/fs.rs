@@ -1,6 +1,6 @@
 use crate::runtime::builtin::{BuiltinStruct, BuiltinMethod};
 use crate::runtime::value::Value;
-use crate::runtime::{RuntimeError, RuntimeResult};
+use crate::runtime::{RuntimeError, RuntimeResult, Interpreter};
 use crate::runtime::permission_context::{check_read_permission, check_write_permission};
 use std::fs;
 use std::path::Path;
@@ -8,7 +8,7 @@ use loft_builtin_macros::loft_builtin;
 
 /// Read entire file contents as a string
 #[loft_builtin(fs.read)]
-fn fs_read_file(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn fs_read_file(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("fs.read() requires a file path argument"));
     }
@@ -29,7 +29,7 @@ fn fs_read_file(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Write string contents to a file
 #[loft_builtin(fs.write)]
-fn fs_write_file(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn fs_write_file(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.len() < 2 {
         return Err(RuntimeError::new("fs.write() requires path and content arguments"));
     }
@@ -51,7 +51,7 @@ fn fs_write_file(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Append string contents to a file
 #[loft_builtin(fs.append)]
-fn fs_append_file(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn fs_append_file(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.len() < 2 {
         return Err(RuntimeError::new("fs.append() requires path and content arguments"));
     }
@@ -80,7 +80,7 @@ fn fs_append_file(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Check if a file exists
 #[loft_builtin(fs.exists)]
-fn fs_exists(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn fs_exists(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("fs.exists() requires a path argument"));
     }
@@ -99,7 +99,7 @@ fn fs_exists(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Check if path is a file
 #[loft_builtin(fs.is_file)]
-fn fs_is_file(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn fs_is_file(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("fs.is_file() requires a path argument"));
     }
@@ -118,7 +118,7 @@ fn fs_is_file(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Check if path is a directory
 #[loft_builtin(fs.is_dir)]
-fn fs_is_dir(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn fs_is_dir(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("fs.is_dir() requires a path argument"));
     }
@@ -137,7 +137,7 @@ fn fs_is_dir(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Create a directory
 #[loft_builtin(fs.create_dir)]
-fn fs_create_dir(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn fs_create_dir(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("fs.create_dir() requires a path argument"));
     }
@@ -158,7 +158,7 @@ fn fs_create_dir(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Remove a file
 #[loft_builtin(fs.remove_file)]
-fn fs_remove_file(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn fs_remove_file(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("fs.remove_file() requires a path argument"));
     }
@@ -179,7 +179,7 @@ fn fs_remove_file(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Remove a directory
 #[loft_builtin(fs.remove_dir)]
-fn fs_remove_dir(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn fs_remove_dir(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("fs.remove_dir() requires a path argument"));
     }
@@ -200,7 +200,7 @@ fn fs_remove_dir(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// List directory contents
 #[loft_builtin(fs.list_dir)]
-fn fs_list_dir(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn fs_list_dir(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("fs.list_dir() requires a path argument"));
     }
@@ -234,7 +234,7 @@ fn fs_list_dir(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Copy a file
 #[loft_builtin(fs.copy)]
-fn fs_copy(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn fs_copy(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.len() < 2 {
         return Err(RuntimeError::new("fs.copy() requires source and destination arguments"));
     }
@@ -258,7 +258,7 @@ fn fs_copy(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Rename/move a file
 #[loft_builtin(fs.rename)]
-fn fs_rename(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn fs_rename(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.len() < 2 {
         return Err(RuntimeError::new("fs.rename() requires source and destination arguments"));
     }
@@ -281,7 +281,7 @@ fn fs_rename(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Get file metadata (size, modified time, etc.)
 #[loft_builtin(fs.metadata)]
-fn fs_metadata(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn fs_metadata(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("fs.metadata() requires a path argument"));
     }

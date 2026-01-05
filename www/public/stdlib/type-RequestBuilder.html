@@ -27,37 +27,37 @@
         <div class="nav-section">
             <h3>Builtins</h3>
             <ul>
-                <li><a href="fs.html">fs</a></li>
-                <li><a href="encoding.html">encoding</a></li>
-                <li><a href="random.html">random</a></li>
-                <li><a href="web.html">web</a></li>
-                <li><a href="json.html">json</a></li>
-                <li><a href="math.html">math</a></li>
-                <li><a href="time.html">time</a></li>
                 <li><a href="object.html">object</a></li>
                 <li><a href="term.html">term</a></li>
+                <li><a href="json.html">json</a></li>
+                <li><a href="encoding.html">encoding</a></li>
+                <li><a href="web.html">web</a></li>
+                <li><a href="math.html">math</a></li>
+                <li><a href="time.html">time</a></li>
+                <li><a href="fs.html">fs</a></li>
+                <li><a href="random.html">random</a></li>
             </ul>
         </div>
         <div class="nav-section">
             <h3>Types</h3>
             <ul>
-                <li><a href="type-Array.html">Array</a></li>
-                <li><a href="type-Buffer.html">Buffer</a></li>
-                <li><a href="type-Headers.html">Headers</a></li>
                 <li><a href="type-Response.html">Response</a></li>
                 <li><a href="type-RequestBuilder.html">RequestBuilder</a></li>
+                <li><a href="type-Buffer.html">Buffer</a></li>
+                <li><a href="type-Headers.html">Headers</a></li>
+                <li><a href="type-Array.html">Array</a></li>
             </ul>
         </div>
         <div class="nav-section">
             <h3>Traits</h3>
             <ul>
-                <li><a href="trait-Index.html">Index</a></li>
+                <li><a href="trait-Printable.html">Printable</a></li>
                 <li><a href="trait-Sub.html">Sub</a></li>
                 <li><a href="trait-Div.html">Div</a></li>
-                <li><a href="trait-ToString.html">ToString</a></li>
-                <li><a href="trait-Printable.html">Printable</a></li>
-                <li><a href="trait-Add.html">Add</a></li>
                 <li><a href="trait-Mul.html">Mul</a></li>
+                <li><a href="trait-Add.html">Add</a></li>
+                <li><a href="trait-Index.html">Index</a></li>
+                <li><a href="trait-ToString.html">ToString</a></li>
             </ul>
         </div>
     </div>
@@ -72,9 +72,9 @@
             <p>HTTP method (GET, POST, PUT, DELETE, etc.)</p>
         </div>
         <div class="method-item">
-            <h3 id="url">url</h3>
-            <pre class="signature"><code>url: <a href="string.html">str</a></code></pre>
-            <p>The target URL for the request</p>
+            <h3 id="followRedirects">followRedirects</h3>
+            <pre class="signature"><code>followRedirects: <a href="bool.html">bool</a></code></pre>
+            <p>Whether to follow HTTP redirects</p>
         </div>
         <div class="method-item">
             <h3 id="headers">headers</h3>
@@ -82,26 +82,26 @@
             <p>HTTP request headers</p>
         </div>
         <div class="method-item">
-            <h3 id="body">body</h3>
-            <pre class="signature"><code>body: <a href="type-Buffer.html">Buffer</a></code></pre>
-            <p>Request body data</p>
-        </div>
-        <div class="method-item">
-            <h3 id="followRedirects">followRedirects</h3>
-            <pre class="signature"><code>followRedirects: <a href="bool.html">bool</a></code></pre>
-            <p>Whether to follow HTTP redirects</p>
-        </div>
-        <div class="method-item">
             <h3 id="timeout">timeout</h3>
             <pre class="signature"><code>timeout: <a href="num.html">num</a></code></pre>
             <p>Request timeout in milliseconds</p>
         </div>
+        <div class="method-item">
+            <h3 id="url">url</h3>
+            <pre class="signature"><code>url: <a href="string.html">str</a></code></pre>
+            <p>The target URL for the request</p>
+        </div>
+        <div class="method-item">
+            <h3 id="body">body</h3>
+            <pre class="signature"><code>body: <a href="type-Buffer.html">Buffer</a></code></pre>
+            <p>Request body data</p>
+        </div>
         <h2>Methods</h2>
         <div class="method-item">
-            <h3 id="send">send</h3>
-            <pre class="signature"><code>RequestBuilder.send() -> Promise&lt;<a href="type-Response.html">Response</a>&gt;</code></pre>
-            <p><strong>Returns:</strong> <code>Promise&lt;<a href="type-Response.html">Response</a>&gt;</code></p>
-            <p>Execute the HTTP request and return a Promise&lt;Response&gt;</p>
+            <h3 id="followRedirects">followRedirects</h3>
+            <pre class="signature"><code>RequestBuilder.followRedirects(follow: <a href="bool.html">bool</a>) -> <a href="type-RequestBuilder.html">RequestBuilder</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="type-RequestBuilder.html">RequestBuilder</a></code></p>
+            <p>Set whether to follow HTTP redirects automatically</p>
         </div>
         <div class="method-item">
             <h3 id="method">method</h3>
@@ -110,28 +110,28 @@
             <p>Set HTTP method (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, TRACE, CONNECT)</p>
         </div>
         <div class="method-item">
-            <h3 id="header">header</h3>
-            <pre class="signature"><code>RequestBuilder.header(key: <a href="string.html">str</a>, value: <a href="string.html">str</a>) -> <a href="type-RequestBuilder.html">RequestBuilder</a></code></pre>
-            <p><strong>Returns:</strong> <code><a href="type-RequestBuilder.html">RequestBuilder</a></code></p>
-            <p>Add a header to the request</p>
-        </div>
-        <div class="method-item">
             <h3 id="timeout">timeout</h3>
             <pre class="signature"><code>RequestBuilder.timeout(milliseconds: <a href="num.html">num</a>) -> <a href="type-RequestBuilder.html">RequestBuilder</a></code></pre>
             <p><strong>Returns:</strong> <code><a href="type-RequestBuilder.html">RequestBuilder</a></code></p>
             <p>Set request timeout in milliseconds</p>
         </div>
         <div class="method-item">
-            <h3 id="followRedirects">followRedirects</h3>
-            <pre class="signature"><code>RequestBuilder.followRedirects(follow: <a href="bool.html">bool</a>) -> <a href="type-RequestBuilder.html">RequestBuilder</a></code></pre>
-            <p><strong>Returns:</strong> <code><a href="type-RequestBuilder.html">RequestBuilder</a></code></p>
-            <p>Set whether to follow HTTP redirects automatically</p>
+            <h3 id="send">send</h3>
+            <pre class="signature"><code>RequestBuilder.send() -> Promise&lt;<a href="type-Response.html">Response</a>&gt;</code></pre>
+            <p><strong>Returns:</strong> <code>Promise&lt;<a href="type-Response.html">Response</a>&gt;</code></p>
+            <p>Execute the HTTP request and return a Promise&lt;Response&gt;</p>
         </div>
         <div class="method-item">
             <h3 id="body">body</h3>
             <pre class="signature"><code>RequestBuilder.body(buffer: <a href="type-Buffer.html">Buffer</a>) -> <a href="type-RequestBuilder.html">RequestBuilder</a></code></pre>
             <p><strong>Returns:</strong> <code><a href="type-RequestBuilder.html">RequestBuilder</a></code></p>
             <p>Set the request body as a Buffer</p>
+        </div>
+        <div class="method-item">
+            <h3 id="header">header</h3>
+            <pre class="signature"><code>RequestBuilder.header(key: <a href="string.html">str</a>, value: <a href="string.html">str</a>) -> <a href="type-RequestBuilder.html">RequestBuilder</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="type-RequestBuilder.html">RequestBuilder</a></code></p>
+            <p>Add a header to the request</p>
         </div>
     </div>
 </body>

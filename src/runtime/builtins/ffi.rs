@@ -1,6 +1,6 @@
 use crate::runtime::builtin::BuiltinStruct;
 use crate::runtime::value::Value;
-use crate::runtime::{RuntimeError, RuntimeResult};
+use crate::runtime::{RuntimeError, RuntimeResult, Interpreter};
 use rust_decimal::Decimal;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -71,7 +71,7 @@ fn f32_to_value(result: f32) -> RuntimeResult<Value> {
 /// ```loft
 /// let lib = ffi.load("libm.so.6");
 /// ```
-pub fn ffi_load(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+pub fn ffi_load(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("ffi.load() requires a library path"));
     }
@@ -105,7 +105,7 @@ pub fn ffi_load(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Convenience method: call a function directly on the library
 /// Usage: lib.call("symbol_name", "signature", args...)
-fn ffi_lib_call(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn ffi_lib_call(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.len() < 2 {
         return Err(RuntimeError::new("lib.call() requires at least symbol name and signature"));
     }
@@ -116,14 +116,14 @@ fn ffi_lib_call(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     };
 
     // Get the symbol first
-    let symbol_result = ffi_symbol(this, &[Value::String(symbol_name)])?;
+    let symbol_result = ffi_symbol(_interpreter, this, &[Value::String(symbol_name)])?;
     
     // Then call it with the remaining arguments
-    ffi_call(&symbol_result, &args[1..])
+    ffi_call(_interpreter, &symbol_result, &args[1..])
 }
 
 /// Get a symbol (function) from a loaded library
-fn ffi_symbol(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn ffi_symbol(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("symbol() requires a symbol name"));
     }
@@ -171,7 +171,7 @@ fn ffi_symbol(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 }
 
 /// Call a foreign function with type conversion
-fn ffi_call(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn ffi_call(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     // Extract the symbol name and library path from the struct
     let (symbol_name, library_path) = match this {
         Value::Builtin(builtin) => {
@@ -405,13 +405,15 @@ mod tests {
 
     #[test]
     fn test_ffi_load_invalid_path() {
-        let result = ffi_load(&Value::Unit, &[Value::String("nonexistent.so".to_string())]);
+        let mut interpreter = Interpreter::new();
+        let result = ffi_load(&mut interpreter, &Value::Unit, &[Value::String("nonexistent.so".to_string())]);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_ffi_load_requires_path() {
-        let result = ffi_load(&Value::Unit, &[]);
+        let mut interpreter = Interpreter::new();
+        let result = ffi_load(&mut interpreter, &Value::Unit, &[]);
         assert!(result.is_err());
         assert!(result.unwrap_err().message.contains("requires a library path"));
     }

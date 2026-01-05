@@ -1,13 +1,13 @@
 use crate::runtime::builtin::{BuiltinStruct, BuiltinMethod};
 use crate::runtime::value::Value;
-use crate::runtime::{RuntimeError, RuntimeResult};
+use crate::runtime::{RuntimeError, RuntimeResult, Interpreter};
 use rust_decimal::Decimal;
 use loft_builtin_macros::loft_builtin;
 use base64::{Engine as _, engine::general_purpose};
 
 /// Encode a string to base64
 #[loft_builtin(encoding.base64_encode)]
-fn base64_encode(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn base64_encode(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("encoding.base64_encode() requires a string argument"));
     }
@@ -23,7 +23,7 @@ fn base64_encode(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Decode a base64 string
 #[loft_builtin(encoding.base64_decode)]
-fn base64_decode(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn base64_decode(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("encoding.base64_decode() requires a string argument"));
     }
@@ -44,7 +44,7 @@ fn base64_decode(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// URL encode a string
 #[loft_builtin(encoding.url_encode)]
-fn url_encode(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn url_encode(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("encoding.url_encode() requires a string argument"));
     }
@@ -60,7 +60,7 @@ fn url_encode(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// URL decode a string
 #[loft_builtin(encoding.url_decode)]
-fn url_decode(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn url_decode(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("encoding.url_decode() requires a string argument"));
     }
@@ -78,7 +78,7 @@ fn url_decode(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Convert string to bytes array
 #[loft_builtin(encoding.to_bytes)]
-fn to_bytes(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn to_bytes(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("encoding.to_bytes() requires a string argument"));
     }
@@ -98,7 +98,7 @@ fn to_bytes(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Convert bytes array to string
 #[loft_builtin(encoding.from_bytes)]
-fn from_bytes(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn from_bytes(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("encoding.from_bytes() requires an array argument"));
     }
@@ -148,15 +148,16 @@ mod tests {
     
     #[test]
     fn test_base64_encode_decode() {
+        let mut interpreter = Interpreter::new();
         let input = "Hello World";
-        let encoded = base64_encode(&Value::Unit, &[Value::String(input.to_string())]).unwrap();
+        let encoded = base64_encode(&mut interpreter, &Value::Unit, &[Value::String(input.to_string())]).unwrap();
         
         let encoded_str = match encoded {
             Value::String(s) => s,
             _ => panic!("Expected string"),
         };
         
-        let decoded = base64_decode(&Value::Unit, &[Value::String(encoded_str)]).unwrap();
+        let decoded = base64_decode(&mut interpreter, &Value::Unit, &[Value::String(encoded_str)]).unwrap();
         
         match decoded {
             Value::String(s) => assert_eq!(s, input),
@@ -166,8 +167,9 @@ mod tests {
     
     #[test]
     fn test_url_encode_decode() {
+        let mut interpreter = Interpreter::new();
         let input = "hello world!";
-        let encoded = url_encode(&Value::Unit, &[Value::String(input.to_string())]).unwrap();
+        let encoded = url_encode(&mut interpreter, &Value::Unit, &[Value::String(input.to_string())]).unwrap();
         
         let encoded_str = match encoded {
             Value::String(s) => s,
@@ -176,7 +178,7 @@ mod tests {
         
         assert!(encoded_str.contains("%20"));
         
-        let decoded = url_decode(&Value::Unit, &[Value::String(encoded_str)]).unwrap();
+        let decoded = url_decode(&mut interpreter, &Value::Unit, &[Value::String(encoded_str)]).unwrap();
         
         match decoded {
             Value::String(s) => assert_eq!(s, input),
@@ -186,8 +188,9 @@ mod tests {
     
     #[test]
     fn test_to_bytes_from_bytes() {
+        let mut interpreter = Interpreter::new();
         let input = "Hi";
-        let bytes = to_bytes(&Value::Unit, &[Value::String(input.to_string())]).unwrap();
+        let bytes = to_bytes(&mut interpreter, &Value::Unit, &[Value::String(input.to_string())]).unwrap();
         
         let bytes_array = match bytes {
             Value::Array(arr) => arr,
@@ -196,7 +199,7 @@ mod tests {
         
         assert_eq!(bytes_array.len(), 2);
         
-        let decoded = from_bytes(&Value::Unit, &[Value::Array(bytes_array)]).unwrap();
+        let decoded = from_bytes(&mut interpreter, &Value::Unit, &[Value::Array(bytes_array)]).unwrap();
         
         match decoded {
             Value::String(s) => assert_eq!(s, input),

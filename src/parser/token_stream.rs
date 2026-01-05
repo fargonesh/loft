@@ -379,13 +379,15 @@ impl TokenStream<'_> {
                 Ok(Token::Punct(c.to_string()))
             }
             c if Self::is_op(c) => {
-                self.input.next(); // consume the character
-                Ok(Token::Op(c.to_string()))
+                let op = self.read_while(Self::is_op);
+                Ok(Token::Op(op))
             }
             c => {
+                let msg = format!("Unexpected character '{}'", c);
+                let help = "This character is not recognized as part of any token in loft.";
                 return Err(self
                     .input
-                    .croak(format!("Unexpected token '{}'", c), Some(1)));
+                    .croak_with_help(msg, help, Some(1)));
             }
         };
 

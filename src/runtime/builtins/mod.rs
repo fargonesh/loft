@@ -12,6 +12,7 @@ pub mod object;
 pub mod encoding;
 pub mod random;
 pub mod ffi;
+pub mod promise;
 
 use crate::runtime::value::Value;
 use crate::runtime::builtin_registry::BuiltinRegistration;

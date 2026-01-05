@@ -27,37 +27,37 @@
         <div class="nav-section">
             <h3>Builtins</h3>
             <ul>
-                <li><a href="fs.html">fs</a></li>
-                <li><a href="encoding.html">encoding</a></li>
-                <li><a href="random.html">random</a></li>
-                <li><a href="web.html">web</a></li>
-                <li><a href="json.html">json</a></li>
-                <li><a href="math.html">math</a></li>
-                <li><a href="time.html">time</a></li>
                 <li><a href="object.html">object</a></li>
                 <li><a href="term.html">term</a></li>
+                <li><a href="json.html">json</a></li>
+                <li><a href="encoding.html">encoding</a></li>
+                <li><a href="web.html">web</a></li>
+                <li><a href="math.html">math</a></li>
+                <li><a href="time.html">time</a></li>
+                <li><a href="fs.html">fs</a></li>
+                <li><a href="random.html">random</a></li>
             </ul>
         </div>
         <div class="nav-section">
             <h3>Types</h3>
             <ul>
-                <li><a href="type-Array.html">Array</a></li>
-                <li><a href="type-Buffer.html">Buffer</a></li>
-                <li><a href="type-Headers.html">Headers</a></li>
                 <li><a href="type-Response.html">Response</a></li>
                 <li><a href="type-RequestBuilder.html">RequestBuilder</a></li>
+                <li><a href="type-Buffer.html">Buffer</a></li>
+                <li><a href="type-Headers.html">Headers</a></li>
+                <li><a href="type-Array.html">Array</a></li>
             </ul>
         </div>
         <div class="nav-section">
             <h3>Traits</h3>
             <ul>
-                <li><a href="trait-Index.html">Index</a></li>
+                <li><a href="trait-Printable.html">Printable</a></li>
                 <li><a href="trait-Sub.html">Sub</a></li>
                 <li><a href="trait-Div.html">Div</a></li>
-                <li><a href="trait-ToString.html">ToString</a></li>
-                <li><a href="trait-Printable.html">Printable</a></li>
-                <li><a href="trait-Add.html">Add</a></li>
                 <li><a href="trait-Mul.html">Mul</a></li>
+                <li><a href="trait-Add.html">Add</a></li>
+                <li><a href="trait-Index.html">Index</a></li>
+                <li><a href="trait-ToString.html">ToString</a></li>
             </ul>
         </div>
     </div>
@@ -67,53 +67,46 @@
         <p class="description">Object manipulation utilities similar to JavaScript Object methods</p>
         <h2>Methods</h2>
         <div class="method-item">
-            <h3 id="assign">assign</h3>
-            <pre class="signature"><code>object.assign(...args) -> any</code></pre>
+            <h3 id="values">values</h3>
+            <pre class="signature"><code>object.values(...args) -> any</code></pre>
             <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Assign properties from source objects to target object</p>
-        </div>
-        <div class="method-item">
-            <h3 id="from_entries">from_entries</h3>
-            <pre class="signature"><code>object.from_entries(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Create an object from entries [[key, value], ...]</p>
-        </div>
-        <div class="method-item">
-            <h3 id="entries">entries</h3>
-            <pre class="signature"><code>object.entries(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Get all entries from an object as [key, value] pairs</p>
-        </div>
-        <div class="method-item">
-            <h3 id="size">size</h3>
-            <pre class="signature"><code>object.size(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Get the number of properties in an object</p>
+            <p>Get all values from an object</p>
         </div>
         <div class="method-item">
             <h3 id="has">has</h3>
             <pre class="signature"><code>object.has(...args) -> any</code></pre>
             <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Check if object has a property</p>
+            <p>Check if object has a property</p>
+        </div>
+        <div class="method-item">
+            <h3 id="entries">entries</h3>
+            <pre class="signature"><code>object.entries(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>Get all entries from an object as [key, value] pairs</p>
+        </div>
+        <div class="method-item">
+            <h3 id="assign">assign</h3>
+            <pre class="signature"><code>object.assign(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>Assign properties from source objects to target object</p>
+        </div>
+        <div class="method-item">
+            <h3 id="size">size</h3>
+            <pre class="signature"><code>object.size(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>Get the number of properties in an object</p>
         </div>
         <div class="method-item">
             <h3 id="keys">keys</h3>
             <pre class="signature"><code>object.keys(...args) -> any</code></pre>
             <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Get all keys from an object</p>
+            <p>Get all keys from an object</p>
         </div>
         <div class="method-item">
-            <h3 id="values">values</h3>
-            <pre class="signature"><code>object.values(...args) -> any</code></pre>
+            <h3 id="from_entries">from_entries</h3>
+            <pre class="signature"><code>object.from_entries(...args) -> any</code></pre>
             <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Get all values from an object</p>
+            <p>Create an object from entries [[key, value], ...]</p>
         </div>
     </div>
 </body>

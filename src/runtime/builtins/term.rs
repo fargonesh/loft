@@ -1,13 +1,13 @@
 use crate::runtime::builtin::{BuiltinStruct, BuiltinMethod};
 use crate::runtime::value::Value;
-use crate::runtime::{RuntimeError, RuntimeResult};
+use crate::runtime::{RuntimeError, RuntimeResult, Interpreter};
 use crate::runtime::traits::ToString;
 use crate::runtime::permission_context::check_run_permission;
 use loft_builtin_macros::loft_builtin;
 
 /// Print text to the terminal
 #[loft_builtin(term.print)]
-fn term_print(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn term_print(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     for (i, arg) in args.iter().enumerate() {
         if i > 0 {
             print!(" ");
@@ -19,56 +19,56 @@ fn term_print(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Print text to the terminal with a newline
 #[loft_builtin(term.println)]
-fn term_println(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    term_print(_this, args)?;
+fn term_println(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    term_print(_interpreter, _this, args)?;
     println!();
     Ok(Value::Unit)
 }
 
 /// Alias for println (for console migration)
 #[loft_builtin(term.log)]
-fn term_log(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    term_println(this, args)
+fn term_log(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    term_println(_interpreter, this, args)
 }
 
 /// Alias for println with [ERROR] prefix
 #[loft_builtin(term.error)]
-fn term_error(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn term_error(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     print!("\x1B[31m[ERROR]\x1B[0m ");
-    term_println(this, args)
+    term_println(_interpreter, this, args)
 }
 
 /// Alias for println with [WARN] prefix
 #[loft_builtin(term.warn)]
-fn term_warn(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn term_warn(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     print!("\x1B[33m[WARN]\x1B[0m ");
-    term_println(this, args)
+    term_println(_interpreter, this, args)
 }
 
 /// Alias for println with [INFO] prefix
 #[loft_builtin(term.info)]
-fn term_info(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn term_info(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     print!("\x1B[34m[INFO]\x1B[0m ");
-    term_println(this, args)
+    term_println(_interpreter, this, args)
 }
 
 /// Alias for println with [DEBUG] prefix
 #[loft_builtin(term.debug)]
-fn term_debug(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn term_debug(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     print!("\x1B[36m[DEBUG]\x1B[0m ");
-    term_println(this, args)
+    term_println(_interpreter, this, args)
 }
 
 /// Clear the terminal screen
 #[loft_builtin(term.clear)]
-fn term_clear(_this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn term_clear(_interpreter: &mut Interpreter, _this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     print!("\x1B[2J\x1B[1;1H");
     Ok(Value::Unit)
 }
 
 /// Read a line from the terminal
 #[loft_builtin(term.read_line)]
-fn term_read_line(_this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn term_read_line(_interpreter: &mut Interpreter, _this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     use std::io::{self, BufRead};
     let stdin = io::stdin();
     let mut handle = stdin.lock();
@@ -88,7 +88,7 @@ fn term_read_line(_this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Get the terminal size (width, height)
 #[loft_builtin(term.size)]
-fn term_size(_this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn term_size(_interpreter: &mut Interpreter, _this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     use std::process::Command;
     
     // Check permission to run tput command
@@ -131,7 +131,7 @@ fn term_size(_this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Set text color (basic ANSI colors)
 #[loft_builtin(term.color)]
-fn term_color(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn term_color(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("term.color() requires a color argument"));
     }
