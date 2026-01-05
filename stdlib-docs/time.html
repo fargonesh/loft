@@ -23,37 +23,38 @@
             <h3>Builtins</h3>
             <ul>
                 <li><a href="array.html">array</a></li>
-                <li><a href="term.html">term</a></li>
-                <li><a href="fs.html">fs</a></li>
-                <li><a href="web.html">web</a></li>
-                <li><a href="object.html">object</a></li>
-                <li><a href="math.html">math</a></li>
-                <li><a href="time.html">time</a></li>
                 <li><a href="json.html">json</a></li>
                 <li><a href="encoding.html">encoding</a></li>
+                <li><a href="time.html">time</a></li>
+                <li><a href="object.html">object</a></li>
+                <li><a href="math.html">math</a></li>
+                <li><a href="fs.html">fs</a></li>
+                <li><a href="term.html">term</a></li>
                 <li><a href="random.html">random</a></li>
                 <li><a href="string.html">string</a></li>
+                <li><a href="web.html">web</a></li>
             </ul>
         </div>
         <div class="nav-section">
             <h3>Types</h3>
             <ul>
-                <li><a href="type-Headers.html">Headers</a></li>
-                <li><a href="type-Response.html">Response</a></li>
-                <li><a href="type-Buffer.html">Buffer</a></li>
+                <li><a href="type-Array.html">Array</a></li>
                 <li><a href="type-RequestBuilder.html">RequestBuilder</a></li>
+                <li><a href="type-Buffer.html">Buffer</a></li>
+                <li><a href="type-Response.html">Response</a></li>
+                <li><a href="type-Headers.html">Headers</a></li>
             </ul>
         </div>
         <div class="nav-section">
             <h3>Traits</h3>
             <ul>
-                <li><a href="trait-Sub.html">Sub</a></li>
-                <li><a href="trait-Mul.html">Mul</a></li>
-                <li><a href="trait-Div.html">Div</a></li>
-                <li><a href="trait-Add.html">Add</a></li>
                 <li><a href="trait-Index.html">Index</a></li>
                 <li><a href="trait-ToString.html">ToString</a></li>
+                <li><a href="trait-Sub.html">Sub</a></li>
+                <li><a href="trait-Mul.html">Mul</a></li>
                 <li><a href="trait-Printable.html">Printable</a></li>
+                <li><a href="trait-Add.html">Add</a></li>
+                <li><a href="trait-Div.html">Div</a></li>
             </ul>
         </div>
     </div>
@@ -63,22 +64,39 @@
         <p class="description">Time builtin for time-related operations</p>
         <h2>Methods</h2>
         <div class="method-item">
-            <h3 id="sleep">sleep</h3>
-            <pre class="signature"><code>time.sleep(ms: <a href="num.html">num</a>) -> Promise&lt;<a href="void.html">void</a>&gt;</code></pre>
-            <p><strong>Returns:</strong> <code>Promise&lt;<a href="void.html">void</a>&gt;</code></p>
-            <p>Sleep for the specified number of milliseconds (returns a promise)</p>
+            <h3 id="perf_now">perf_now</h3>
+            <pre class="signature"><code>time.perf_now(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Create a high-resolution timer for performance measurement</p>
         </div>
         <div class="method-item">
             <h3 id="now">now</h3>
-            <pre class="signature"><code>time.now() -> <a href="num.html">num</a></code></pre>
-            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
-            <p>Get the current Unix timestamp in milliseconds</p>
+            <pre class="signature"><code>time.now(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Get the current time in milliseconds since Unix epoch</p>
         </div>
         <div class="method-item">
-            <h3 id="perf_now">perf_now</h3>
-            <pre class="signature"><code>time.perf_now() -> <a href="num.html">num</a></code></pre>
-            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
-            <p>Get high-resolution performance timing</p>
+            <h3 id="benchmark">benchmark</h3>
+            <pre class="signature"><code>time.benchmark(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Create a benchmark function that measures execution time</p>
+        </div>
+        <div class="method-item">
+            <h3 id="format">format</h3>
+            <pre class="signature"><code>time.format(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Format a duration in milliseconds to a human-readable string</p>
+        </div>
+        <div class="method-item">
+            <h3 id="sleep">sleep</h3>
+            <pre class="signature"><code>time.sleep(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Sleep for the specified number of milliseconds and return a promise</p>
         </div>
     </div>
 </body>

@@ -71,6 +71,33 @@ impl StdlibDocGenerator {
         Ok(Self { stdlib })
     }
 
+    pub fn from_source(root_dir: &Path) -> Result<Self, String> {
+        let stdlib = crate::docgen::scanner::StdlibScanner::scan(root_dir);
+        Ok(Self { stdlib })
+    }
+
+    pub fn merge_source(&mut self, root_dir: &Path) {
+        let scanned = crate::docgen::scanner::StdlibScanner::scan(root_dir);
+        
+        // Merge builtins
+        for (name, builtin) in scanned.builtins {
+            if let Some(existing) = self.stdlib.builtins.get_mut(&name) {
+                existing.methods.extend(builtin.methods);
+                existing.constants.extend(builtin.constants);
+            } else {
+                self.stdlib.builtins.insert(name, builtin);
+            }
+        }
+
+        // Merge methods
+        self.stdlib.string_methods.extend(scanned.string_methods);
+        self.stdlib.array_methods.extend(scanned.array_methods);
+        
+        // Merge types and traits
+        self.stdlib.types.extend(scanned.types);
+        self.stdlib.traits.extend(scanned.traits);
+    }
+
     pub fn generate_html(&self, output_dir: &Path) -> Result<(), String> {
         fs::create_dir_all(output_dir)
             .map_err(|e| format!("Failed to create output directory: {}", e))?;
@@ -81,7 +108,15 @@ impl StdlibDocGenerator {
             .map_err(|e| format!("Failed to write index.html: {}", e))?;
 
         // Generate individual pages for each builtin
+        let mut processed_array = false;
         for (name, builtin) in &self.stdlib.builtins {
+            if name == "array" {
+                let array_html = self.generate_merged_array_html(builtin, &self.stdlib.array_methods);
+                fs::write(output_dir.join("array.html"), array_html)
+                    .map_err(|e| format!("Failed to write array.html: {}", e))?;
+                processed_array = true;
+                continue;
+            }
             let builtin_html = self.generate_builtin_html(name, builtin);
             fs::write(output_dir.join(format!("{}.html", name)), builtin_html)
                 .map_err(|e| format!("Failed to write {}.html: {}", name, e))?;
@@ -92,9 +127,11 @@ impl StdlibDocGenerator {
         fs::write(output_dir.join("string.html"), string_html)
             .map_err(|e| format!("Failed to write string.html: {}", e))?;
 
-        let array_html = self.generate_methods_html("Array", &self.stdlib.array_methods, "Array primitive type with utility methods for collection manipulation.");
-        fs::write(output_dir.join("array.html"), array_html)
-            .map_err(|e| format!("Failed to write array.html: {}", e))?;
+        if !processed_array {
+            let array_html = self.generate_methods_html("Array", &self.stdlib.array_methods, "Array primitive type with utility methods for collection manipulation.");
+            fs::write(output_dir.join("array.html"), array_html)
+                .map_err(|e| format!("Failed to write array.html: {}", e))?;
+        }
 
         // Generate pages for other primitives (empty methods for now)
         let empty_methods = HashMap::new();
@@ -129,7 +166,129 @@ impl StdlibDocGenerator {
         fs::write(output_dir.join("style.css"), css)
             .map_err(|e| format!("Failed to write style.css: {}", e))?;
 
+        // Generate Search Index
+        let search_index = self.generate_search_index();
+        fs::write(output_dir.join("search_index.js"), search_index)
+            .map_err(|e| format!("Failed to write search_index.js: {}", e))?;
+
+        // Generate Search Script
+        let search_js = self.generate_search_js();
+        fs::write(output_dir.join("search.js"), search_js)
+            .map_err(|e| format!("Failed to write search.js: {}", e))?;
+
         Ok(())
+    }
+
+    fn generate_search_index(&self) -> String {
+        let mut items = Vec::new();
+
+        // Primitives
+        items.push(format!("{{name: \"str\", type: \"primitive\", url: \"string.html\", doc: \"String primitive type\"}}"));
+        items.push(format!("{{name: \"Array\", type: \"primitive\", url: \"array.html\", doc: \"Array primitive type\"}}"));
+        items.push(format!("{{name: \"num\", type: \"primitive\", url: \"num.html\", doc: \"Numeric primitive type\"}}"));
+        items.push(format!("{{name: \"bool\", type: \"primitive\", url: \"bool.html\", doc: \"Boolean primitive type\"}}"));
+        items.push(format!("{{name: \"void\", type: \"primitive\", url: \"void.html\", doc: \"Void primitive type\"}}"));
+
+        // Builtins
+        for (name, builtin) in &self.stdlib.builtins {
+            if name == "array" || name == "string" { continue; }
+            items.push(format!("{{name: \"{}\", type: \"builtin\", url: \"{}.html\", doc: {:?}}}", 
+                name, name, builtin.documentation));
+            
+            for (method_name, method) in &builtin.methods {
+                items.push(format!("{{name: \"{}.{}\", type: \"method\", url: \"{}.html#{}\", doc: {:?}}}", 
+                    name, method_name, name, method_name, method.documentation));
+            }
+        }
+
+        // Types
+        for (name, type_def) in &self.stdlib.types {
+            items.push(format!("{{name: \"{}\", type: \"type\", url: \"type-{}.html\", doc: {:?}}}", 
+                name, name, type_def.documentation));
+            
+            for (method_name, method) in &type_def.methods {
+                items.push(format!("{{name: \"{}.{}\", type: \"method\", url: \"type-{}.html#{}\", doc: {:?}}}", 
+                    name, method_name, name, method_name, method.documentation));
+            }
+        }
+
+        // Traits
+        for (name, trait_def) in &self.stdlib.traits {
+            items.push(format!("{{name: \"{}\", type: \"trait\", url: \"trait-{}.html\", doc: {:?}}}", 
+                name, name, trait_def.documentation));
+            
+            for (method_name, method) in &trait_def.methods {
+                items.push(format!("{{name: \"{}.{}\", type: \"method\", url: \"trait-{}.html#{}\", doc: {:?}}}", 
+                    name, method_name, name, method_name, method.documentation));
+            }
+        }
+
+        // String methods
+        for (method_name, method) in &self.stdlib.string_methods {
+            items.push(format!("{{name: \"str.{}\", type: \"method\", url: \"string.html#{}\", doc: {:?}}}", 
+                method_name, method_name, method.documentation));
+        }
+
+        // Array methods
+        for (method_name, method) in &self.stdlib.array_methods {
+            items.push(format!("{{name: \"Array.{}\", type: \"method\", url: \"array.html#{}\", doc: {:?}}}", 
+                method_name, method_name, method.documentation));
+        }
+
+        format!("const SEARCH_INDEX = [{}];", items.join(","))
+    }
+
+    fn generate_search_js(&self) -> String {
+        r#"
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('doc-search');
+    const sidebar = document.querySelector('.sidebar');
+    
+    if (!searchInput || !sidebar) return;
+
+    // Create results container
+    const resultsContainer = document.createElement('div');
+    resultsContainer.id = 'search-results';
+    resultsContainer.style.display = 'none';
+    sidebar.insertBefore(resultsContainer, sidebar.children[2]); // Insert after title and search input
+
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        
+        if (query.length < 2) {
+            resultsContainer.style.display = 'none';
+            document.querySelectorAll('.nav-section').forEach(el => el.style.display = 'block');
+            return;
+        }
+
+        // Hide normal nav
+        document.querySelectorAll('.nav-section').forEach(el => el.style.display = 'none');
+        resultsContainer.style.display = 'block';
+        resultsContainer.innerHTML = '';
+
+        const results = SEARCH_INDEX.filter(item => 
+            item.name.toLowerCase().includes(query) || 
+            (item.doc && item.doc.toLowerCase().includes(query))
+        ).slice(0, 20);
+
+        if (results.length === 0) {
+            resultsContainer.innerHTML = '<div class="no-results">No results found</div>';
+            return;
+        }
+
+        const ul = document.createElement('ul');
+        results.forEach(item => {
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.href = item.url;
+            a.innerHTML = `<span class="result-name">${item.name}</span> <span class="result-type">${item.type}</span>`;
+            li.appendChild(a);
+            ul.appendChild(li);
+        });
+        resultsContainer.appendChild(ul);
+    });
+});
+"#.to_string()
     }
 
     fn generate_index_html(&self) -> String {
@@ -139,9 +298,14 @@ impl StdlibDocGenerator {
         html.push_str("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n");
         html.push_str("    <title>loft Standard Library Documentation</title>\n");
         html.push_str("    <link rel=\"stylesheet\" href=\"style.css\">\n");
+        html.push_str("    <script src=\"search_index.js\"></script>\n");
+        html.push_str("    <script src=\"search.js\"></script>\n");
         html.push_str("</head>\n<body>\n");
         html.push_str("    <div class=\"sidebar\">\n");
         html.push_str("        <h2>loft stdlib</h2>\n");
+        html.push_str("        <div class=\"search-container\">\n");
+        html.push_str("            <input type=\"text\" id=\"doc-search\" placeholder=\"Search docs...\">\n");
+        html.push_str("        </div>\n");
         html.push_str("        <div class=\"nav-section\">\n");
         html.push_str("            <h3>Primitives</h3>\n");
         html.push_str("            <ul>\n");
@@ -157,6 +321,7 @@ impl StdlibDocGenerator {
         html.push_str("            <h3>Builtins</h3>\n");
         html.push_str("            <ul>\n");
         for name in self.stdlib.builtins.keys() {
+            if name == "array" || name == "string" { continue; }
             html.push_str(&format!("                <li><a href=\"{}.html\">{}</a></li>\n", name, name));
         }
         html.push_str("            </ul>\n");
@@ -203,12 +368,72 @@ impl StdlibDocGenerator {
         html.push_str("        <p>Standard builtin modules for common operations:</p>\n");
         html.push_str("        <div class=\"item-grid\">\n");
         for (name, builtin) in &self.stdlib.builtins {
+            if name == "array" || name == "string" { continue; }
             html.push_str(&format!(
                 "            <div class=\"item-card\"><a href=\"{}.html\"><strong>{}</strong></a><br>{}</div>\n",
                 name, name, Self::escape_html(&builtin.documentation)
             ));
         }
         html.push_str("        </div>\n");
+
+        html.push_str("    </div>\n");
+        html.push_str("</body>\n</html>\n");
+        html
+    }
+
+    fn generate_merged_array_html(&self, builtin: &BuiltinDef, instance_methods: &HashMap<String, MethodDef>) -> String {
+        let mut html = String::new();
+        html.push_str("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n");
+        html.push_str("    <meta charset=\"UTF-8\">\n");
+        html.push_str("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n");
+        html.push_str("    <title>Array - loft stdlib</title>\n");
+        html.push_str("    <link rel=\"stylesheet\" href=\"style.css\">\n");
+        html.push_str("    <script src=\"search_index.js\"></script>\n");
+        html.push_str("    <script src=\"search.js\"></script>\n");
+        html.push_str("</head>\n<body>\n");
+        
+        html.push_str(&self.generate_sidebar());
+        
+        html.push_str("    <div class=\"content\">\n");
+        html.push_str("        <div class=\"breadcrumb\"><a href=\"index.html\">stdlib</a> / <span>Array</span></div>\n");
+        html.push_str("        <h1>Array</h1>\n");
+        html.push_str(&format!("        <p class=\"description\">{}</p>\n", Self::escape_html(&builtin.documentation)));
+
+        // Static Methods (from builtin)
+        if !builtin.methods.is_empty() {
+            html.push_str("        <h2>Static Methods</h2>\n");
+            for (method_name, method) in &builtin.methods {
+                html.push_str("        <div class=\"method-item\">\n");
+                html.push_str(&format!("            <h3 id=\"static-{}\">{}</h3>\n", method_name, method_name));
+                html.push_str(&format!("            <pre class=\"signature\"><code>Array.{}({}) -> {}</code></pre>\n", 
+                    method_name,
+                    self.format_params(&method.params),
+                    self.link_type(&method.return_type)
+                ));
+                html.push_str(&format!("            <p><strong>Returns:</strong> <code>{}</code></p>\n", 
+                    self.link_type(&method.return_type)));
+                html.push_str(&format!("            <p>{}</p>\n", Self::escape_html(&method.documentation)));
+                html.push_str("        </div>\n");
+            }
+        }
+
+        // Instance Methods (from array_methods)
+        if !instance_methods.is_empty() {
+            html.push_str("        <h2>Instance Methods</h2>\n");
+            for (method_name, method) in instance_methods {
+                html.push_str("        <div class=\"method-item\">\n");
+                html.push_str(&format!("            <h3 id=\"instance-{}\">{}</h3>\n", method_name, method_name));
+                html.push_str(&format!("            <pre class=\"signature\"><code>array.{}({}) -> {}</code></pre>\n", 
+                    method_name,
+                    self.format_params(&method.params),
+                    self.link_type(&method.return_type)
+                ));
+                html.push_str(&format!("            <p><strong>Returns:</strong> <code>{}</code></p>\n", 
+                    self.link_type(&method.return_type)));
+                html.push_str(&format!("            <p>{}</p>\n", Self::escape_html(&method.documentation)));
+                html.push_str("        </div>\n");
+            }
+        }
 
         html.push_str("    </div>\n");
         html.push_str("</body>\n</html>\n");
@@ -222,6 +447,8 @@ impl StdlibDocGenerator {
         html.push_str("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n");
         html.push_str(&format!("    <title>{} - loft stdlib</title>\n", name));
         html.push_str("    <link rel=\"stylesheet\" href=\"style.css\">\n");
+        html.push_str("    <script src=\"search_index.js\"></script>\n");
+        html.push_str("    <script src=\"search.js\"></script>\n");
         html.push_str("</head>\n<body>\n");
         
         html.push_str(&self.generate_sidebar());
@@ -277,6 +504,8 @@ impl StdlibDocGenerator {
         html.push_str("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n");
         html.push_str(&format!("    <title>{} - loft stdlib</title>\n", title));
         html.push_str("    <link rel=\"stylesheet\" href=\"style.css\">\n");
+        html.push_str("    <script src=\"search_index.js\"></script>\n");
+        html.push_str("    <script src=\"search.js\"></script>\n");
         html.push_str("</head>\n<body>\n");
         
         html.push_str(&self.generate_sidebar());
@@ -322,6 +551,8 @@ impl StdlibDocGenerator {
         html.push_str("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n");
         html.push_str(&format!("    <title>{} - loft stdlib</title>\n", name));
         html.push_str("    <link rel=\"stylesheet\" href=\"style.css\">\n");
+        html.push_str("    <script src=\"search_index.js\"></script>\n");
+        html.push_str("    <script src=\"search.js\"></script>\n");
         html.push_str("</head>\n<body>\n");
         
         html.push_str(&self.generate_sidebar());
@@ -371,6 +602,8 @@ impl StdlibDocGenerator {
         html.push_str("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n");
         html.push_str(&format!("    <title>{} - loft stdlib</title>\n", name));
         html.push_str("    <link rel=\"stylesheet\" href=\"style.css\">\n");
+        html.push_str("    <script src=\"search_index.js\"></script>\n");
+        html.push_str("    <script src=\"search.js\"></script>\n");
         html.push_str("</head>\n<body>\n");
         
         html.push_str(&self.generate_sidebar());
@@ -413,6 +646,9 @@ impl StdlibDocGenerator {
         let mut html = String::new();
         html.push_str("    <div class=\"sidebar\">\n");
         html.push_str("        <h2><a href=\"index.html\">loft stdlib</a></h2>\n");
+        html.push_str("        <div class=\"search-container\">\n");
+        html.push_str("            <input type=\"text\" id=\"doc-search\" placeholder=\"Search docs...\">\n");
+        html.push_str("        </div>\n");
         
         html.push_str("        <div class=\"nav-section\">\n");
         html.push_str("            <h3>Primitives</h3>\n");
@@ -429,6 +665,7 @@ impl StdlibDocGenerator {
         html.push_str("            <h3>Builtins</h3>\n");
         html.push_str("            <ul>\n");
         for name in self.stdlib.builtins.keys() {
+            if name == "array" || name == "string" { continue; }
             html.push_str(&format!("                <li><a href=\"{}.html\">{}</a></li>\n", name, name));
         }
         html.push_str("            </ul>\n");
@@ -555,7 +792,18 @@ impl StdlibDocGenerator {
     }
 
     fn generate_css(&self) -> String {
-        r#"* {
+        r#"
+:root {
+    --color-bio-cream: #fdfcf0;
+    --color-bio-black: #1a1a1a;
+    --color-bio-green: #64992f;
+    --color-bio-green-light: #4a7c43;
+    --color-bio-offwhite: #f5f5f5;
+    --color-bio-gold: #d4a017;
+    --color-border: #e5e7eb;
+}
+
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -564,8 +812,8 @@ impl StdlibDocGenerator {
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     line-height: 1.6;
-    background-color: #fafafa;
-    color: #333;
+    background-color: var(--color-bio-cream);
+    color: var(--color-bio-black);
     display: flex;
     min-height: 100vh;
 }
@@ -573,7 +821,7 @@ body {
 .sidebar {
     width: 260px;
     background-color: #fff;
-    border-right: 1px solid #e1e4e8;
+    border-right: 1px solid var(--color-border);
     padding: 20px;
     position: fixed;
     height: 100vh;
@@ -583,16 +831,16 @@ body {
 .sidebar h2 {
     font-size: 22px;
     margin-bottom: 20px;
-    color: #24292e;
+    color: var(--color-bio-black);
 }
 
 .sidebar h2 a {
-    color: #24292e;
+    color: var(--color-bio-black);
     text-decoration: none;
 }
 
 .sidebar h2 a:hover {
-    color: #0366d6;
+    color: var(--color-bio-green);
 }
 
 .nav-section {
@@ -603,9 +851,8 @@ body {
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #6a737d;
+    color: #6b7280;
     margin-bottom: 8px;
-    font-weight: 600;
 }
 
 .nav-section ul {
@@ -617,86 +864,64 @@ body {
 }
 
 .nav-section a {
-    color: #586069;
+    color: var(--color-bio-black);
     text-decoration: none;
     font-size: 14px;
     display: block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    transition: background-color 0.2s, color 0.2s;
+    padding: 4px 0;
 }
 
 .nav-section a:hover {
-    background-color: #f6f8fa;
-    color: #0366d6;
+    color: var(--color-bio-green);
 }
 
 .content {
-    margin-left: 260px;
     flex: 1;
+    margin-left: 260px;
     padding: 40px 60px;
-    max-width: 1200px;
+    max-width: 1000px;
 }
 
 .breadcrumb {
     font-size: 14px;
-    color: #586069;
+    color: #6b7280;
     margin-bottom: 16px;
 }
 
 .breadcrumb a {
-    color: #0366d6;
+    color: #6b7280;
     text-decoration: none;
 }
 
 .breadcrumb a:hover {
-    text-decoration: underline;
+    color: var(--color-bio-green);
 }
 
 h1 {
     font-size: 36px;
-    font-weight: 600;
     margin-bottom: 16px;
-    color: #24292e;
-    border-bottom: 1px solid #e1e4e8;
-    padding-bottom: 16px;
+    color: var(--color-bio-black);
 }
 
 h2 {
     font-size: 24px;
-    font-weight: 600;
-    margin-top: 32px;
-    margin-bottom: 16px;
-    color: #24292e;
+    margin-top: 40px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-bio-black);
 }
 
 h3 {
     font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: #24292e;
-}
-
-h4 {
-    font-size: 14px;
-    font-weight: 600;
-    margin-top: 16px;
-    margin-bottom: 8px;
-    color: #586069;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.intro {
-    font-size: 16px;
-    color: #586069;
-    margin-bottom: 32px;
+    margin-bottom: 12px;
+    color: var(--color-bio-black);
 }
 
 .description {
-    font-size: 16px;
-    color: #586069;
-    margin-bottom: 24px;
+    font-size: 18px;
+    color: #4b5563;
+    margin-bottom: 32px;
 }
 
 .item-grid {
@@ -708,20 +933,98 @@ h4 {
 
 .item-card {
     background-color: #fff;
-    border: 1px solid #e1e4e8;
+    border: 1px solid var(--color-border);
     border-radius: 6px;
     padding: 16px;
     transition: box-shadow 0.2s, border-color 0.2s;
 }
 
 .item-card:hover {
-    border-color: #0366d6;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+    border-color: var(--color-bio-green);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .item-card a {
-    color: #0366d6;
+    color: var(--color-bio-green);
     text-decoration: none;
+}
+
+/* Search Styles */
+.search-container {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+#search-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    font-size: 14px;
+    outline: none;
+}
+
+#search-input:focus {
+    border-color: var(--color-bio-green);
+    box-shadow: 0 0 0 2px rgba(100, 153, 47, 0.2);
+}
+
+#search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.search-result-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-item:hover, .search-result-item.selected {
+    background-color: #f9fafb;
+}
+
+.search-result-item a {
+    text-decoration: none;
+    color: var(--color-bio-black);
+    display: block;
+}
+
+.search-result-item .type {
+    font-size: 11px;
+    color: #6b7280;
+    text-transform: uppercase;
+    margin-right: 8px;
+    display: inline-block;
+    width: 50px;
+}
+
+.search-result-item .name {
+    font-weight: 500;
+    color: var(--color-bio-green);
+}
+
+.search-result-item .desc {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .item-card a:hover {
@@ -730,15 +1033,15 @@ h4 {
 
 .method-item {
     background-color: #fff;
-    border: 1px solid #e1e4e8;
+    border: 1px solid var(--color-border);
     border-radius: 6px;
     padding: 20px;
     margin-bottom: 16px;
 }
 
 .signature {
-    background-color: #f6f8fa;
-    border: 1px solid #e1e4e8;
+    background-color: var(--color-bio-offwhite);
+    border: 1px solid var(--color-border);
     border-radius: 6px;
     padding: 12px 16px;
     margin: 12px 0;
@@ -748,12 +1051,12 @@ h4 {
 .signature code {
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     font-size: 14px;
-    color: #24292e;
+    color: var(--color-bio-black);
 }
 
 .example {
-    background-color: #f6f8fa;
-    border: 1px solid #e1e4e8;
+    background-color: var(--color-bio-offwhite);
+    border: 1px solid var(--color-border);
     border-radius: 6px;
     padding: 12px 16px;
     margin: 12px 0;
@@ -763,16 +1066,17 @@ h4 {
 .example code {
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     font-size: 13px;
-    color: #24292e;
+    color: var(--color-bio-black);
     white-space: pre;
 }
 
 code {
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     font-size: 13px;
-    background-color: #f6f8fa;
+    background-color: var(--color-bio-offwhite);
     padding: 2px 6px;
     border-radius: 3px;
+    color: var(--color-bio-green-light);
 }
 
 p {

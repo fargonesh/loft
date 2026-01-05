@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>fs - loft stdlib</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="search_index.js"></script>
+    <script src="search.js"></script>
+</head>
+<body>
+    <div class="sidebar">
+        <h2><a href="index.html">loft stdlib</a></h2>
+        <div class="search-container">
+            <input type="text" id="doc-search" placeholder="Search docs...">
+        </div>
+        <div class="nav-section">
+            <h3>Primitives</h3>
+            <ul>
+                <li><a href="string.html">str</a></li>
+                <li><a href="array.html">Array</a></li>
+                <li><a href="num.html">num</a></li>
+                <li><a href="bool.html">bool</a></li>
+                <li><a href="void.html">void</a></li>
+            </ul>
+        </div>
+        <div class="nav-section">
+            <h3>Builtins</h3>
+            <ul>
+                <li><a href="fs.html">fs</a></li>
+                <li><a href="encoding.html">encoding</a></li>
+                <li><a href="random.html">random</a></li>
+                <li><a href="web.html">web</a></li>
+                <li><a href="json.html">json</a></li>
+                <li><a href="math.html">math</a></li>
+                <li><a href="time.html">time</a></li>
+                <li><a href="object.html">object</a></li>
+                <li><a href="term.html">term</a></li>
+            </ul>
+        </div>
+        <div class="nav-section">
+            <h3>Types</h3>
+            <ul>
+                <li><a href="type-Array.html">Array</a></li>
+                <li><a href="type-Buffer.html">Buffer</a></li>
+                <li><a href="type-Headers.html">Headers</a></li>
+                <li><a href="type-Response.html">Response</a></li>
+                <li><a href="type-RequestBuilder.html">RequestBuilder</a></li>
+            </ul>
+        </div>
+        <div class="nav-section">
+            <h3>Traits</h3>
+            <ul>
+                <li><a href="trait-Index.html">Index</a></li>
+                <li><a href="trait-Sub.html">Sub</a></li>
+                <li><a href="trait-Div.html">Div</a></li>
+                <li><a href="trait-ToString.html">ToString</a></li>
+                <li><a href="trait-Printable.html">Printable</a></li>
+                <li><a href="trait-Add.html">Add</a></li>
+                <li><a href="trait-Mul.html">Mul</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="content">
+        <div class="breadcrumb"><a href="index.html">stdlib</a> / <span>fs</span></div>
+        <h1>fs</h1>
+        <p class="description">File system builtin providing file system operations</p>
+        <h2>Methods</h2>
+        <div class="method-item">
+            <h3 id="remove_dir">remove_dir</h3>
+            <pre class="signature"><code>fs.remove_dir(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Remove a directory</p>
+        </div>
+        <div class="method-item">
+            <h3 id="rename">rename</h3>
+            <pre class="signature"><code>fs.rename(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Rename/move a file</p>
+        </div>
+        <div class="method-item">
+            <h3 id="write">write</h3>
+            <pre class="signature"><code>fs.write(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Write string contents to a file</p>
+        </div>
+        <div class="method-item">
+            <h3 id="list_dir">list_dir</h3>
+            <pre class="signature"><code>fs.list_dir(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+List directory contents</p>
+        </div>
+        <div class="method-item">
+            <h3 id="exists">exists</h3>
+            <pre class="signature"><code>fs.exists(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Check if a file exists</p>
+        </div>
+        <div class="method-item">
+            <h3 id="remove_file">remove_file</h3>
+            <pre class="signature"><code>fs.remove_file(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Remove a file</p>
+        </div>
+        <div class="method-item">
+            <h3 id="read">read</h3>
+            <pre class="signature"><code>fs.read(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Read entire file contents as a string</p>
+        </div>
+        <div class="method-item">
+            <h3 id="append">append</h3>
+            <pre class="signature"><code>fs.append(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Append string contents to a file</p>
+        </div>
+        <div class="method-item">
+            <h3 id="metadata">metadata</h3>
+            <pre class="signature"><code>fs.metadata(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Get file metadata (size, modified time, etc.)</p>
+        </div>
+        <div class="method-item">
+            <h3 id="copy">copy</h3>
+            <pre class="signature"><code>fs.copy(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Copy a file</p>
+        </div>
+        <div class="method-item">
+            <h3 id="is_dir">is_dir</h3>
+            <pre class="signature"><code>fs.is_dir(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Check if path is a directory</p>
+        </div>
+        <div class="method-item">
+            <h3 id="is_file">is_file</h3>
+            <pre class="signature"><code>fs.is_file(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Check if path is a file</p>
+        </div>
+        <div class="method-item">
+            <h3 id="create_dir">create_dir</h3>
+            <pre class="signature"><code>fs.create_dir(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Create a directory</p>
+        </div>
+    </div>
+</body>
+</html>

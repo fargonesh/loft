@@ -1,4 +1,5 @@
 pub mod stdlib;
+pub mod scanner;
 
 use crate::parser::{InputStream, Parser, Stmt, Type};
 use std::collections::HashMap;
