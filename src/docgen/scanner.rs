@@ -34,7 +34,7 @@ impl StdlibScanner {
                 let path = entry.path();
                 if path.is_dir() {
                     Self::scan_dir(&path, stdlib);
-                } else if path.extension().map_or(false, |ext| ext == "rs") {
+                } else if path.extension().is_some_and(|ext| ext == "rs") {
                     Self::scan_file(&path, stdlib);
                 }
             }
@@ -56,6 +56,9 @@ impl StdlibScanner {
         
         let re = Regex::new(r"(?m)((?:^\s*///.*\n)+)\s*#\[loft_builtin\(([\w\.]+)\)\]\s*fn\s+\w+\s*\(([^,)]+)").unwrap();
         
+        let param_re = Regex::new(r"@param\s+(\w+):\s*([\w<>\[\]]+)").unwrap();
+        let return_re = Regex::new(r"@return\s+([\w<>\[\]]+)").unwrap();
+
         for cap in re.captures_iter(&content) {
             let docs = &cap[1];
             let name = &cap[2];
@@ -69,9 +72,6 @@ impl StdlibScanner {
             // Parse @param and @return tags
             let mut params = Vec::new();
             let mut return_type = "any".to_string();
-
-            let param_re = Regex::new(r"@param\s+(\w+):\s*([\w<>\[\]]+)").unwrap();
-            let return_re = Regex::new(r"@return\s+([\w<>\[\]]+)").unwrap();
 
             for p_cap in param_re.captures_iter(&documentation) {
                 params.push(format!("{}: {}", &p_cap[1], &p_cap[2]));

@@ -180,14 +180,15 @@ impl StdlibDocGenerator {
     }
 
     fn generate_search_index(&self) -> String {
-        let mut items = Vec::new();
-
+        
         // Primitives
-        items.push(format!("{{name: \"str\", type: \"primitive\", url: \"string.html\", doc: \"String primitive type\"}}"));
-        items.push(format!("{{name: \"Array\", type: \"primitive\", url: \"array.html\", doc: \"Array primitive type\"}}"));
-        items.push(format!("{{name: \"num\", type: \"primitive\", url: \"num.html\", doc: \"Numeric primitive type\"}}"));
-        items.push(format!("{{name: \"bool\", type: \"primitive\", url: \"bool.html\", doc: \"Boolean primitive type\"}}"));
-        items.push(format!("{{name: \"void\", type: \"primitive\", url: \"void.html\", doc: \"Void primitive type\"}}"));
+        let mut items = vec![
+            "{name: \"str\", type: \"primitive\", url: \"string.html\", doc: \"String primitive type\"}".to_string(),
+            "{name: \"Array\", type: \"primitive\", url: \"array.html\", doc: \"Array primitive type\"}".to_string(),
+            "{name: \"num\", type: \"primitive\", url: \"num.html\", doc: \"Numeric primitive type\"}".to_string(),
+            "{name: \"bool\", type: \"primitive\", url: \"bool.html\", doc: \"Boolean primitive type\"}".to_string(),
+            "{name: \"void\", type: \"primitive\", url: \"void.html\", doc: \"Void primitive type\"}".to_string(),
+        ];
 
         // Builtins
         for (name, builtin) in &self.stdlib.builtins {
