@@ -23,37 +23,38 @@
             <h3>Builtins</h3>
             <ul>
                 <li><a href="array.html">array</a></li>
-                <li><a href="term.html">term</a></li>
-                <li><a href="fs.html">fs</a></li>
-                <li><a href="web.html">web</a></li>
-                <li><a href="object.html">object</a></li>
-                <li><a href="math.html">math</a></li>
-                <li><a href="time.html">time</a></li>
                 <li><a href="json.html">json</a></li>
                 <li><a href="encoding.html">encoding</a></li>
+                <li><a href="time.html">time</a></li>
+                <li><a href="object.html">object</a></li>
+                <li><a href="math.html">math</a></li>
+                <li><a href="fs.html">fs</a></li>
+                <li><a href="term.html">term</a></li>
                 <li><a href="random.html">random</a></li>
                 <li><a href="string.html">string</a></li>
+                <li><a href="web.html">web</a></li>
             </ul>
         </div>
         <div class="nav-section">
             <h3>Types</h3>
             <ul>
-                <li><a href="type-Headers.html">Headers</a></li>
-                <li><a href="type-Response.html">Response</a></li>
-                <li><a href="type-Buffer.html">Buffer</a></li>
+                <li><a href="type-Array.html">Array</a></li>
                 <li><a href="type-RequestBuilder.html">RequestBuilder</a></li>
+                <li><a href="type-Buffer.html">Buffer</a></li>
+                <li><a href="type-Response.html">Response</a></li>
+                <li><a href="type-Headers.html">Headers</a></li>
             </ul>
         </div>
         <div class="nav-section">
             <h3>Traits</h3>
             <ul>
-                <li><a href="trait-Sub.html">Sub</a></li>
-                <li><a href="trait-Mul.html">Mul</a></li>
-                <li><a href="trait-Div.html">Div</a></li>
-                <li><a href="trait-Add.html">Add</a></li>
                 <li><a href="trait-Index.html">Index</a></li>
                 <li><a href="trait-ToString.html">ToString</a></li>
+                <li><a href="trait-Sub.html">Sub</a></li>
+                <li><a href="trait-Mul.html">Mul</a></li>
                 <li><a href="trait-Printable.html">Printable</a></li>
+                <li><a href="trait-Add.html">Add</a></li>
+                <li><a href="trait-Div.html">Div</a></li>
             </ul>
         </div>
     </div>
@@ -63,88 +64,102 @@
         <p class="description">Web API for HTTP requests with comprehensive async support</p>
         <h2>Methods</h2>
         <div class="method-item">
-            <h3 id="header">header</h3>
-            <pre class="signature"><code>web.header(key: <a href="string.html">str</a>, value: <a href="string.html">str</a>) -> <a href="type-RequestBuilder.html">RequestBuilder</a></code></pre>
-            <p><strong>Returns:</strong> <code><a href="type-RequestBuilder.html">RequestBuilder</a></code></p>
-            <p>Add a header to the request</p>
-        </div>
-        <div class="method-item">
-            <h3 id="text">text</h3>
-            <pre class="signature"><code>web.text() -> Promise&lt;<a href="string.html">str</a>&gt;</code></pre>
-            <p><strong>Returns:</strong> <code>Promise&lt;<a href="string.html">str</a>&gt;</code></p>
-            <p>Get response body as text (call on Response object)</p>
-        </div>
-        <div class="method-item">
-            <h3 id="post">post</h3>
-            <pre class="signature"><code>web.post(url: <a href="string.html">str</a>, body?: <a href="type-Buffer.html">Buffer</a>) -> Promise&lt;<a href="type-Response.html">Response</a>&gt;</code></pre>
-            <p><strong>Returns:</strong> <code>Promise&lt;<a href="type-Response.html">Response</a>&gt;</code></p>
-            <p>Perform a POST request with optional body</p>
-        </div>
-        <div class="method-item">
-            <h3 id="buffer">buffer</h3>
-            <pre class="signature"><code>web.buffer(data: <a href="string.html">str</a> | <a href="array.html">Array</a>&lt;<a href="num.html">num</a>&gt;) -> <a href="type-Buffer.html">Buffer</a></code></pre>
-            <p><strong>Returns:</strong> <code><a href="type-Buffer.html">Buffer</a></code></p>
-            <p>Create a Buffer from string or array of bytes (0-255)</p>
-        </div>
-        <div class="method-item">
-            <h3 id="timeout">timeout</h3>
-            <pre class="signature"><code>web.timeout(milliseconds: <a href="num.html">num</a>) -> <a href="type-RequestBuilder.html">RequestBuilder</a></code></pre>
-            <p><strong>Returns:</strong> <code><a href="type-RequestBuilder.html">RequestBuilder</a></code></p>
-            <p>Set request timeout in milliseconds</p>
-        </div>
-        <div class="method-item">
-            <h3 id="send">send</h3>
-            <pre class="signature"><code>web.send() -> Promise&lt;<a href="type-Response.html">Response</a>&gt;</code></pre>
-            <p><strong>Returns:</strong> <code>Promise&lt;<a href="type-Response.html">Response</a>&gt;</code></p>
-            <p>Execute the HTTP request and return a Promise&lt;Response&gt;</p>
-        </div>
-        <div class="method-item">
-            <h3 id="method">method</h3>
-            <pre class="signature"><code>web.method(method: <a href="string.html">str</a>) -> <a href="type-RequestBuilder.html">RequestBuilder</a></code></pre>
-            <p><strong>Returns:</strong> <code><a href="type-RequestBuilder.html">RequestBuilder</a></code></p>
-            <p>Set HTTP method (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS, TRACE, CONNECT)</p>
-        </div>
-        <div class="method-item">
-            <h3 id="put">put</h3>
-            <pre class="signature"><code>web.put(url: <a href="string.html">str</a>, body?: <a href="type-Buffer.html">Buffer</a>) -> Promise&lt;<a href="type-Response.html">Response</a>&gt;</code></pre>
-            <p><strong>Returns:</strong> <code>Promise&lt;<a href="type-Response.html">Response</a>&gt;</code></p>
-            <p>Perform a PUT request with optional body</p>
-        </div>
-        <div class="method-item">
             <h3 id="delete">delete</h3>
-            <pre class="signature"><code>web.delete(url: <a href="string.html">str</a>) -> Promise&lt;<a href="type-Response.html">Response</a>&gt;</code></pre>
-            <p><strong>Returns:</strong> <code>Promise&lt;<a href="type-Response.html">Response</a>&gt;</code></p>
-            <p>Perform a DELETE request to the specified URL</p>
-        </div>
-        <div class="method-item">
-            <h3 id="get">get</h3>
-            <pre class="signature"><code>web.get(url: <a href="string.html">str</a>) -> Promise&lt;<a href="type-Response.html">Response</a>&gt;</code></pre>
-            <p><strong>Returns:</strong> <code>Promise&lt;<a href="type-Response.html">Response</a>&gt;</code></p>
-            <p>Perform a GET request to the specified URL</p>
+            <pre class="signature"><code>web.delete(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+DELETE request shorthand</p>
         </div>
         <div class="method-item">
             <h3 id="json">json</h3>
-            <pre class="signature"><code>web.json() -> Promise&lt;Object&gt;</code></pre>
-            <p><strong>Returns:</strong> <code>Promise&lt;Object&gt;</code></p>
-            <p>Parse response body as JSON (call on Response object)</p>
-        </div>
-        <div class="method-item">
-            <h3 id="followRedirects">followRedirects</h3>
-            <pre class="signature"><code>web.followRedirects(follow: <a href="bool.html">bool</a>) -> <a href="type-RequestBuilder.html">RequestBuilder</a></code></pre>
-            <p><strong>Returns:</strong> <code><a href="type-RequestBuilder.html">RequestBuilder</a></code></p>
-            <p>Set whether to follow HTTP redirects automatically</p>
-        </div>
-        <div class="method-item">
-            <h3 id="body">body</h3>
-            <pre class="signature"><code>web.body(buffer: <a href="type-Buffer.html">Buffer</a>) -> <a href="type-RequestBuilder.html">RequestBuilder</a></code></pre>
-            <p><strong>Returns:</strong> <code><a href="type-RequestBuilder.html">RequestBuilder</a></code></p>
-            <p>Set the request body as a Buffer</p>
+            <pre class="signature"><code>web.json(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Parse response body as JSON</p>
         </div>
         <div class="method-item">
             <h3 id="request">request</h3>
-            <pre class="signature"><code>web.request(url: <a href="string.html">str</a>) -> <a href="type-RequestBuilder.html">RequestBuilder</a></code></pre>
-            <p><strong>Returns:</strong> <code><a href="type-RequestBuilder.html">RequestBuilder</a></code></p>
-            <p>Create a new HTTP request builder for the given URL</p>
+            <pre class="signature"><code>web.request(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Create a new HTTP request builder</p>
+        </div>
+        <div class="method-item">
+            <h3 id="put">put</h3>
+            <pre class="signature"><code>web.put(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+PUT request shorthand with optional body</p>
+        </div>
+        <div class="method-item">
+            <h3 id="method">method</h3>
+            <pre class="signature"><code>web.method(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Set HTTP method on request builder</p>
+        </div>
+        <div class="method-item">
+            <h3 id="text">text</h3>
+            <pre class="signature"><code>web.text(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Parse response body as text</p>
+        </div>
+        <div class="method-item">
+            <h3 id="get">get</h3>
+            <pre class="signature"><code>web.get(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+GET request shorthand</p>
+        </div>
+        <div class="method-item">
+            <h3 id="timeout">timeout</h3>
+            <pre class="signature"><code>web.timeout(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Set request timeout in milliseconds</p>
+        </div>
+        <div class="method-item">
+            <h3 id="send">send</h3>
+            <pre class="signature"><code>web.send(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Send HTTP request and return response</p>
+        </div>
+        <div class="method-item">
+            <h3 id="post">post</h3>
+            <pre class="signature"><code>web.post(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+POST request shorthand with optional body</p>
+        </div>
+        <div class="method-item">
+            <h3 id="body">body</h3>
+            <pre class="signature"><code>web.body(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Set request body</p>
+        </div>
+        <div class="method-item">
+            <h3 id="header">header</h3>
+            <pre class="signature"><code>web.header(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Add header to request builder</p>
+        </div>
+        <div class="method-item">
+            <h3 id="followRedirects">followRedirects</h3>
+            <pre class="signature"><code>web.followRedirects(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Set whether to follow redirects</p>
+        </div>
+        <div class="method-item">
+            <h3 id="buffer">buffer</h3>
+            <pre class="signature"><code>web.buffer(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Create a Buffer from string</p>
         </div>
     </div>
 </body>

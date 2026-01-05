@@ -30,7 +30,7 @@ const Layout = ({ children, fullWidth = false }) => {
               </Link>
               
               <nav className="hidden md:flex gap-6">
-                <Link to="/docs/introduction.md" className="text-sm font-medium hover:text-bio-green transition-colors">Docs</Link>
+                <Link to="/book/introduction.md" className="text-sm font-medium hover:text-bio-green transition-colors">Docs</Link>
                 <Link to="/d/std" className="text-sm font-medium hover:text-bio-green transition-colors">Std Lib</Link>
               </nav>
             </div>

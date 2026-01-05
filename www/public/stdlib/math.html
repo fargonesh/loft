@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>math - loft stdlib</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="search_index.js"></script>
+    <script src="search.js"></script>
+</head>
+<body>
+    <div class="sidebar">
+        <h2><a href="index.html">loft stdlib</a></h2>
+        <div class="search-container">
+            <input type="text" id="doc-search" placeholder="Search docs...">
+        </div>
+        <div class="nav-section">
+            <h3>Primitives</h3>
+            <ul>
+                <li><a href="string.html">str</a></li>
+                <li><a href="array.html">Array</a></li>
+                <li><a href="num.html">num</a></li>
+                <li><a href="bool.html">bool</a></li>
+                <li><a href="void.html">void</a></li>
+            </ul>
+        </div>
+        <div class="nav-section">
+            <h3>Builtins</h3>
+            <ul>
+                <li><a href="fs.html">fs</a></li>
+                <li><a href="encoding.html">encoding</a></li>
+                <li><a href="random.html">random</a></li>
+                <li><a href="web.html">web</a></li>
+                <li><a href="json.html">json</a></li>
+                <li><a href="math.html">math</a></li>
+                <li><a href="time.html">time</a></li>
+                <li><a href="object.html">object</a></li>
+                <li><a href="term.html">term</a></li>
+            </ul>
+        </div>
+        <div class="nav-section">
+            <h3>Types</h3>
+            <ul>
+                <li><a href="type-Array.html">Array</a></li>
+                <li><a href="type-Buffer.html">Buffer</a></li>
+                <li><a href="type-Headers.html">Headers</a></li>
+                <li><a href="type-Response.html">Response</a></li>
+                <li><a href="type-RequestBuilder.html">RequestBuilder</a></li>
+            </ul>
+        </div>
+        <div class="nav-section">
+            <h3>Traits</h3>
+            <ul>
+                <li><a href="trait-Index.html">Index</a></li>
+                <li><a href="trait-Sub.html">Sub</a></li>
+                <li><a href="trait-Div.html">Div</a></li>
+                <li><a href="trait-ToString.html">ToString</a></li>
+                <li><a href="trait-Printable.html">Printable</a></li>
+                <li><a href="trait-Add.html">Add</a></li>
+                <li><a href="trait-Mul.html">Mul</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="content">
+        <div class="breadcrumb"><a href="index.html">stdlib</a> / <span>math</span></div>
+        <h1>math</h1>
+        <p class="description">Math builtin providing mathematical operations and constants</p>
+        <h2>Constants</h2>
+        <div class="method-item">
+            <h3 id="PI">PI</h3>
+            <pre class="signature"><code>math.PI: <a href="num.html">num</a></code></pre>
+            <p>The mathematical constant π (pi) ≈ 3.14159</p>
+        </div>
+        <div class="method-item">
+            <h3 id="TAU">TAU</h3>
+            <pre class="signature"><code>math.TAU: <a href="num.html">num</a></code></pre>
+            <p>The mathematical constant τ (tau) = 2π ≈ 6.28318</p>
+        </div>
+        <div class="method-item">
+            <h3 id="E">E</h3>
+            <pre class="signature"><code>math.E: <a href="num.html">num</a></code></pre>
+            <p>The mathematical constant e (Euler&#39;s number) ≈ 2.71828</p>
+        </div>
+        <h2>Methods</h2>
+        <div class="method-item">
+            <h3 id="ceil">ceil</h3>
+            <pre class="signature"><code>math.ceil(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Ceiling a number (round up to nearest integer)</p>
+        </div>
+        <div class="method-item">
+            <h3 id="sin">sin</h3>
+            <pre class="signature"><code>math.sin(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Sine function</p>
+        </div>
+        <div class="method-item">
+            <h3 id="pow">pow</h3>
+            <pre class="signature"><code>math.pow(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Power: base^exponent</p>
+        </div>
+        <div class="method-item">
+            <h3 id="sqrt">sqrt</h3>
+            <pre class="signature"><code>math.sqrt(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Square root</p>
+        </div>
+        <div class="method-item">
+            <h3 id="sign">sign</h3>
+            <pre class="signature"><code>math.sign(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Sign of a number (-1, 0, or 1)</p>
+        </div>
+        <div class="method-item">
+            <h3 id="log">log</h3>
+            <pre class="signature"><code>math.log(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Logarithm with custom base</p>
+        </div>
+        <div class="method-item">
+            <h3 id="asin">asin</h3>
+            <pre class="signature"><code>math.asin(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Arcsine function</p>
+        </div>
+        <div class="method-item">
+            <h3 id="max">max</h3>
+            <pre class="signature"><code>math.max(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Maximum of two numbers</p>
+        </div>
+        <div class="method-item">
+            <h3 id="atan">atan</h3>
+            <pre class="signature"><code>math.atan(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Arctangent function</p>
+        </div>
+        <div class="method-item">
+            <h3 id="cos">cos</h3>
+            <pre class="signature"><code>math.cos(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Cosine function</p>
+        </div>
+        <div class="method-item">
+            <h3 id="abs">abs</h3>
+            <pre class="signature"><code>math.abs(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Absolute value of a number</p>
+        </div>
+        <div class="method-item">
+            <h3 id="log10">log10</h3>
+            <pre class="signature"><code>math.log10(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Base-10 logarithm</p>
+        </div>
+        <div class="method-item">
+            <h3 id="acos">acos</h3>
+            <pre class="signature"><code>math.acos(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Arccosine function</p>
+        </div>
+        <div class="method-item">
+            <h3 id="exp">exp</h3>
+            <pre class="signature"><code>math.exp(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Exponential function (e^x)</p>
+        </div>
+        <div class="method-item">
+            <h3 id="ln">ln</h3>
+            <pre class="signature"><code>math.ln(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Natural logarithm (ln)</p>
+        </div>
+        <div class="method-item">
+            <h3 id="atan2">atan2</h3>
+            <pre class="signature"><code>math.atan2(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Two-argument arctangent function</p>
+        </div>
+        <div class="method-item">
+            <h3 id="round">round</h3>
+            <pre class="signature"><code>math.round(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Round a number to the nearest integer</p>
+        </div>
+        <div class="method-item">
+            <h3 id="clamp">clamp</h3>
+            <pre class="signature"><code>math.clamp(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Clamp a number between min and max</p>
+        </div>
+        <div class="method-item">
+            <h3 id="floor">floor</h3>
+            <pre class="signature"><code>math.floor(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Floor a number (round down to nearest integer)</p>
+        </div>
+        <div class="method-item">
+            <h3 id="min">min</h3>
+            <pre class="signature"><code>math.min(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Minimum of two numbers</p>
+        </div>
+        <div class="method-item">
+            <h3 id="tan">tan</h3>
+            <pre class="signature"><code>math.tan(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Tangent function</p>
+        </div>
+    </div>
+</body>
+</html>

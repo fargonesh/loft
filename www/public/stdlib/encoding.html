@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>encoding - loft stdlib</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="search_index.js"></script>
+    <script src="search.js"></script>
+</head>
+<body>
+    <div class="sidebar">
+        <h2><a href="index.html">loft stdlib</a></h2>
+        <div class="search-container">
+            <input type="text" id="doc-search" placeholder="Search docs...">
+        </div>
+        <div class="nav-section">
+            <h3>Primitives</h3>
+            <ul>
+                <li><a href="string.html">str</a></li>
+                <li><a href="array.html">Array</a></li>
+                <li><a href="num.html">num</a></li>
+                <li><a href="bool.html">bool</a></li>
+                <li><a href="void.html">void</a></li>
+            </ul>
+        </div>
+        <div class="nav-section">
+            <h3>Builtins</h3>
+            <ul>
+                <li><a href="fs.html">fs</a></li>
+                <li><a href="encoding.html">encoding</a></li>
+                <li><a href="random.html">random</a></li>
+                <li><a href="web.html">web</a></li>
+                <li><a href="json.html">json</a></li>
+                <li><a href="math.html">math</a></li>
+                <li><a href="time.html">time</a></li>
+                <li><a href="object.html">object</a></li>
+                <li><a href="term.html">term</a></li>
+            </ul>
+        </div>
+        <div class="nav-section">
+            <h3>Types</h3>
+            <ul>
+                <li><a href="type-Array.html">Array</a></li>
+                <li><a href="type-Buffer.html">Buffer</a></li>
+                <li><a href="type-Headers.html">Headers</a></li>
+                <li><a href="type-Response.html">Response</a></li>
+                <li><a href="type-RequestBuilder.html">RequestBuilder</a></li>
+            </ul>
+        </div>
+        <div class="nav-section">
+            <h3>Traits</h3>
+            <ul>
+                <li><a href="trait-Index.html">Index</a></li>
+                <li><a href="trait-Sub.html">Sub</a></li>
+                <li><a href="trait-Div.html">Div</a></li>
+                <li><a href="trait-ToString.html">ToString</a></li>
+                <li><a href="trait-Printable.html">Printable</a></li>
+                <li><a href="trait-Add.html">Add</a></li>
+                <li><a href="trait-Mul.html">Mul</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="content">
+        <div class="breadcrumb"><a href="index.html">stdlib</a> / <span>encoding</span></div>
+        <h1>encoding</h1>
+        <p class="description">Encoding and decoding utilities for various formats</p>
+        <h2>Methods</h2>
+        <div class="method-item">
+            <h3 id="base64_encode">base64_encode</h3>
+            <pre class="signature"><code>encoding.base64_encode(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Encode a string to base64</p>
+        </div>
+        <div class="method-item">
+            <h3 id="to_bytes">to_bytes</h3>
+            <pre class="signature"><code>encoding.to_bytes(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Convert string to bytes array</p>
+        </div>
+        <div class="method-item">
+            <h3 id="from_bytes">from_bytes</h3>
+            <pre class="signature"><code>encoding.from_bytes(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Convert bytes array to string</p>
+        </div>
+        <div class="method-item">
+            <h3 id="url_decode">url_decode</h3>
+            <pre class="signature"><code>encoding.url_decode(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+URL decode a string</p>
+        </div>
+        <div class="method-item">
+            <h3 id="base64_decode">base64_decode</h3>
+            <pre class="signature"><code>encoding.base64_decode(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+Decode a base64 string</p>
+        </div>
+        <div class="method-item">
+            <h3 id="url_encode">url_encode</h3>
+            <pre class="signature"><code>encoding.url_encode(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>
+URL encode a string</p>
+        </div>
+    </div>
+</body>
+</html>

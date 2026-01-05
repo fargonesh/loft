@@ -24,6 +24,11 @@
     channel = "nightly";
   };
 
+  languages.javascript = {
+    enable = true;
+    npm.enable = true;
+  };
+
   enterShell = ''
     rustupdate
     git --version

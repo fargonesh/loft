@@ -161,7 +161,7 @@ const Docs = () => {
                   {summary.filter(s => s.section === section).map(item => (
                     <li key={item.path}>
                       <Link 
-                        to={`/docs/${item.path}`}
+                        to={`/book/${item.path}`}
                         className={`text-sm block py-1.5 transition-colors ${docPath === item.path ? 'font-bold text-bio-green -ml-3.5 pl-3.5 border-l-2 border-bio-green' : 'text-bio-black/70 hover:text-bio-black'}`}
                       >
                         {item.title}

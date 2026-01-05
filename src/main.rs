@@ -77,8 +77,8 @@ enum Commands {
     },
     /// Generate standard library documentation
     StdlibDoc {
-        /// Output directory for generated documentation (defaults to ./stdlib-docs)
-        #[arg(short, long, default_value = "stdlib-docs")]
+        /// Output directory for generated documentation (defaults to ./www/public/stdlib)
+        #[arg(short, long, default_value = "www/public/stdlib")]
         output: String,
     },
     /// Format loft source files
@@ -1044,13 +1044,20 @@ fn run_stdlib_doc(output_dir: &str) {
     // Load stdlib_types.json
     let stdlib_json = include_str!("lsp/stdlib_types.json");
     
-    let doc_gen = match StdlibDocGenerator::new(stdlib_json) {
+    let mut doc_gen = match StdlibDocGenerator::new(stdlib_json) {
         Ok(gen) => gen,
         Err(e) => {
             println!("{}: {}", "Error".bright_red().bold(), e);
             std::process::exit(1);
         }
     };
+
+    // Try to scan source code for additional docs
+    let builtins_path = Path::new("src/runtime/builtins");
+    if builtins_path.exists() {
+        println!("Scanning source code at {}...", builtins_path.display());
+        doc_gen.merge_source(builtins_path);
+    }
 
     println!("Generating HTML...");
     let output_path = Path::new(output_dir);

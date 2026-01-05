@@ -168,7 +168,7 @@ const App = () => {
         <Route path="/" element={<Home />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/docs/*" element={<Docs />} />
+        <Route path="/book/*" element={<Docs />} />
         <Route path="/p/:package" element={<PackageInfo />} />
         <Route path="/d/:package" element={<PackageDocs />} />
       </Routes>
