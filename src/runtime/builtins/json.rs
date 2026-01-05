@@ -1,6 +1,6 @@
 use crate::runtime::builtin::{BuiltinStruct, BuiltinMethod};
 use crate::runtime::value::Value;
-use crate::runtime::{RuntimeError, RuntimeResult};
+use crate::runtime::{RuntimeError, RuntimeResult, Interpreter};
 use serde_json;
 use std::collections::HashMap;
 use rust_decimal::Decimal;
@@ -8,7 +8,7 @@ use loft_builtin_macros::loft_builtin;
 
 /// Parse a JSON string into a loft value
 #[loft_builtin(json.parse)]
-fn json_parse(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn json_parse(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("json.parse() requires a string argument"));
     }
@@ -24,9 +24,8 @@ fn json_parse(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     json_to_loft_value(json_value)
 }
 
-/// Convert a loft value to a JSON string
 #[loft_builtin(json.stringify)]
-fn json_stringify(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn json_stringify(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("json.stringify() requires a value argument"));
     }
@@ -40,7 +39,7 @@ fn json_stringify(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Convert a loft value to a pretty-printed JSON string
 #[loft_builtin(json.stringify_pretty)]
-fn json_stringify_pretty(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn json_stringify_pretty(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("json.stringify_pretty() requires a value argument"));
     }
@@ -52,7 +51,7 @@ fn json_stringify_pretty(_this: &Value, args: &[Value]) -> RuntimeResult<Value> 
     Ok(Value::String(json_str))
 }
 
-fn json_to_loft_value(json: serde_json::Value) -> RuntimeResult<Value> {
+pub(crate) fn json_to_loft_value(json: serde_json::Value) -> RuntimeResult<Value> {
     match json {
         serde_json::Value::Null => Ok(Value::Unit),
         serde_json::Value::Bool(b) => Ok(Value::Boolean(b)),
@@ -139,13 +138,15 @@ mod tests {
     
     #[test]
     fn test_json_parse_simple() {
+        let mut interpreter = Interpreter::new();
         let json_str = r#"{"name": "Alice", "age": 30}"#;
-        let result = json_parse(&Value::Unit, &[Value::String(json_str.to_string())]);
+        let result = json_parse(&mut interpreter, &Value::Unit, &[Value::String(json_str.to_string())]);
         assert!(result.is_ok());
     }
     
     #[test]
     fn test_json_stringify_object() {
+        let mut interpreter = Interpreter::new();
         let mut fields = HashMap::new();
         fields.insert("name".to_string(), Value::String("Bob".to_string()));
         fields.insert("age".to_string(), Value::Number(Decimal::from(25)));
@@ -155,7 +156,7 @@ mod tests {
             fields,
         };
         
-        let result = json_stringify(&Value::Unit, &[obj]);
+        let result = json_stringify(&mut interpreter, &Value::Unit, &[obj]);
         assert!(result.is_ok());
         
         let json_str = match result.unwrap() {
@@ -169,8 +170,9 @@ mod tests {
     
     #[test]
     fn test_json_parse_array() {
+        let mut interpreter = Interpreter::new();
         let json_str = "[1, 2, 3]";
-        let result = json_parse(&Value::Unit, &[Value::String(json_str.to_string())]);
+        let result = json_parse(&mut interpreter, &Value::Unit, &[Value::String(json_str.to_string())]);
         assert!(result.is_ok());
         
         match result.unwrap() {

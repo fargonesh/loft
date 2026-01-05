@@ -27,37 +27,37 @@
         <div class="nav-section">
             <h3>Builtins</h3>
             <ul>
-                <li><a href="fs.html">fs</a></li>
-                <li><a href="encoding.html">encoding</a></li>
-                <li><a href="random.html">random</a></li>
-                <li><a href="web.html">web</a></li>
-                <li><a href="json.html">json</a></li>
-                <li><a href="math.html">math</a></li>
-                <li><a href="time.html">time</a></li>
                 <li><a href="object.html">object</a></li>
                 <li><a href="term.html">term</a></li>
+                <li><a href="json.html">json</a></li>
+                <li><a href="encoding.html">encoding</a></li>
+                <li><a href="web.html">web</a></li>
+                <li><a href="math.html">math</a></li>
+                <li><a href="time.html">time</a></li>
+                <li><a href="fs.html">fs</a></li>
+                <li><a href="random.html">random</a></li>
             </ul>
         </div>
         <div class="nav-section">
             <h3>Types</h3>
             <ul>
-                <li><a href="type-Array.html">Array</a></li>
-                <li><a href="type-Buffer.html">Buffer</a></li>
-                <li><a href="type-Headers.html">Headers</a></li>
                 <li><a href="type-Response.html">Response</a></li>
                 <li><a href="type-RequestBuilder.html">RequestBuilder</a></li>
+                <li><a href="type-Buffer.html">Buffer</a></li>
+                <li><a href="type-Headers.html">Headers</a></li>
+                <li><a href="type-Array.html">Array</a></li>
             </ul>
         </div>
         <div class="nav-section">
             <h3>Traits</h3>
             <ul>
-                <li><a href="trait-Index.html">Index</a></li>
+                <li><a href="trait-Printable.html">Printable</a></li>
                 <li><a href="trait-Sub.html">Sub</a></li>
                 <li><a href="trait-Div.html">Div</a></li>
-                <li><a href="trait-ToString.html">ToString</a></li>
-                <li><a href="trait-Printable.html">Printable</a></li>
-                <li><a href="trait-Add.html">Add</a></li>
                 <li><a href="trait-Mul.html">Mul</a></li>
+                <li><a href="trait-Add.html">Add</a></li>
+                <li><a href="trait-Index.html">Index</a></li>
+                <li><a href="trait-ToString.html">ToString</a></li>
             </ul>
         </div>
     </div>
@@ -70,131 +70,137 @@
             <h3 id="static-chain">chain</h3>
             <pre class="signature"><code>Array.chain(...args) -> any</code></pre>
             <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Chain/concatenate multiple arrays</p>
+            <p>Chain/concatenate multiple arrays</p>
         </div>
         <div class="method-item">
             <h3 id="static-zip">zip</h3>
             <pre class="signature"><code>Array.zip(...args) -> any</code></pre>
             <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Zip two arrays together</p>
+            <p>Zip two arrays together</p>
         </div>
         <h2>Instance Methods</h2>
         <div class="method-item">
-            <h3 id="instance-flatten">flatten</h3>
-            <pre class="signature"><code>array.flatten(...args) -> any</code></pre>
+            <h3 id="instance-remove_last">remove_last</h3>
+            <pre class="signature"><code>array.remove_last(...args) -> any</code></pre>
             <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Flatten an array of arrays by one level</p>
-        </div>
-        <div class="method-item">
-            <h3 id="instance-pop">pop</h3>
-            <pre class="signature"><code>array.pop(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Pop a value from the end of an array
-Returns the popped value, or Unit if array is empty
-Note: This doesn&#39;t modify the original array</p>
-        </div>
-        <div class="method-item">
-            <h3 id="instance-average">average</h3>
-            <pre class="signature"><code>array.average(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Get average of all numbers in array</p>
+            <p>Remove last element and return new array</p>
         </div>
         <div class="method-item">
             <h3 id="instance-reduce">reduce</h3>
             <pre class="signature"><code>array.reduce(...args) -> any</code></pre>
             <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Reduce function - reduces array to single value (placeholder for now)</p>
+            <p>Reduce function - reduces array to single value (placeholder for now)</p>
         </div>
         <div class="method-item">
-            <h3 id="instance-find">find</h3>
-            <pre class="signature"><code>array.find(...args) -> any</code></pre>
+            <h3 id="instance-length">length</h3>
+            <pre class="signature"><code>array.length(...args) -> any</code></pre>
             <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Find first element matching predicate (placeholder for now)</p>
-        </div>
-        <div class="method-item">
-            <h3 id="instance-slice">slice</h3>
-            <pre class="signature"><code>array.slice(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Create a slice of the array</p>
-        </div>
-        <div class="method-item">
-            <h3 id="instance-reverse">reverse</h3>
-            <pre class="signature"><code>array.reverse(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Reverse an array</p>
-        </div>
-        <div class="method-item">
-            <h3 id="instance-is_empty">is_empty</h3>
-            <pre class="signature"><code>array.is_empty(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Check if array is empty</p>
-        </div>
-        <div class="method-item">
-            <h3 id="instance-first">first</h3>
-            <pre class="signature"><code>array.first(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Get first element of array</p>
-        </div>
-        <div class="method-item">
-            <h3 id="instance-get">get</h3>
-            <pre class="signature"><code>array.get(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Get a value at a specific index</p>
-        </div>
-        <div class="method-item">
-            <h3 id="instance-sort">sort</h3>
-            <pre class="signature"><code>array.sort(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Sort an array (numbers only for now)</p>
-        </div>
-        <div class="method-item">
-            <h3 id="instance-sum">sum</h3>
-            <pre class="signature"><code>array.sum(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Sum all numbers in array</p>
-        </div>
-        <div class="method-item">
-            <h3 id="instance-push">push</h3>
-            <pre class="signature"><code>array.push(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Push a value to the end of an array
-Returns a new array with the value added</p>
-        </div>
-        <div class="method-item">
-            <h3 id="instance-last">last</h3>
-            <pre class="signature"><code>array.last(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Get last element of array</p>
+            <p>Get the length of an array</p>
         </div>
         <div class="method-item">
             <h3 id="instance-set">set</h3>
             <pre class="signature"><code>array.set(...args) -> any</code></pre>
             <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Set a value at a specific index (returns new array)</p>
+            <p>Set a value at a specific index (returns new array)</p>
+        </div>
+        <div class="method-item">
+            <h3 id="instance-last">last</h3>
+            <pre class="signature"><code>array.last(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>Get last element of array</p>
+        </div>
+        <div class="method-item">
+            <h3 id="instance-skip">skip</h3>
+            <pre class="signature"><code>array.skip(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>Skip first n elements</p>
+        </div>
+        <div class="method-item">
+            <h3 id="instance-unique">unique</h3>
+            <pre class="signature"><code>array.unique(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>Get unique elements (dedup)</p>
+        </div>
+        <div class="method-item">
+            <h3 id="instance-flatten">flatten</h3>
+            <pre class="signature"><code>array.flatten(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>Flatten an array of arrays by one level</p>
+        </div>
+        <div class="method-item">
+            <h3 id="instance-map">map</h3>
+            <pre class="signature"><code>array.map(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>Map function - applies a function to each element (placeholder for now)
+Note: Full implementation would require function execution</p>
+        </div>
+        <div class="method-item">
+            <h3 id="instance-sort">sort</h3>
+            <pre class="signature"><code>array.sort(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>Sort an array (numbers only for now)</p>
         </div>
         <div class="method-item">
             <h3 id="instance-index_of">index_of</h3>
             <pre class="signature"><code>array.index_of(...args) -> any</code></pre>
             <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Find the index of a value in an array</p>
+            <p>Find the index of a value in an array</p>
+        </div>
+        <div class="method-item">
+            <h3 id="instance-join">join</h3>
+            <pre class="signature"><code>array.join(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>Joins an array together by a delimiter</p>
+        </div>
+        <div class="method-item">
+            <h3 id="instance-reverse">reverse</h3>
+            <pre class="signature"><code>array.reverse(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>Reverse an array</p>
+        </div>
+        <div class="method-item">
+            <h3 id="instance-pop">pop</h3>
+            <pre class="signature"><code>array.pop(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>Pop a value from the end of an array
+Returns the popped value, or Unit if array is empty
+Note: This doesn&#39;t modify the original array</p>
+        </div>
+        <div class="method-item">
+            <h3 id="instance-take">take</h3>
+            <pre class="signature"><code>array.take(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>Take first n elements</p>
+        </div>
+        <div class="method-item">
+            <h3 id="instance-first">first</h3>
+            <pre class="signature"><code>array.first(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>Get first element of array</p>
+        </div>
+        <div class="method-item">
+            <h3 id="instance-sum">sum</h3>
+            <pre class="signature"><code>array.sum(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>Sum all numbers in array</p>
+        </div>
+        <div class="method-item">
+            <h3 id="instance-find">find</h3>
+            <pre class="signature"><code>array.find(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>Find first element matching predicate (placeholder for now)</p>
+        </div>
+        <div class="method-item">
+            <h3 id="instance-get">get</h3>
+            <pre class="signature"><code>array.get(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>Get a value at a specific index</p>
+        </div>
+        <div class="method-item">
+            <h3 id="instance-filter">filter</h3>
+            <pre class="signature"><code>array.filter(...args) -> any</code></pre>
+            <p><strong>Returns:</strong> <code>any</code></p>
+            <p>Filter function - filters elements (placeholder for now)</p>
         </div>
         <div class="method-item">
             <h3 id="instance-len">len</h3>
@@ -203,68 +209,35 @@ Find the index of a value in an array</p>
             <p>Get the length of the array (alias for length)</p>
         </div>
         <div class="method-item">
-            <h3 id="instance-remove_last">remove_last</h3>
-            <pre class="signature"><code>array.remove_last(...args) -> any</code></pre>
+            <h3 id="instance-is_empty">is_empty</h3>
+            <pre class="signature"><code>array.is_empty(...args) -> any</code></pre>
             <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Remove last element and return new array</p>
+            <p>Check if array is empty</p>
         </div>
         <div class="method-item">
-            <h3 id="instance-skip">skip</h3>
-            <pre class="signature"><code>array.skip(...args) -> any</code></pre>
+            <h3 id="instance-push">push</h3>
+            <pre class="signature"><code>array.push(...args) -> any</code></pre>
             <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Skip first n elements</p>
-        </div>
-        <div class="method-item">
-            <h3 id="instance-map">map</h3>
-            <pre class="signature"><code>array.map(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Map function - applies a function to each element (placeholder for now)
-Note: Full implementation would require function execution</p>
-        </div>
-        <div class="method-item">
-            <h3 id="instance-length">length</h3>
-            <pre class="signature"><code>array.length(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Get the length of an array</p>
+            <p>Push a value to the end of an array
+Returns a new array with the value added</p>
         </div>
         <div class="method-item">
             <h3 id="instance-includes">includes</h3>
             <pre class="signature"><code>array.includes(...args) -> any</code></pre>
             <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Check if array includes a value</p>
+            <p>Check if array includes a value</p>
         </div>
         <div class="method-item">
-            <h3 id="instance-filter">filter</h3>
-            <pre class="signature"><code>array.filter(...args) -> any</code></pre>
+            <h3 id="instance-slice">slice</h3>
+            <pre class="signature"><code>array.slice(...args) -> any</code></pre>
             <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Filter function - filters elements (placeholder for now)</p>
+            <p>Create a slice of the array</p>
         </div>
         <div class="method-item">
-            <h3 id="instance-take">take</h3>
-            <pre class="signature"><code>array.take(...args) -> any</code></pre>
+            <h3 id="instance-average">average</h3>
+            <pre class="signature"><code>array.average(...args) -> any</code></pre>
             <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Take first n elements</p>
-        </div>
-        <div class="method-item">
-            <h3 id="instance-unique">unique</h3>
-            <pre class="signature"><code>array.unique(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Get unique elements (dedup)</p>
-        </div>
-        <div class="method-item">
-            <h3 id="instance-join">join</h3>
-            <pre class="signature"><code>array.join(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>
-Joins an array together by a delimiter</p>
+            <p>Get average of all numbers in array</p>
         </div>
     </div>
 </body>

@@ -7,11 +7,13 @@ pub mod permissions;
 pub mod permission_context;
 
 use crate::parser::{Expr, Stmt, TraitMethod, Type, InputStream, Parser};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fmt::Display;
 use std::path::PathBuf;
+use std::rc::Rc;
+use std::cell::RefCell;
 use traits::{call_binop_trait, call_index_trait, ToString};
-use value::Value;
+use value::{Value, PromiseState};
 use builtins::init_builtins;
 use miette::{Diagnostic, LabeledSpan, NamedSource};
 
@@ -24,6 +26,7 @@ fn init_stdlib_traits() -> HashMap<String, Vec<TraitMethod>> {
             name: "print".to_string(),
             params: vec![("self".to_string(), Type::Named("Self".to_string()))],
             return_type: Type::Named("str".to_string()),
+            is_async: false,
         }
     ]);
 
@@ -36,6 +39,7 @@ fn init_stdlib_traits() -> HashMap<String, Vec<TraitMethod>> {
                 ("other".to_string(), Type::Named("any".to_string()))
             ],
             return_type: Type::Named("any".to_string()),
+            is_async: false,
         }
     ]);
 
@@ -48,6 +52,7 @@ fn init_stdlib_traits() -> HashMap<String, Vec<TraitMethod>> {
                 ("other".to_string(), Type::Named("any".to_string()))
             ],
             return_type: Type::Named("any".to_string()),
+            is_async: false,
         }
     ]);
 
@@ -60,6 +65,7 @@ fn init_stdlib_traits() -> HashMap<String, Vec<TraitMethod>> {
                 ("other".to_string(), Type::Named("any".to_string()))
             ],
             return_type: Type::Named("any".to_string()),
+            is_async: false,
         }
     ]);
 
@@ -72,6 +78,7 @@ fn init_stdlib_traits() -> HashMap<String, Vec<TraitMethod>> {
                 ("other".to_string(), Type::Named("any".to_string()))
             ],
             return_type: Type::Named("any".to_string()),
+            is_async: false,
         }
     ]);
     
@@ -79,6 +86,14 @@ fn init_stdlib_traits() -> HashMap<String, Vec<TraitMethod>> {
 }
 
 pub type RuntimeResult<T> = Result<T, RuntimeError>;
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Signal {
+    None,
+    Return(Value),
+    Break,
+    Continue,
+}
 
 #[derive(Debug, Clone)]
 pub struct RuntimeError {
@@ -178,7 +193,7 @@ impl Diagnostic for RuntimeError {
 }
 
 pub struct Environment {
-    scopes: Vec<HashMap<String, Value>>,
+    scopes: Vec<HashMap<String, Rc<RefCell<Value>>>>,
 }
 
 impl Default for Environment {
@@ -206,14 +221,29 @@ impl Environment {
 
     pub fn set(&mut self, name: String, value: Value) {
         if let Some(scope) = self.scopes.last_mut() {
+            scope.insert(name, Rc::new(RefCell::new(value)));
+        }
+    }
+
+    pub fn set_ref(&mut self, name: String, value: Rc<RefCell<Value>>) {
+        if let Some(scope) = self.scopes.last_mut() {
             scope.insert(name, value);
         }
     }
 
-    pub fn get(&self, name: &str) -> Option<&Value> {
+    pub fn get(&self, name: &str) -> Option<Value> {
         for scope in self.scopes.iter().rev() {
             if let Some(value) = scope.get(name) {
-                return Some(value);
+                return Some(value.borrow().clone());
+            }
+        }
+        None
+    }
+    
+    pub fn get_ref(&self, name: &str) -> Option<Rc<RefCell<Value>>> {
+        for scope in self.scopes.iter().rev() {
+            if let Some(value) = scope.get(name) {
+                return Some(value.clone());
             }
         }
         None
@@ -223,21 +253,21 @@ impl Environment {
         // Allow re-assignment of any variable (not just mutable ones)
         // Also allow shadowing by creating a new variable in the current scope if not found
         for scope in self.scopes.iter_mut().rev() {
-            if scope.contains_key(name) {
-                scope.insert(name.to_string(), value);
+            if let Some(existing) = scope.get(name) {
+                *existing.borrow_mut() = value;
                 return Ok(());
             }
         }
         // If variable not found, create it in the current scope (shadowing)
         if let Some(scope) = self.scopes.last_mut() {
-            scope.insert(name.to_string(), value);
+            scope.insert(name.to_string(), Rc::new(RefCell::new(value)));
         }
         Ok(())
     }
     
     /// Capture all variables from the current environment
     /// This is used when creating closures to capture their environment
-    pub fn capture_all(&self) -> HashMap<String, Value> {
+    pub fn capture_all(&self) -> HashMap<String, Rc<RefCell<Value>>> {
         let mut captured = HashMap::new();
         for scope in &self.scopes {
             for (name, value) in scope {
@@ -253,6 +283,7 @@ type MethodSignature = (
     Option<crate::parser::Type>,
     Box<Stmt>,
     Option<String>,
+    bool, // is_async
 );
 type EnumVariants = Vec<(String, Option<Vec<crate::parser::Type>>)>;
 
@@ -272,6 +303,13 @@ pub struct Interpreter {
     module_cache: HashMap<String, HashMap<String, Value>>,
     // Current module's exports
     exports: HashMap<String, Value>,
+    // Control flow signal
+    control_flow: Signal,
+    // Recursion depth tracking
+    recursion_depth: usize,
+    max_recursion_depth: usize,
+    // Task queue for async execution
+    task_queue: VecDeque<Value>,
 }
 
 impl Default for Interpreter {
@@ -298,6 +336,10 @@ impl Interpreter {
             enums: HashMap::new(),
             module_cache: HashMap::new(),
             exports: HashMap::new(),
+            control_flow: Signal::None,
+            recursion_depth: 0,
+            max_recursion_depth: 1000,
+            task_queue: VecDeque::new(),
         }
     }
     
@@ -318,6 +360,10 @@ impl Interpreter {
             enums: HashMap::new(),
             module_cache: HashMap::new(),
             exports: HashMap::new(),
+            control_flow: Signal::None,
+            recursion_depth: 0,
+            max_recursion_depth: 1000,
+            task_queue: VecDeque::new(),
         }
     }
 
@@ -326,10 +372,44 @@ impl Interpreter {
         for stmt in stmts {
             last_value = self.eval_stmt(stmt)?;
         }
+        
+        // Run any background tasks
+        self.run_tasks()?;
+        
         Ok(last_value)
     }
 
+    pub fn run_tasks(&mut self) -> RuntimeResult<()> {
+        while let Some(promise_val) = self.task_queue.pop_front() {
+            if let Value::Promise(data) = promise_val {
+                let state = data.borrow().state.clone();
+                if let value::PromiseState::Pending(task) = state {
+                    let result = self.call_value(task, Vec::new())?;
+                    data.borrow_mut().state = value::PromiseState::Resolved(result);
+                }
+            }
+        }
+        Ok(())
+    }
+
     pub fn eval_stmt(&mut self, stmt: Stmt) -> RuntimeResult<Value> {
+        if self.control_flow != Signal::None {
+            return Ok(Value::Unit);
+        }
+
+        self.recursion_depth += 1;
+        if self.recursion_depth > self.max_recursion_depth {
+            self.recursion_depth -= 1;
+            return Err(self.error("Max recursion depth exceeded".to_string()));
+        }
+
+        let result = self.eval_stmt_raw(stmt);
+
+        self.recursion_depth -= 1;
+        result
+    }
+
+    fn eval_stmt_raw(&mut self, stmt: Stmt) -> RuntimeResult<Value> {
         match stmt {
             Stmt::ImportDecl { path } => {
                 // Handle module imports
@@ -380,6 +460,18 @@ impl Interpreter {
             Stmt::While { condition, body } => {
                 while self.eval_expr(condition.clone())?.is_truthy() {
                     self.eval_stmt(*body.clone())?;
+                    match &self.control_flow {
+                        Signal::Break => {
+                            self.control_flow = Signal::None;
+                            break;
+                        }
+                        Signal::Continue => {
+                            self.control_flow = Signal::None;
+                            continue;
+                        }
+                        Signal::Return(_) => break,
+                        Signal::None => {}
+                    }
                 }
                 Ok(Value::Unit)
             }
@@ -389,8 +481,16 @@ impl Interpreter {
                 } else {
                     Value::Unit
                 };
-                // In a full implementation, we'd use a special control flow mechanism
+                self.control_flow = Signal::Return(val.clone());
                 Ok(val)
+            }
+            Stmt::Break => {
+                self.control_flow = Signal::Break;
+                Ok(Value::Unit)
+            }
+            Stmt::Continue => {
+                self.control_flow = Signal::Continue;
+                Ok(Value::Unit)
             }
             Stmt::Expr(expr) => self.eval_expr(expr),
             Stmt::Block(stmts) => {
@@ -398,6 +498,9 @@ impl Interpreter {
                 let mut last_value = Value::Unit;
                 for stmt in stmts {
                     last_value = self.eval_stmt(stmt)?;
+                    if self.control_flow != Signal::None {
+                        break;
+                    }
                 }
                 self.env.pop_scope();
                 Ok(last_value)
@@ -437,9 +540,9 @@ impl Interpreter {
                     if let Some(trait_methods) = self.traits.get(t_name) {
                         // Check for missing required methods and validate signatures
                         for tm in trait_methods {
-                            let (t_method_name, t_params, t_return_type) = match tm {
-                                TraitMethod::Signature { name, params, return_type } => (name, params, return_type),
-                                TraitMethod::Default { name, params, return_type, .. } => (name, params, return_type),
+                            let (t_method_name, t_params, t_return_type, t_is_async) = match tm {
+                                TraitMethod::Signature { name, params, return_type, is_async } => (name, params, return_type, *is_async),
+                                TraitMethod::Default { name, params, return_type, is_async, .. } => (name, params, return_type, *is_async),
                             };
 
                             // Find implementation
@@ -451,7 +554,7 @@ impl Interpreter {
                                 }
                             });
 
-                            if let Some(Stmt::FunctionDecl { params: impl_params, return_type: impl_return_type, .. }) = implementation {
+                            if let Some(Stmt::FunctionDecl { params: impl_params, return_type: impl_return_type, is_async: impl_is_async, .. }) = implementation {
                                 // Validate signature
                                 // 1. Check parameter count
                                 if impl_params.len() != t_params.len() {
@@ -487,6 +590,23 @@ impl Interpreter {
                                     )));
                                 }
 
+                                // 4. Check async status
+                                if *impl_is_async != t_is_async {
+                                    return Err(RuntimeError::new(format!(
+                                        "Method '{}' of trait '{}' is {}async, but implementation is {}async",
+                                        t_method_name, t_name,
+                                        if t_is_async { "" } else { "not " },
+                                        if *impl_is_async { "" } else { "not " }
+                                    )));
+                                }
+
+                            } else if let TraitMethod::Default { name, params, return_type, body, is_async } = tm {
+                                // Missing implementation but has default - add it
+                                let type_methods = self.impl_methods.entry(type_name.clone()).or_default();
+                                type_methods.insert(
+                                    name.clone(),
+                                    (params.clone(), Some(return_type.clone()), body.clone(), trait_name.clone(), *is_async),
+                                );
                             } else if matches!(tm, TraitMethod::Signature { .. }) {
                                 // Missing required method
                                 return Err(RuntimeError::new(format!(
@@ -508,12 +628,13 @@ impl Interpreter {
                         params,
                         return_type,
                         body,
+                        is_async,
                         ..
                     } = method_stmt {
                         // Store the method with its signature
                         type_methods.insert(
                             method_name,
-                            (params, return_type, body, trait_name.clone()),
+                            (params, return_type, body, trait_name.clone(), is_async),
                         );
                     }
                 }
@@ -568,16 +689,55 @@ impl Interpreter {
                 // No pattern matched
                 Err(self.error("Match expression did not match any pattern".to_string()))
             }
-            Stmt::For { .. }
-            | Stmt::Break
-            | Stmt::Continue => {
-                // For loops not yet fully implemented
+            Stmt::For { var, iterable, body } => {
+                let iter_val = self.eval_expr(iterable)?;
+                let items = match iter_val {
+                    Value::Array(arr) => arr,
+                    _ => return Err(self.error("For loop expects an array".to_string())),
+                };
+                
+                for item in items {
+                    self.env.push_scope();
+                    self.env.set(var.clone(), item);
+                    self.eval_stmt(*body.clone())?;
+                    self.env.pop_scope();
+                    
+                    match &self.control_flow {
+                        Signal::Break => {
+                            self.control_flow = Signal::None;
+                            break;
+                        }
+                        Signal::Continue => {
+                            self.control_flow = Signal::None;
+                            continue;
+                        }
+                        Signal::Return(_) => break,
+                        Signal::None => {}
+                    }
+                }
                 Ok(Value::Unit)
             }
         }
     }
 
     pub fn eval_expr(&mut self, expr: Expr) -> RuntimeResult<Value> {
+        if self.control_flow != Signal::None {
+            return Ok(Value::Unit);
+        }
+
+        self.recursion_depth += 1;
+        if self.recursion_depth > self.max_recursion_depth {
+            self.recursion_depth -= 1;
+            return Err(self.error("Max recursion depth exceeded".to_string()));
+        }
+
+        let result = self.eval_expr_raw(expr);
+
+        self.recursion_depth -= 1;
+        result
+    }
+
+    fn eval_expr_raw(&mut self, expr: Expr) -> RuntimeResult<Value> {
         match expr {
             Expr::Number(n) => Ok(Value::Number(n)),
             Expr::String(s) => Ok(Value::String(s)),
@@ -585,7 +745,6 @@ impl Interpreter {
             Expr::Ident(name) => self
                 .env
                 .get(&name)
-                .cloned()
                 .ok_or_else(|| self.error(format!("Variable '{}' not found", name))),
             Expr::BinOp { op, left, right } => {
                 let left_val = self.eval_expr(*left)?;
@@ -598,153 +757,7 @@ impl Interpreter {
                 let arg_vals: RuntimeResult<Vec<_>> =
                     args.into_iter().map(|arg| self.eval_expr(arg)).collect();
                 let arg_vals = arg_vals?;
-                match func_val {
-                    Value::Function {
-                        params,
-                        body,
-                        is_async,
-                        name,
-                        ..
-                    } => {
-                        // Check argument count
-                        if params.len() != arg_vals.len() {
-                            return Err(self.error(format!(
-                                "Function '{}' expects {} arguments, got {}",
-                                name,
-                                params.len(),
-                                arg_vals.len()
-                            )));
-                        }
-                        
-                        // Optional: Check argument types if type annotations exist
-                        // Note: params are stored as (name, type_string)
-                        // For now, we skip type validation since we'd need to parse the type strings
-                        
-                        // Create new scope for function
-                        self.env.push_scope();
-                        
-                        // Bind parameters
-                        for ((param_name, _), arg_val) in params.iter().zip(arg_vals.iter()) {
-                            self.env.set(param_name.clone(), arg_val.clone());
-                        }
-                        
-                        // Execute function body
-                        let result = self.eval_stmt(*body)?;
-                        
-                        self.env.pop_scope();
-                        
-                        // If async, wrap result in a Promise
-                        if is_async {
-                            Ok(Value::Promise(Box::new(result)))
-                        } else {
-                            Ok(result)
-                        }
-                    }
-                    Value::BuiltinFn(builtin_fn) => {
-                        builtin_fn(&arg_vals)
-                    }
-                    Value::BoundMethod { object, method, .. } => {
-                        // Call the bound method with the object as 'this'
-                        method(&object, &arg_vals)
-                    }
-                    Value::UserMethod {
-                        object,
-                        params,
-                        body,
-                        ..
-                    } => {
-                        // Check argument count (exclude 'self' parameter which is already bound)
-                        // The params includes 'self', but we don't include it in arg_vals
-                        if params.len() != arg_vals.len() + 1 {
-                            return Err(self.error(format!(
-                                "Expected {} arguments (plus self), got {}",
-                                params.len() - 1,
-                                arg_vals.len()
-                            )));
-                        }
-                        
-                        // Create new scope for method
-                        self.env.push_scope();
-                        
-                        // Bind 'self' to the object
-                        self.env.set("self".to_string(), (*object).clone());
-                        
-                        // Bind other parameters
-                        for ((param_name, _), arg_val) in params.iter().skip(1).zip(arg_vals.iter()) {
-                            self.env.set(param_name.clone(), arg_val.clone());
-                        }
-                        
-                        // Execute method body
-                        let result = self.eval_stmt(*body)?;
-                        
-                        self.env.pop_scope();
-                        
-                        Ok(result)
-                    }
-                    Value::Closure {
-                        params,
-                        body,
-                        captured_env,
-                        ..
-                    } => {
-                        // Check argument count
-                        if params.len() != arg_vals.len() {
-                            return Err(self.error(format!(
-                                "Expected {} arguments, got {}",
-                                params.len(),
-                                arg_vals.len()
-                            )));
-                        }
-                        
-                        // Create new scope for closure
-                        self.env.push_scope();
-                        
-                        // First, restore the captured environment
-                        for (name, value) in captured_env {
-                            self.env.set(name, value);
-                        }
-                        
-                        // Then bind parameters (which can shadow captured variables)
-                        for ((param_name, _), arg_val) in params.iter().zip(arg_vals.iter()) {
-                            self.env.set(param_name.clone(), arg_val.clone());
-                        }
-                        
-                        // Execute closure body (which is an expression, not a statement)
-                        let result = self.eval_expr(*body)?;
-                        
-                        self.env.pop_scope();
-                        
-                        Ok(result)
-                    }
-
-                    Value::Builtin(builtin_struct) => {
-                        // This shouldn't happen - builtins aren't directly callable
-                        Err(self.error(format!(
-                            "Cannot call builtin struct '{}' directly. Use its methods instead.",
-                            builtin_struct.name
-                        )))
-                    }
-                    Value::EnumConstructor { enum_name, variant_name, arity } => {
-                        // Check argument count
-                        if arg_vals.len() != arity {
-                            return Err(self.error(format!(
-                                "Enum variant {}.{} expects {} arguments, got {}",
-                                enum_name, variant_name, arity, arg_vals.len()
-                            )));
-                        }
-                        
-                        // Construct the enum variant
-                        Ok(Value::EnumVariant {
-                            enum_name,
-                            variant_name,
-                            values: arg_vals,
-                        })
-                    }
-                    _ => Err(self.error(format!(
-                        "Cannot call value of type {:?}",
-                        func_val
-                    )))
-                }
+                self.call_value(func_val, arg_vals)
             }
             Expr::FieldAccess { object, field } => {
                 // Special case: check if this is an enum variant access (e.g., Color.Red)
@@ -808,13 +821,14 @@ impl Interpreter {
                         
                         // Then check for user-defined methods in impl blocks
                         if let Some(methods) = self.impl_methods.get(&name) {
-                            if let Some((params, return_type, body, _)) = methods.get(&field) {
+                            if let Some((params, return_type, body, _, is_async)) = methods.get(&field) {
                                 return Ok(Value::UserMethod {
                                     object: Box::new(Value::Struct { fields, name: name.clone() }),
                                     method_name: field.clone(),
                                     params: params.clone(),
                                     return_type: return_type.clone(),
                                     body: body.clone(),
+                                    is_async: *is_async,
                                 });
                             }
                         }
@@ -880,11 +894,24 @@ impl Interpreter {
                 let mut last_value = Value::Unit;
                 for stmt in stmts {
                     last_value = self.eval_stmt(stmt)?;
+                    if self.control_flow != Signal::None {
+                        break;
+                    }
                 }
                 self.env.pop_scope();
                 Ok(last_value)
             }
-            Expr::UnaryOp { .. } => Err(self.error("Expression type not yet implemented")),
+            Expr::UnaryOp { op, expr } => {
+                let val = self.eval_expr(*expr)?;
+                match op.as_str() {
+                    "-" => match val {
+                        Value::Number(n) => Ok(Value::Number(-n)),
+                        _ => Err(self.error("Unary minus expects a number".to_string())),
+                    },
+                    "!" => Ok(Value::Boolean(!val.is_truthy())),
+                    _ => Err(self.error(format!("Unknown unary operator '{}'", op))),
+                }
+            }
             Expr::Lambda { params, return_type, body } => {
                 // Create a closure by capturing the current environment
                 let captured_env = self.env.capture_all();
@@ -899,10 +926,18 @@ impl Interpreter {
                 // Evaluate the expression (should be a Promise)
                 let value = self.eval_expr(*expr)?;
                 match value {
-                    Value::Promise(result) => {
-                        // Unlike JavaScript, our promises are already resolved
-                        // since async functions execute immediately
-                        Ok(*result)
+                    Value::Promise(data) => {
+                        let state = data.borrow().state.clone();
+                        match state {
+                            PromiseState::Resolved(val) => Ok(val),
+                            PromiseState::Rejected(val) => Err(self.error(format!("Promise rejected: {:?}", val))),
+                            PromiseState::Pending(task) => {
+                                // Execute the task now
+                                let result = self.call_value(task, Vec::new())?;
+                                data.borrow_mut().state = PromiseState::Resolved(result.clone());
+                                Ok(result)
+                            }
+                        }
                     }
                     _ => Err(self.error(format!(
                         "Cannot await non-promise value: {:?}",
@@ -911,17 +946,32 @@ impl Interpreter {
                 }
             },
             Expr::Async(expr) => {
-                // Evaluate the expression eagerly and wrap in a Promise
-                // This represents "eager async" - starts execution immediately
-                let result = self.eval_expr(*expr)?;
-                Ok(Value::Promise(Box::new(result)))
+                // Create a pending promise and add it to the task queue
+                let captured_env = self.env.capture_all();
+                let closure = Value::Closure {
+                    params: Vec::new(),
+                    return_type: None,
+                    body: expr,
+                    captured_env,
+                };
+                let promise = Value::Promise(Rc::new(RefCell::new(value::PromiseData {
+                    state: value::PromiseState::Pending(closure),
+                })));
+                self.task_queue.push_back(promise.clone());
+                Ok(promise)
             },
             Expr::Lazy(expr) => {
-                // Create a lazy future that doesn't execute until awaited
-                // For now, we'll treat it similar to a regular promise
-                // In a full implementation, this would create an unevaluated thunk
-                let result = self.eval_expr(*expr)?;
-                Ok(Value::Promise(Box::new(result)))
+                // Create a pending promise but don't add it to the task queue
+                let captured_env = self.env.capture_all();
+                let closure = Value::Closure {
+                    params: Vec::new(),
+                    return_type: None,
+                    body: expr,
+                    captured_env,
+                };
+                Ok(Value::Promise(Rc::new(RefCell::new(value::PromiseData {
+                    state: value::PromiseState::Pending(closure),
+                }))))
             },
             Expr::ArrayLiteral(elements) => {
                 let mut array_values = Vec::new();
@@ -1018,7 +1068,7 @@ impl Interpreter {
         if let Value::Struct { name, .. } = value {
             // Check for user-defined methods in impl blocks
             if let Some(methods) = self.impl_methods.get(name) {
-                if let Some((_params, _return_type, body, _)) = methods.get("to_string") {
+                if let Some((_params, _return_type, body, _, _is_async)) = methods.get("to_string") {
                     // Create new scope for method
                     self.env.push_scope();
                     
@@ -1039,6 +1089,233 @@ impl Interpreter {
         Ok(value.to_string())
     }
 
+    pub fn call_value(&mut self, func_val: Value, arg_vals: Vec<Value>) -> RuntimeResult<Value> {
+        match func_val {
+            Value::Function {
+                params,
+                body,
+                is_async,
+                name,
+                ..
+            } => {
+                // Check argument count
+                if params.len() != arg_vals.len() {
+                    return Err(self.error(format!(
+                        "Function '{}' expects {} arguments, got {}",
+                        name,
+                        params.len(),
+                        arg_vals.len()
+                    )));
+                }
+                
+                // Create new scope for function
+                self.env.push_scope();
+                
+                // Bind parameters
+                for ((param_name, _), arg_val) in params.iter().zip(arg_vals.iter()) {
+                    self.env.set(param_name.clone(), arg_val.clone());
+                }
+                
+                // If async, return a pending promise and queue it
+                if is_async {
+                    let captured_env = self.env.capture_all();
+                    
+                    let body_expr = match *body {
+                        Stmt::Block(ref stmts) => Expr::Block(stmts.clone()),
+                        _ => Expr::Block(vec![*body.clone()]),
+                    };
+
+                    let closure = Value::Closure {
+                        params: Vec::new(),
+                        return_type: None,
+                        body: Box::new(body_expr),
+                        captured_env,
+                    };
+                    
+                    let promise = Value::Promise(Rc::new(RefCell::new(value::PromiseData {
+                        state: value::PromiseState::Pending(closure),
+                    })));
+                    
+                    self.task_queue.push_back(promise.clone());
+                    
+                    self.env.pop_scope();
+                    return Ok(promise);
+                }
+
+                // Execute function body
+                let result = self.eval_stmt(*body.clone())?;
+                
+                self.env.pop_scope();
+                
+                // Handle control flow signals
+                let final_result = match &self.control_flow {
+                    Signal::Return(val) => {
+                        let v = val.clone();
+                        self.control_flow = Signal::None;
+                        v
+                    }
+                    Signal::Break | Signal::Continue => {
+                        self.control_flow = Signal::None;
+                        return Err(self.error("Break or continue outside of loop".to_string()));
+                    }
+                    Signal::None => result,
+                };
+                
+                Ok(final_result)
+            }
+            Value::BuiltinFn(builtin_fn) => {
+                builtin_fn(self, &arg_vals)
+            }
+            Value::BoundMethod { object, method, .. } => {
+                // Call the bound method with the object as 'this'
+                method(self, &object, &arg_vals)
+            }
+            Value::UserMethod {
+                object,
+                params,
+                body,
+                is_async,
+                ..
+            } => {
+                // Check argument count (exclude 'self' parameter which is already bound)
+                if params.len() != arg_vals.len() + 1 {
+                    return Err(self.error(format!(
+                        "Expected {} arguments (plus self), got {}",
+                        params.len() - 1,
+                        arg_vals.len()
+                    )));
+                }
+                
+                // Create new scope for method
+                self.env.push_scope();
+                
+                // Bind 'self' to the object
+                self.env.set("self".to_string(), (*object).clone());
+                
+                // Bind other parameters
+                for ((param_name, _), arg_val) in params.iter().skip(1).zip(arg_vals.iter()) {
+                    self.env.set(param_name.clone(), arg_val.clone());
+                }
+                
+                // If async, return a pending promise and queue it
+                if is_async {
+                    let captured_env = self.env.capture_all();
+                    
+                    let body_expr = match *body {
+                        Stmt::Block(ref stmts) => Expr::Block(stmts.clone()),
+                        _ => Expr::Block(vec![*body.clone()]),
+                    };
+
+                    let closure = Value::Closure {
+                        params: Vec::new(),
+                        return_type: None,
+                        body: Box::new(body_expr),
+                        captured_env,
+                    };
+                    
+                    let promise = Value::Promise(Rc::new(RefCell::new(value::PromiseData {
+                        state: value::PromiseState::Pending(closure),
+                    })));
+                    
+                    self.task_queue.push_back(promise.clone());
+                    
+                    self.env.pop_scope();
+                    return Ok(promise);
+                }
+
+                // Execute method body
+                let result = self.eval_stmt(*body.clone())?;
+                
+                self.env.pop_scope();
+                
+                // Handle control flow signals
+                let final_result = match &self.control_flow {
+                    Signal::Return(val) => {
+                        let v = val.clone();
+                        self.control_flow = Signal::None;
+                        v
+                    }
+                    Signal::Break | Signal::Continue => {
+                        self.control_flow = Signal::None;
+                        return Err(self.error("Break or continue outside of loop".to_string()));
+                    }
+                    Signal::None => result,
+                };
+                
+                Ok(final_result)
+            }
+            Value::Closure {
+                params,
+                body,
+                captured_env,
+                ..
+            } => {
+                // Check argument count
+                if params.len() != arg_vals.len() {
+                    return Err(self.error(format!(
+                        "Expected {} arguments, got {}",
+                        params.len(),
+                        arg_vals.len()
+                    )));
+                }
+                
+                // Create new scope for closure
+                self.env.push_scope();
+                
+                // First, restore the captured environment
+                for (name, value) in captured_env {
+                    self.env.set_ref(name, value);
+                }
+                
+                // Then bind parameters (which can shadow captured variables)
+                for ((param_name, _), arg_val) in params.iter().zip(arg_vals.iter()) {
+                    self.env.set(param_name.clone(), arg_val.clone());
+                }
+                
+                // Execute closure body (which is an expression, not a statement)
+                let result = self.eval_expr(*body)?;
+                
+                self.env.pop_scope();
+                
+                // Handle control flow signals (closures can contain return if they use blocks)
+                let final_result = match &self.control_flow {
+                    Signal::Return(val) => {
+                        let v = val.clone();
+                        self.control_flow = Signal::None;
+                        v
+                    }
+                    Signal::Break | Signal::Continue => {
+                        self.control_flow = Signal::None;
+                        return Err(self.error("Break or continue outside of loop".to_string()));
+                    }
+                    Signal::None => result,
+                };
+                
+                Ok(final_result)
+            }
+            Value::EnumConstructor { enum_name, variant_name, arity } => {
+                // Check argument count
+                if arg_vals.len() != arity {
+                    return Err(self.error(format!(
+                        "Enum variant {}.{} expects {} arguments, got {}",
+                        enum_name, variant_name, arity, arg_vals.len()
+                    )));
+                }
+                
+                // Construct the enum variant
+                Ok(Value::EnumVariant {
+                    enum_name,
+                    variant_name,
+                    values: arg_vals,
+                })
+            }
+            _ => Err(self.error(format!(
+                "Cannot call value of type {:?}",
+                func_val
+            )))
+        }
+    }
+
     fn eval_binop(&mut self, op: &str, left: Value, right: Value) -> RuntimeResult<Value> {
         // Check for user-defined trait implementations
         if let Value::Struct { name: ref type_name, .. } = left {
@@ -1054,7 +1331,7 @@ impl Interpreter {
                  // We need to clone type_name to avoid borrowing issues with self.impl_methods
                  let type_name_clone = type_name.clone();
                  if let Some(methods) = self.impl_methods.get(&type_name_clone) {
-                     if let Some((params, _return_type, body, _trait_name)) = methods.get(method_name) {
+                     if let Some((params, _return_type, body, _trait_name, _is_async)) = methods.get(method_name) {
                          // Found implementation
                          
                          // Check arg count (should be 2: self, other)
@@ -1140,7 +1417,7 @@ impl Interpreter {
                     if let Some(enum_variant) = self.env.get(name) {
                         if let Value::EnumVariant { .. } = enum_variant {
                             // Match against the enum variant
-                            Ok(if enum_variant == value { Some(HashMap::new()) } else { None })
+                            Ok(if enum_variant == *value { Some(HashMap::new()) } else { None })
                         } else {
                             // Regular identifier binding
                             let mut bindings = HashMap::new();
@@ -1399,7 +1676,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("x"),
-            Some(&Value::Number(Decimal::from(42)))
+            Some(Value::Number(Decimal::from(42)))
         );
     }
 
@@ -1415,7 +1692,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("x"),
-            Some(&Value::Number(Decimal::from(8)))
+            Some(Value::Number(Decimal::from(8)))
         );
     }
 
@@ -1431,7 +1708,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("x"),
-            Some(&Value::Number(Decimal::from(7)))
+            Some(Value::Number(Decimal::from(7)))
         );
     }
 
@@ -1447,7 +1724,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("x"),
-            Some(&Value::Number(Decimal::from(20)))
+            Some(Value::Number(Decimal::from(20)))
         );
     }
 
@@ -1463,7 +1740,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("x"),
-            Some(&Value::Number(Decimal::from(5)))
+            Some(Value::Number(Decimal::from(5)))
         );
     }
 
@@ -1479,7 +1756,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("x"),
-            Some(&Value::String("hello world".to_string()))
+            Some(Value::String("hello world".to_string()))
         );
     }
 
@@ -1564,7 +1841,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("result"),
-            Some(&Value::Number(Decimal::from(8)))
+            Some(Value::Number(Decimal::from(8)))
         );
     }
 
@@ -1584,8 +1861,12 @@ mod tests {
         interpreter.eval_program(stmts).unwrap();
 
         // Check that the promise exists
-        if let Some(Value::Promise(value)) = interpreter.env.get("promise") {
-            assert_eq!(**value, Value::String("test_url".to_string()));
+        if let Some(Value::Promise(data)) = interpreter.env.get("promise") {
+            if let value::PromiseState::Resolved(val) = &data.borrow().state {
+                assert_eq!(*val, Value::String("test_url".to_string()));
+            } else {
+                panic!("Expected resolved promise");
+            }
         } else {
             panic!("Expected promise value");
         }
@@ -1608,7 +1889,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("result"),
-            Some(&Value::Number(Decimal::from(42)))
+            Some(Value::Number(Decimal::from(42)))
         );
     }
 
@@ -1629,7 +1910,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("result"),
-            Some(&Value::Number(Decimal::from(30)))
+            Some(Value::Number(Decimal::from(30)))
         );
     }
 
@@ -1650,7 +1931,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("result"),
-            Some(&Value::Number(Decimal::from(42)))
+            Some(Value::Number(Decimal::from(42)))
         );
     }
 
@@ -1729,7 +2010,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("x"),
-            Some(&Value::Number(Decimal::from(10)))
+            Some(Value::Number(Decimal::from(10)))
         );
     }
 
@@ -1746,7 +2027,7 @@ mod tests {
         // After the inner block ends, x should be back to 5
         assert_eq!(
             interpreter.env.get("y"),
-            Some(&Value::Number(Decimal::from(5)))
+            Some(Value::Number(Decimal::from(5)))
         );
     }
 
@@ -1763,7 +2044,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("z"),
-            Some(&Value::Number(Decimal::from(200)))
+            Some(Value::Number(Decimal::from(200)))
         );
     }
 
@@ -1794,8 +2075,12 @@ mod tests {
         interpreter.eval_program(stmts).unwrap();
 
         // Check that the promise exists and contains Unit
-        if let Some(Value::Promise(value)) = interpreter.env.get("promise") {
-            assert_eq!(**value, Value::Unit);
+        if let Some(Value::Promise(data)) = interpreter.env.get("promise") {
+            if let value::PromiseState::Resolved(val) = &data.borrow().state {
+                assert_eq!(*val, Value::Unit);
+            } else {
+                panic!("Expected resolved promise");
+            }
         } else {
             panic!("Expected promise value from time.sleep()");
         }
@@ -1832,7 +2117,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("result"),
-            Some(&Value::Number(Decimal::from(4)))
+            Some(Value::Number(Decimal::from(4)))
         );
     }
 
@@ -1848,7 +2133,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("result"),
-            Some(&Value::Number(Decimal::from(8)))
+            Some(Value::Number(Decimal::from(8)))
         );
     }
 
@@ -1864,7 +2149,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("result"),
-            Some(&Value::Number(Decimal::from(4)))
+            Some(Value::Number(Decimal::from(4)))
         );
     }
 
@@ -1883,11 +2168,11 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("min_val"),
-            Some(&Value::Number(Decimal::from(5)))
+            Some(Value::Number(Decimal::from(5)))
         );
         assert_eq!(
             interpreter.env.get("max_val"),
-            Some(&Value::Number(Decimal::from(10)))
+            Some(Value::Number(Decimal::from(10)))
         );
     }
 
@@ -1937,7 +2222,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("result"),
-            Some(&Value::String("hello".to_string()))
+            Some(Value::String("hello".to_string()))
         );
     }
 
@@ -1956,11 +2241,11 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("upper"),
-            Some(&Value::String("HELLO".to_string()))
+            Some(Value::String("HELLO".to_string()))
         );
         assert_eq!(
             interpreter.env.get("lower"),
-            Some(&Value::String("hello".to_string()))
+            Some(Value::String("hello".to_string()))
         );
     }
 
@@ -1976,7 +2261,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("result"),
-            Some(&Value::String("hello rust".to_string()))
+            Some(Value::String("hello rust".to_string()))
         );
     }
 
@@ -1992,7 +2277,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("result"),
-            Some(&Value::Boolean(true))
+            Some(Value::Boolean(true))
         );
     }
 
@@ -2048,7 +2333,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("result"),
-            Some(&Value::Number(Decimal::from(10)))
+            Some(Value::Number(Decimal::from(10)))
         );
     }
 
@@ -2064,7 +2349,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("result"),
-            Some(&Value::Number(Decimal::from_f64_retain(2.5).unwrap()))
+            Some(Value::Number(Decimal::from_f64_retain(2.5).unwrap()))
         );
     }
 
@@ -2158,7 +2443,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("result"),
-            Some(&Value::String("1, hello, true".to_string()))
+            Some(Value::String("1, hello, true".to_string()))
         );
     }
     
@@ -2178,7 +2463,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("result"),
-            Some(&Value::Number(Decimal::from(25)))
+            Some(Value::Number(Decimal::from(25)))
         );
     }
     
@@ -2198,7 +2483,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("result"),
-            Some(&Value::Number(Decimal::from(21)))
+            Some(Value::Number(Decimal::from(21)))
         );
     }
     
@@ -2217,7 +2502,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("result"),
-            Some(&Value::Number(Decimal::from(11)))
+            Some(Value::Number(Decimal::from(11)))
         );
     }
     
@@ -2259,11 +2544,11 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("name_value"),
-            Some(&Value::String("Alice".to_string()))
+            Some(Value::String("Alice".to_string()))
         );
         assert_eq!(
             interpreter.env.get("age_value"),
-            Some(&Value::Number(Decimal::from(30)))
+            Some(Value::Number(Decimal::from(30)))
         );
     }
 
@@ -2284,11 +2569,11 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("x_val"),
-            Some(&Value::Number(Decimal::from(10)))
+            Some(Value::Number(Decimal::from(10)))
         );
         assert_eq!(
             interpreter.env.get("y_val"),
-            Some(&Value::Number(Decimal::from(20)))
+            Some(Value::Number(Decimal::from(20)))
         );
     }
 
@@ -2324,7 +2609,7 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("val"),
-            Some(&Value::Number(Decimal::from(20)))
+            Some(Value::Number(Decimal::from(20)))
         );
     }
 
@@ -2343,7 +2628,223 @@ mod tests {
 
         assert_eq!(
             interpreter.env.get("char"),
-            Some(&Value::String("e".to_string()))
+            Some(Value::String("e".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_async_trait() {
+        let input = r#"
+            trait Fetcher {
+                async fn fetch(self) -> any;
+            }
+
+            def MyFetcher {
+                url: str
+            }
+
+            impl Fetcher for MyFetcher {
+                async fn fetch(self) -> any {
+                    return "data from " + self.url;
+                }
+            }
+
+            let f = MyFetcher { url: "https://example.com" };
+            let promise = f.fetch();
+            let result = await promise;
+        "#.to_string();
+        let stream = InputStream::new("test", &input);
+        let mut parser = Parser::new(stream);
+        let stmts = parser.parse().unwrap();
+
+        let mut interpreter = Interpreter::new();
+        interpreter.eval_program(stmts).unwrap();
+
+        assert_eq!(
+            interpreter.env.get("result"),
+            Some(Value::String("data from https://example.com".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_async_trait_default_impl() {
+        let input = r#"
+            trait Logger {
+                async fn log(self, msg: str) -> any {
+                    return "Logged: " + msg;
+                }
+            }
+
+            def MyLogger {}
+            impl Logger for MyLogger {}
+
+            let l = MyLogger {};
+            let promise = l.log("hello");
+            let result = await promise;
+        "#.to_string();
+        let stream = InputStream::new("test", &input);
+        let mut parser = Parser::new(stream);
+        let stmts = parser.parse().unwrap();
+
+        let mut interpreter = Interpreter::new();
+        interpreter.eval_program(stmts).unwrap();
+
+        assert_eq!(
+            interpreter.env.get("result"),
+            Some(Value::String("Logged: hello".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_promise_all() {
+        let input = r#"
+            let p1 = Promise.resolve(10);
+            let p2 = Promise.resolve(20);
+            let p3 = async 30;
+            
+            let all = Promise.all([p1, p2, p3]);
+            let results = await all;
+        "#.to_string();
+        let stream = InputStream::new("test", &input);
+        let mut parser = Parser::new(stream);
+        let stmts = parser.parse().unwrap();
+
+        let mut interpreter = Interpreter::new();
+        interpreter.eval_program(stmts).unwrap();
+
+        let results = interpreter.env.get("results").unwrap();
+        if let Value::Array(arr) = results {
+            assert_eq!(arr.len(), 3);
+            assert_eq!(arr[0], Value::Number(Decimal::from(10)));
+            assert_eq!(arr[1], Value::Number(Decimal::from(20)));
+            assert_eq!(arr[2], Value::Number(Decimal::from(30)));
+        } else {
+            panic!("Expected array, got {:?}", results);
+        }
+    }
+
+    #[test]
+    fn test_promise_spawn() {
+        let input = r#"
+            let mut x = 0;
+            Promise.spawn(() => {
+                x = 42;
+            });
+            let initial_x = x;
+        "#.to_string();
+        let stream = InputStream::new("test", &input);
+        let mut parser = Parser::new(stream);
+        let stmts = parser.parse().unwrap();
+
+        let mut interpreter = Interpreter::new();
+        interpreter.eval_program(stmts).unwrap();
+
+        assert_eq!(
+            interpreter.env.get("initial_x"),
+            Some(Value::Number(Decimal::from(0)))
+        );
+        assert_eq!(
+            interpreter.env.get("x"),
+            Some(Value::Number(Decimal::from(42)))
+        );
+    }
+
+    #[test]
+    fn test_promise_any() {
+        let input = r#"
+            let p1 = Promise.reject("fail");
+            let p2 = Promise.resolve(42);
+            let p3 = Promise.resolve(100);
+            
+            let any = Promise.any([p1, p2, p3]);
+            let result = await any;
+        "#.to_string();
+        let stream = InputStream::new("test", &input);
+        let mut parser = Parser::new(stream);
+        let stmts = parser.parse().unwrap();
+
+        let mut interpreter = Interpreter::new();
+        interpreter.eval_program(stmts).unwrap();
+
+        assert_eq!(
+            interpreter.env.get("result"),
+            Some(Value::Number(Decimal::from(42)))
+        );
+    }
+
+    #[test]
+    fn test_promise_all_settled() {
+        let input = r#"
+            let p1 = Promise.resolve(1);
+            let p2 = Promise.reject("error");
+            
+            let settled = Promise.allSettled([p1, p2]);
+            let results = await settled;
+        "#.to_string();
+        let stream = InputStream::new("test", &input);
+        let mut parser = Parser::new(stream);
+        let stmts = parser.parse().unwrap();
+
+        let mut interpreter = Interpreter::new();
+        interpreter.eval_program(stmts).unwrap();
+
+        let results = interpreter.env.get("results").unwrap();
+        if let Value::Array(arr) = results {
+            assert_eq!(arr.len(), 2);
+            
+            // Check first result
+            if let Value::Struct { fields, .. } = &arr[0] {
+                assert_eq!(fields.get("status"), Some(&Value::String("fulfilled".to_string())));
+                assert_eq!(fields.get("value"), Some(&Value::Number(Decimal::from(1))));
+            } else {
+                panic!("Expected struct, got {:?}", arr[0]);
+            }
+            
+            // Check second result
+            if let Value::Struct { fields, .. } = &arr[1] {
+                assert_eq!(fields.get("status"), Some(&Value::String("rejected".to_string())));
+                let reason = fields.get("reason").unwrap();
+                match reason {
+                    Value::EnumVariant { variant_name, values, .. } => {
+                        assert_eq!(variant_name, "Err");
+                        assert_eq!(values[0], Value::String("error".to_string()));
+                    }
+                    _ => panic!("Expected EnumVariant Err, got {:?}", reason),
+                }
+            } else {
+                panic!("Expected struct, got {:?}", arr[1]);
+            }
+        } else {
+            panic!("Expected array, got {:?}", results);
+        }
+    }
+
+    #[test]
+    fn test_async_fn_side_effect() {
+        let input = r#"
+            let mut x = 0;
+            async fn foo() {
+                x = 42;
+            }
+            let p = foo();
+            let initial_x = x;
+            await p;
+            let final_x = x;
+        "#.to_string();
+        let stream = InputStream::new("test", &input);
+        let mut parser = Parser::new(stream);
+        let stmts = parser.parse().unwrap();
+
+        let mut interpreter = Interpreter::new();
+        interpreter.eval_program(stmts).unwrap();
+
+        assert_eq!(
+            interpreter.env.get("initial_x"),
+            Some(Value::Number(Decimal::from(0)))
+        );
+        assert_eq!(
+            interpreter.env.get("final_x"),
+            Some(Value::Number(Decimal::from(42)))
         );
     }
 }

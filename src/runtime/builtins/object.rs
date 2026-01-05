@@ -1,13 +1,13 @@
 use crate::runtime::builtin::{BuiltinStruct, BuiltinMethod};
 use crate::runtime::value::Value;
-use crate::runtime::{RuntimeError, RuntimeResult};
+use crate::runtime::{RuntimeError, RuntimeResult, Interpreter};
 use rust_decimal::Decimal;
 use std::collections::HashMap;
 use loft_builtin_macros::loft_builtin;
 
 /// Get all keys from an object
 #[loft_builtin(object.keys)]
-fn object_keys(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn object_keys(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("object.keys() requires an object argument"));
     }
@@ -23,7 +23,7 @@ fn object_keys(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Get all values from an object
 #[loft_builtin(object.values)]
-fn object_values(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn object_values(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("object.values() requires an object argument"));
     }
@@ -39,7 +39,7 @@ fn object_values(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Get all entries from an object as [key, value] pairs
 #[loft_builtin(object.entries)]
-fn object_entries(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn object_entries(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("object.entries() requires an object argument"));
     }
@@ -58,7 +58,7 @@ fn object_entries(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Check if object has a property
 #[loft_builtin(object.has)]
-fn object_has(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn object_has(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.len() < 2 {
         return Err(RuntimeError::new("object.has() requires object and key arguments"));
     }
@@ -74,7 +74,7 @@ fn object_has(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Assign properties from source objects to target object
 #[loft_builtin(object.assign)]
-fn object_assign(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn object_assign(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("object.assign() requires at least one argument"));
     }
@@ -103,7 +103,7 @@ fn object_assign(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Create an object from entries [[key, value], ...]
 #[loft_builtin(object.from_entries)]
-fn object_from_entries(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn object_from_entries(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("object.from_entries() requires an entries array"));
     }
@@ -136,7 +136,7 @@ fn object_from_entries(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Get the number of properties in an object
 #[loft_builtin(object.size)]
-fn object_size(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn object_size(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("object.size() requires an object argument"));
     }

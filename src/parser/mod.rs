@@ -156,12 +156,14 @@ pub enum TraitMethod {
         name: String,
         params: Vec<(String, Type)>,
         return_type: Type,
+        is_async: bool,
     },
     Default {
         name: String,
         params: Vec<(String, Type)>,
         return_type: Type,
         body: Box<Stmt>,
+        is_async: bool,
     },
 }
 
@@ -205,7 +207,8 @@ impl<'a> Parser<'a> {
             Some(Token::Punct(p)) if p == punct => Ok(()),
             Some(token) => {
                 let error_msg = format!("Expected '{}' but got {}", punct, token);
-                Err(self.tokens.croak(error_msg, None))
+                let help_msg = format!("Did you forget a '{}'?", punct);
+                Err(self.tokens.croak_with_help(error_msg, help_msg, None))
             }
             None => {
                 let error_msg = format!("Expected '{}' but got EOF", punct);
@@ -220,7 +223,8 @@ impl<'a> Parser<'a> {
             Some(Token::Keyword(k)) if k == keyword => Ok(()),
             Some(token) => {
                 let error_msg = format!("Expected keyword '{}' but got {}", keyword, token);
-                Err(self.tokens.croak(error_msg, None))
+                let help_msg = format!("Did you mean to use the '{}' keyword here?", keyword);
+                Err(self.tokens.croak_with_help(error_msg, help_msg, None))
             }
             None => {
                 let error_msg = format!("Expected keyword '{}' but got EOF", keyword);
@@ -303,10 +307,11 @@ impl<'a> Parser<'a> {
     fn parse_statement(&mut self) -> Result<Stmt> {
         if let Some(token) = self.peek()? {
             match token {
-                Token::Keyword(k) if k == "let" => self.parse_var_decl(false),
+                Token::Keyword(k) if k == "let" => self.parse_var_decl(),
                 Token::Keyword(k) if k == "mut" => {
+                    // Support 'mut let' as well for backward compatibility if any
                     self.next()?; // consume mut
-                    self.parse_var_decl(true)
+                    self.parse_var_decl_legacy(true)
                 }
                 Token::Keyword(k) if k == "const" => self.parse_const_decl(),
                 Token::Keyword(k) if k == "fn" => self.parse_function_decl(false, false),
@@ -394,11 +399,76 @@ impl<'a> Parser<'a> {
     }
 
 
-    fn parse_var_decl(&mut self, mutable: bool) -> Result<Stmt> {
+    fn parse_var_decl(&mut self) -> Result<Stmt> {
+        self.expect_keyword("let")?;
+        
+        let mutable = if let Some(Token::Keyword(k)) = self.peek()? {
+            if k == "mut" {
+                self.next()?; // consume 'mut'
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+
+        let name_token = self.next()?;
+        let name = match name_token {
+            Some(Token::Ident(name)) => name,
+            Some(token) => {
+                let error_msg = format!("Expected identifier but got {}", token);
+                return Err(self.tokens.croak_with_help(
+                    error_msg,
+                    "Variable names must start with a letter or underscore.".to_string(),
+                    None
+                ));
+            }
+            None => return Err(self.tokens.croak("Expected identifier but got EOF".to_string(), None)),
+        };
+
+        // Check for type annotation
+        let var_type = if let Some(Token::Punct(p)) = self.peek()? {
+            if p == ":" {
+                self.next()?; // consume ':'
+                Some(self.parse_type()?)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        // Check for initialization
+        let value = if let Some(Token::Op(op)) = self.peek()? {
+            if op == "=" {
+                self.next()?; // consume '='
+                Some(self.parse_expression()?)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        self.maybe_consume_semicolon();
+        Ok(Stmt::VarDecl {
+            name,
+            var_type,
+            mutable,
+            value,
+        })
+    }
+
+    fn parse_var_decl_legacy(&mut self, mutable: bool) -> Result<Stmt> {
         // Expect 'let'
         let keyword_token = self.next()?;
         if !matches!(keyword_token, Some(Token::Keyword(ref k)) if k == "let") {
-            return Err(self.tokens.croak("Expected 'let'".to_string(), None));
+            return Err(self.tokens.croak_with_help(
+                "Expected 'let' keyword for variable declaration".to_string(),
+                "Variables must be declared with 'let' or 'const'.".to_string(),
+                None
+            ));
         }
 
         let name_token = self.next()?;
@@ -406,7 +476,11 @@ impl<'a> Parser<'a> {
             Some(Token::Ident(name)) => name,
             Some(token) => {
                 let error_msg = format!("Expected identifier but got {}", token);
-                return Err(self.tokens.croak(error_msg, None));
+                return Err(self.tokens.croak_with_help(
+                    error_msg,
+                    "Variable names must start with a letter or underscore.".to_string(),
+                    None
+                ));
             }
             None => return Err(self.tokens.croak("Expected identifier but got EOF".to_string(), None)),
         };
@@ -452,7 +526,11 @@ impl<'a> Parser<'a> {
             Some(Token::Ident(name)) => name,
             Some(token) => {
                 let error_msg = format!("Expected identifier but got {}", token);
-                return Err(self.tokens.croak(error_msg, None));
+                return Err(self.tokens.croak_with_help(
+                    error_msg,
+                    "Constant names must start with a letter or underscore.".to_string(),
+                    None
+                ));
             }
             None => return Err(self.tokens.croak("Expected identifier but got EOF".to_string(), None)),
         };
@@ -528,9 +606,23 @@ impl<'a> Parser<'a> {
 
     fn parse_if_statement(&mut self) -> Result<Stmt> {
         self.expect_keyword("if")?;
-        self.expect_punct("(")?;
+        
+        let has_parens = if let Some(Token::Punct(p)) = self.peek()? {
+            if p == "(" {
+                self.next()?; // consume '('
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+        
         let condition = self.parse_expression()?;
-        self.expect_punct(")")?;
+        
+        if has_parens {
+            self.expect_punct(")")?;
+        }
 
         let then_branch = Box::new(self.parse_statement()?);
 
@@ -554,9 +646,24 @@ impl<'a> Parser<'a> {
 
     fn parse_while_statement(&mut self) -> Result<Stmt> {
         self.expect_keyword("while")?;
-        self.expect_punct("(")?;
+        
+        let has_parens = if let Some(Token::Punct(p)) = self.peek()? {
+            if p == "(" {
+                self.next()?; // consume '('
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+        
         let condition = self.parse_expression()?;
-        self.expect_punct(")")?;
+        
+        if has_parens {
+            self.expect_punct(")")?;
+        }
+        
         let body = Box::new(self.parse_statement()?);
 
         Ok(Stmt::While { condition, body })
@@ -607,7 +714,13 @@ impl<'a> Parser<'a> {
         let name_token = self.next()?;
         let name = match name_token {
             Some(Token::Ident(name)) => name,
-            Some(token) => return Err(self.tokens.croak(format!("Expected function name but got {}", token), None)),
+            Some(token) => {
+                return Err(self.tokens.croak_with_help(
+                    format!("Expected function name but got {}", token),
+                    "Function names must start with a letter or underscore.".to_string(),
+                    None
+                ));
+            }
             None => return Err(self.tokens.croak("Expected function name but got EOF".to_string(), None)),
         };
 
@@ -671,8 +784,17 @@ impl<'a> Parser<'a> {
                     crate::parser::Type::Named("Self".to_string())
                 }
             } else {
-                self.expect_punct(":")?;
-                self.parse_type()?
+                // Optional type annotation
+                if let Some(Token::Punct(p)) = self.peek()? {
+                    if p == ":" {
+                        self.next()?; // consume ':'
+                        self.parse_type()?
+                    } else {
+                        crate::parser::Type::Named("any".to_string())
+                    }
+                } else {
+                    crate::parser::Type::Named("any".to_string())
+                }
             };
             
             params.push((param_name, param_type));
@@ -688,9 +810,8 @@ impl<'a> Parser<'a> {
         
         // Parse optional return type
         let return_type = if let Some(Token::Op(op)) = self.peek()? {
-            if op == "-" {
-                self.next()?; // consume '-'
-                self.expect_op(">")?;
+            if op == "->" {
+                self.next()?; // consume '->'
                 Some(self.parse_type()?)
             } else {
                 None
@@ -839,6 +960,17 @@ impl<'a> Parser<'a> {
                 break;
             }
             
+            let is_async = if let Some(Token::Keyword(k)) = self.peek()? {
+                if k == "async" {
+                    self.next()?; // consume 'async'
+                    true
+                } else {
+                    false
+                }
+            } else {
+                false
+            };
+
             self.expect_keyword("fn")?;
             
             let method_name = match self.next()? {
@@ -866,13 +998,15 @@ impl<'a> Parser<'a> {
                     if p == ":" {
                         self.next()?; // consume ':'
                         self.parse_type()?
+                    } else if param_name == "self" {
+                        Type::Named("Self".to_string())
                     } else {
-                        // Implicit type for 'self'
-                        Type::Named(param_name.clone())
+                        Type::Named("any".to_string())
                     }
+                } else if param_name == "self" {
+                    Type::Named("Self".to_string())
                 } else {
-                    // No type annotation, assume it's 'self' type
-                    Type::Named(param_name.clone())
+                    Type::Named("any".to_string())
                 };
                 
                 params.push((param_name, param_type));
@@ -886,8 +1020,7 @@ impl<'a> Parser<'a> {
             
             self.expect_punct(")")?;
             
-            self.expect_op("-")?;
-            self.expect_op(">")?;
+            self.expect_op("->")?;
             let return_type = self.parse_type()?;
             
             // Check if this is a signature or default implementation
@@ -898,6 +1031,7 @@ impl<'a> Parser<'a> {
                         name: method_name,
                         params,
                         return_type,
+                        is_async,
                     });
                 } else if self.is_punct(&token, "{") {
                     // Default implementation
@@ -907,6 +1041,7 @@ impl<'a> Parser<'a> {
                         params,
                         return_type,
                         body,
+                        is_async,
                     });
                 } else {
                     return Err(self.tokens.croak("Expected ';' or '{' after trait method signature".to_string(), None));
@@ -954,7 +1089,18 @@ impl<'a> Parser<'a> {
                 break;
             }
             
-            methods.push(self.parse_function_decl(false, false)?);
+            let is_async = if let Some(Token::Keyword(k)) = self.peek()? {
+                if k == "async" {
+                    self.next()?; // consume 'async'
+                    true
+                } else {
+                    false
+                }
+            } else {
+                false
+            };
+
+            methods.push(self.parse_function_decl(is_async, false)?);
         }
         
         self.expect_punct("}")?;
@@ -998,8 +1144,7 @@ impl<'a> Parser<'a> {
             
             // Parse pattern - use a limited expression parser that doesn't treat { as struct literal
             let pattern = self.parse_pattern_expr()?;
-            self.expect_op("=")?;
-            self.expect_op(">")?;
+            self.expect_op("=>")?;
             
             // Parse the body as an expression (not a statement)
             let body_expr = self.parse_expression()?;
@@ -1164,8 +1309,7 @@ impl<'a> Parser<'a> {
             }
             
             let pattern = self.parse_pattern_expr()?;
-            self.expect_op("=")?;
-            self.expect_op(">")?;
+            self.expect_op("=>")?;
             let body = self.parse_statement()?;
             
             arms.push((pattern, body));
@@ -1323,21 +1467,20 @@ impl<'a> Parser<'a> {
                 // Parse match expression
                 self.parse_match_expr()
             }
+            Some(Token::Op(op)) if op == "-" || op == "!" => {
+                let expr = self.parse_primary_expr()?;
+                Ok(Expr::UnaryOp {
+                    op,
+                    expr: Box::new(expr),
+                })
+            }
             Some(Token::Ident(name)) => {
                 // Check if this is a lambda expression (v => ...)
                 if let Some(Token::Op(op)) = self.peek()? {
-                    if op == "=" {
-                        // Might be => for lambda
-                        self.next()?; // consume '='
-                        if let Some(Token::Op(op2)) = self.peek()? {
-                            if op2 == ">" {
-                                self.next()?; // consume '>'
-                                // This is a lambda: v => body
-                                return self.parse_lambda_body(vec![(name, None)], None);
-                            }
-                        }
-                        // Not a lambda, put back the '=' 
-                        self.tokens.push_back(Token::Op("=".to_string()));
+                    if op == "=>" {
+                        self.next()?; // consume '=>'
+                        // This is a lambda: v => body
+                        return self.parse_lambda_body(vec![(name, None)], None);
                     }
                 }
                 // Return identifier, postfix parsing will be handled by parse_binary_expr
@@ -1386,7 +1529,8 @@ impl<'a> Parser<'a> {
             }
             Some(token) => {
                 let error_msg = format!("Unexpected token in expression: {}", token);
-                Err(self.tokens.croak(error_msg, None))
+                let help_msg = "Expected a number, string, identifier, or opening parenthesis.".to_string();
+                Err(self.tokens.croak_with_help(error_msg, help_msg, None))
             }
             None => Err(self
                 .tokens
@@ -1405,7 +1549,14 @@ impl<'a> Parser<'a> {
                     self.next()?; // consume '.'
                     let field = match self.next()? {
                         Some(Token::Ident(name)) => name,
-                        _ => return Err(self.tokens.croak("Expected field name after '.'".to_string(), None)),
+                        Some(token) => {
+                            return Err(self.tokens.croak_with_help(
+                                format!("Expected field name after '.' but got {}", token),
+                                "Field names must be identifiers.".to_string(),
+                                None
+                            ));
+                        }
+                        None => return Err(self.tokens.croak("Expected field name after '.' but got EOF".to_string(), None)),
                     };
                     expr = Expr::FieldAccess {
                         object: Box::new(expr),
@@ -1549,16 +1700,11 @@ impl<'a> Parser<'a> {
             
             match &token {
                 Token::Punct(p) if p == ")" && depth == 0 => {
-                    // Check next two tokens for =>
-                    if let Some(Token::Op(op1)) = self.next()? {
-                        tokens_to_restore.push(Token::Op(op1.clone()));
-                        if op1 == "=" {
-                            if let Some(Token::Op(op2)) = self.next()? {
-                                tokens_to_restore.push(Token::Op(op2.clone()));
-                                if op2 == ">" {
-                                    found_arrow = true;
-                                }
-                            }
+                    // Check next token for =>
+                    if let Some(Token::Op(op)) = self.next()? {
+                        tokens_to_restore.push(Token::Op(op.clone()));
+                        if op == "=>" {
+                            found_arrow = true;
                         }
                     }
                     break;
@@ -1625,8 +1771,7 @@ impl<'a> Parser<'a> {
         }
         
         // Expect =>
-        self.expect_op("=")?;
-        self.expect_op(">")?;
+        self.expect_op("=>")?;
         
         // Optional return type (not common but supported)
         let return_type = None;
@@ -1725,6 +1870,10 @@ impl<'a> TokenStream<'a> {
 
     pub fn croak(&self, msg: String, len: Option<usize>) -> Error {
         self.input.croak(msg, len)
+    }
+
+    pub fn croak_with_help(&self, msg: String, help: String, len: Option<usize>) -> Error {
+        self.input.croak_with_help(msg, help, len)
     }
 
     // Placeholder methods for position saving/restoring

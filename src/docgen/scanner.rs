@@ -61,10 +61,33 @@ impl StdlibScanner {
             let name = &cap[2];
             let first_arg = &cap[3]; // "this: &Value" or "_this: &Value"
 
-            let documentation = docs.lines()
+            let mut documentation = docs.lines()
                 .map(|l| l.trim().trim_start_matches("///").trim())
                 .collect::<Vec<_>>()
                 .join("\n");
+
+            // Parse @param and @return tags
+            let mut params = Vec::new();
+            let mut return_type = "any".to_string();
+
+            let param_re = Regex::new(r"@param\s+(\w+):\s*([\w<>\[\]]+)").unwrap();
+            let return_re = Regex::new(r"@return\s+([\w<>\[\]]+)").unwrap();
+
+            for p_cap in param_re.captures_iter(&documentation) {
+                params.push(format!("{}: {}", &p_cap[1], &p_cap[2]));
+            }
+
+            if let Some(r_cap) = return_re.captures(&documentation) {
+                return_type = r_cap[1].to_string();
+            }
+
+            // Clean up documentation by removing tags
+            documentation = documentation.lines()
+                .filter(|l| !l.trim().starts_with("@param") && !l.trim().starts_with("@return"))
+                .collect::<Vec<_>>()
+                .join("\n")
+                .trim()
+                .to_string();
 
             let is_static = first_arg.trim().starts_with("_");
             
@@ -78,8 +101,8 @@ impl StdlibScanner {
             let method_name = parts[1];
 
             let method_def = MethodDef {
-                params: vec!["...args".to_string()], // Placeholder, parsing args is hard with regex
-                return_type: "any".to_string(),      // Placeholder
+                params: if params.is_empty() { vec!["...args".to_string()] } else { params },
+                return_type,
                 documentation,
             };
 

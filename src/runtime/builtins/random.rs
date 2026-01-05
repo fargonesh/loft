@@ -1,6 +1,6 @@
 use crate::runtime::builtin::{BuiltinStruct, BuiltinMethod};
 use crate::runtime::value::Value;
-use crate::runtime::{RuntimeError, RuntimeResult};
+use crate::runtime::{RuntimeError, RuntimeResult, Interpreter};
 use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
 use loft_builtin_macros::loft_builtin;
@@ -34,7 +34,7 @@ fn next_random() -> u64 {
 
 /// Generate a random number between 0 and 1
 #[loft_builtin(random.random)]
-fn random_random(_this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn random_random(_interpreter: &mut Interpreter, _this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     init_rng();
     let r = next_random();
     let normalized = (r as f64) / (u64::MAX as f64);
@@ -44,7 +44,7 @@ fn random_random(_this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Generate a random integer in range [min, max)
 #[loft_builtin(random.range)]
-fn random_range(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn random_range(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.len() < 2 {
         return Err(RuntimeError::new("random.range() requires min and max arguments"));
     }
@@ -73,7 +73,7 @@ fn random_range(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Pick a random element from an array
 #[loft_builtin(random.choice)]
-fn random_choice(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn random_choice(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("random.choice() requires an array argument"));
     }
@@ -95,7 +95,7 @@ fn random_choice(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Shuffle an array randomly
 #[loft_builtin(random.shuffle)]
-fn random_shuffle(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn random_shuffle(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("random.shuffle() requires an array argument"));
     }
@@ -121,7 +121,7 @@ fn random_shuffle(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Set the random seed
 #[loft_builtin(random.seed)]
-fn random_seed(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn random_seed(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("random.seed() requires a number argument"));
     }
@@ -159,7 +159,8 @@ mod tests {
     
     #[test]
     fn test_random_generates_number() {
-        let result = random_random(&Value::Unit, &[]);
+        let mut interpreter = Interpreter::new();
+        let result = random_random(&mut interpreter, &Value::Unit, &[]);
         assert!(result.is_ok());
         
         match result.unwrap() {
@@ -170,7 +171,8 @@ mod tests {
     
     #[test]
     fn test_random_range() {
-        let result = random_range(&Value::Unit, &[
+        let mut interpreter = Interpreter::new();
+        let result = random_range(&mut interpreter, &Value::Unit, &[
             Value::Number(Decimal::from(1)),
             Value::Number(Decimal::from(10)),
         ]);
@@ -187,13 +189,14 @@ mod tests {
     
     #[test]
     fn test_random_choice() {
+        let mut interpreter = Interpreter::new();
         let arr = vec![
             Value::String("a".to_string()),
             Value::String("b".to_string()),
             Value::String("c".to_string()),
         ];
         
-        let result = random_choice(&Value::Unit, &[Value::Array(arr.clone())]);
+        let result = random_choice(&mut interpreter, &Value::Unit, &[Value::Array(arr.clone())]);
         assert!(result.is_ok());
         
         let chosen = result.unwrap();
@@ -202,13 +205,14 @@ mod tests {
     
     #[test]
     fn test_random_shuffle() {
+        let mut interpreter = Interpreter::new();
         let arr = vec![
             Value::Number(Decimal::from(1)),
             Value::Number(Decimal::from(2)),
             Value::Number(Decimal::from(3)),
         ];
         
-        let result = random_shuffle(&Value::Unit, &[Value::Array(arr.clone())]);
+        let result = random_shuffle(&mut interpreter, &Value::Unit, &[Value::Array(arr.clone())]);
         assert!(result.is_ok());
         
         match result.unwrap() {
@@ -221,11 +225,12 @@ mod tests {
     
     #[test]
     fn test_random_seed_reproducibility() {
-        random_seed(&Value::Unit, &[Value::Number(Decimal::from(42))]).unwrap();
-        let r1 = random_random(&Value::Unit, &[]).unwrap();
+        let mut interpreter = Interpreter::new();
+        random_seed(&mut interpreter, &Value::Unit, &[Value::Number(Decimal::from(42))]).unwrap();
+        let r1 = random_random(&mut interpreter, &Value::Unit, &[]).unwrap();
         
-        random_seed(&Value::Unit, &[Value::Number(Decimal::from(42))]).unwrap();
-        let r2 = random_random(&Value::Unit, &[]).unwrap();
+        random_seed(&mut interpreter, &Value::Unit, &[Value::Number(Decimal::from(42))]).unwrap();
+        let r2 = random_random(&mut interpreter, &Value::Unit, &[]).unwrap();
         
         match (r1, r2) {
             (Value::Number(n1), Value::Number(n2)) => {

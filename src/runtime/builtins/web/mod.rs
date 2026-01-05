@@ -1,10 +1,13 @@
 use crate::runtime::builtin::{BuiltinStruct, BuiltinMethod};
-use crate::runtime::value::Value;
-use crate::runtime::{RuntimeError, RuntimeResult};
+use crate::runtime::value::{Value, PromiseData, PromiseState};
+use crate::runtime::{RuntimeError, RuntimeResult, Interpreter};
 use crate::runtime::permission_context::check_net_permission;
+use crate::runtime::builtins::json::json_to_loft_value;
 use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
 use std::collections::HashMap;
+use std::rc::Rc;
+use std::cell::RefCell;
 use loft_builtin_macros::loft_builtin;
 use serde_json;
 
@@ -184,7 +187,9 @@ impl From<HttpResponse> for Value {
         });
         
         // Body as a Promise<Buffer>
-        fields.insert("body".to_string(), Value::Promise(Box::new(response.body.into())));
+        fields.insert("body".to_string(), Value::Promise(Rc::new(RefCell::new(PromiseData {
+            state: PromiseState::Resolved(response.body.into()),
+        }))));
         
         Value::Struct {
             name: "Response".to_string(),
@@ -228,7 +233,7 @@ impl From<RequestBuilder> for Value {
 
 /// Create a new HTTP request builder
 #[loft_builtin(web.request)]
-fn web_request(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn web_request(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("web.request() requires a URL argument"));
     }
@@ -244,7 +249,7 @@ fn web_request(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Set HTTP method on request builder
 #[loft_builtin(web.method)]
-fn web_method(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn web_method(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("method() requires a method argument"));
     }
@@ -268,7 +273,7 @@ fn web_method(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Add header to request builder
 #[loft_builtin(web.header)]
-fn web_header(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn web_header(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.len() < 2 {
         return Err(RuntimeError::new("header() requires key and value arguments"));
     }
@@ -306,7 +311,7 @@ fn web_header(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Set request body
 #[loft_builtin(web.body)]
-fn web_body(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn web_body(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("body() requires a body argument"));
     }
@@ -325,7 +330,7 @@ fn web_body(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Set request timeout in milliseconds
 #[loft_builtin(web.timeout)]
-fn web_timeout(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn web_timeout(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("timeout() requires a timeout argument"));
     }
@@ -349,7 +354,7 @@ fn web_timeout(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Set whether to follow redirects
 #[loft_builtin(web.followRedirects)]
-fn web_follow_redirects(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn web_follow_redirects(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("followRedirects() requires a boolean argument"));
     }
@@ -371,7 +376,7 @@ fn web_follow_redirects(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Send HTTP request and return response
 #[loft_builtin(web.send)]
-fn web_send(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn web_send(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     if let Value::Struct { name, fields } = this {
         if name == "RequestBuilder" {
             // Extract request details
@@ -447,7 +452,9 @@ fn web_send(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
             let body = Buffer::new(body_bytes.to_vec());
             
             let http_response = HttpResponse::new(status, headers, body);
-            return Ok(Value::Promise(Box::new(http_response.into())));
+            return Ok(Value::Promise(Rc::new(RefCell::new(PromiseData {
+                state: PromiseState::Resolved(http_response.into()),
+            }))));
         }
     }
     
@@ -456,21 +463,26 @@ fn web_send(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Parse response body as JSON
 #[loft_builtin(web.json)]
-fn web_json(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn web_json(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     if let Value::Struct { name, fields } = this {
         if name == "Response" {
             if let Some(Value::Promise(body_promise)) = fields.get("body") {
-                if let Value::Struct { name: buffer_name, fields: _buffer_fields } = body_promise.as_ref() {
-                    if buffer_name == "Buffer" {
-                        let buffer = Buffer::try_from(body_promise.as_ref())?;
-                        let json_str = buffer.to_string()
-                            .map_err(|e| RuntimeError::new(format!("Invalid UTF-8 in response body: {}", e)))?;
-                        
-                        let json_value: serde_json::Value = serde_json::from_str(&json_str)
-                            .map_err(|e| RuntimeError::new(format!("Invalid JSON: {}", e)))?;
-                        
-                        let loft_value = json_to_loft_value(json_value)?;
-                        return Ok(Value::Promise(Box::new(loft_value)));
+                let body_val = body_promise.borrow().state.clone();
+                if let PromiseState::Resolved(val) = body_val {
+                    if let Value::Struct { name: buffer_name, .. } = &val {
+                        if buffer_name == "Buffer" {
+                            let buffer = Buffer::try_from(&val)?;
+                            let json_str = buffer.to_string()
+                                .map_err(|e| RuntimeError::new(format!("Invalid UTF-8 in response body: {}", e)))?;
+                            
+                            let json_value: serde_json::Value = serde_json::from_str(&json_str)
+                                .map_err(|e| RuntimeError::new(format!("Invalid JSON: {}", e)))?;
+                            
+                            let loft_value = json_to_loft_value(json_value)?;
+                            return Ok(Value::Promise(Rc::new(RefCell::new(PromiseData {
+                                state: PromiseState::Resolved(loft_value),
+                            }))));
+                        }
                     }
                 }
             }
@@ -482,15 +494,20 @@ fn web_json(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Parse response body as text
 #[loft_builtin(web.text)]
-fn web_text(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn web_text(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     if let Value::Struct { name, fields } = this {
         if name == "Response" {
             if let Some(Value::Promise(body_promise)) = fields.get("body") {
-                let buffer = Buffer::try_from(body_promise.as_ref())?;
-                let text = buffer.to_string()
-                    .map_err(|e| RuntimeError::new(format!("Invalid UTF-8 in response body: {}", e)))?;
-                
-                return Ok(Value::Promise(Box::new(Value::String(text))));
+                let body_val = body_promise.borrow().state.clone();
+                if let PromiseState::Resolved(val) = body_val {
+                    let buffer = Buffer::try_from(&val)?;
+                    let text = buffer.to_string()
+                        .map_err(|e| RuntimeError::new(format!("Invalid UTF-8 in response body: {}", e)))?;
+                    
+                    return Ok(Value::Promise(Rc::new(RefCell::new(PromiseData {
+                        state: PromiseState::Resolved(Value::String(text)),
+                    }))));
+                }
             }
         }
     }
@@ -500,7 +517,7 @@ fn web_text(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Create a Buffer from string
 #[loft_builtin(web.buffer)]
-fn web_buffer(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn web_buffer(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Ok(Buffer::new(Vec::new()).into());
     }
@@ -526,45 +543,9 @@ fn web_buffer(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     }
 }
 
-/// Helper function to convert serde_json::Value to loft Value
-fn json_to_loft_value(json: serde_json::Value) -> RuntimeResult<Value> {
-    match json {
-        serde_json::Value::Null => Ok(Value::Unit),
-        serde_json::Value::Bool(b) => Ok(Value::Boolean(b)),
-        serde_json::Value::Number(n) => {
-            if let Some(i) = n.as_i64() {
-                Ok(Value::Number(Decimal::from(i)))
-            } else if let Some(f) = n.as_f64() {
-                Ok(Value::Number(Decimal::try_from(f)
-                    .map_err(|e| RuntimeError::new(format!("Invalid number: {}", e)))?))
-            } else {
-                Err(RuntimeError::new("Invalid JSON number"))
-            }
-        },
-        serde_json::Value::String(s) => Ok(Value::String(s)),
-        serde_json::Value::Array(arr) => {
-            let mut values = Vec::new();
-            for item in arr {
-                values.push(json_to_loft_value(item)?);
-            }
-            Ok(Value::Array(values))
-        },
-        serde_json::Value::Object(obj) => {
-            let mut fields = HashMap::new();
-            for (key, value) in obj {
-                fields.insert(key, json_to_loft_value(value)?);
-            }
-            Ok(Value::Struct {
-                name: "Object".to_string(),
-                fields,
-            })
-        },
-    }
-}
-
 /// GET request shorthand
 #[loft_builtin(web.get)]
-fn web_get(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn web_get(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("web.get() requires a URL argument"));
     }
@@ -578,12 +559,12 @@ fn web_get(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     let builder_value: Value = builder.into();
     
     // Call send() on the builder
-    web_send(&builder_value, &[])
+    web_send(_interpreter, &builder_value, &[])
 }
 
 /// POST request shorthand with optional body
 #[loft_builtin(web.post)]
-fn web_post(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn web_post(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("web.post() requires a URL argument"));
     }
@@ -602,12 +583,12 @@ fn web_post(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     }
     
     let builder_value: Value = builder.into();
-    web_send(&builder_value, &[])
+    web_send(_interpreter, &builder_value, &[])
 }
 
 /// PUT request shorthand with optional body
 #[loft_builtin(web.put)]
-fn web_put(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn web_put(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("web.put() requires a URL argument"));
     }
@@ -626,12 +607,12 @@ fn web_put(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     }
     
     let builder_value: Value = builder.into();
-    web_send(&builder_value, &[])
+    web_send(_interpreter, &builder_value, &[])
 }
 
 /// DELETE request shorthand
 #[loft_builtin(web.delete)]
-fn web_delete(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn web_delete(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("web.delete() requires a URL argument"));
     }
@@ -645,7 +626,7 @@ fn web_delete(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     builder.method = HttpMethod::DELETE;
     
     let builder_value: Value = builder.into();
-    web_send(&builder_value, &[])
+    web_send(_interpreter, &builder_value, &[])
 }
 
 /// Create the Web builtin struct
@@ -725,7 +706,8 @@ mod tests {
     
     #[test]
     fn test_web_buffer_function() {
-        let result = web_buffer(&Value::Unit, &[Value::String("Test".to_string())]);
+        let mut interpreter = Interpreter::new();
+        let result = web_buffer(&mut interpreter, &Value::Unit, &[Value::String("Test".to_string())]);
         assert!(result.is_ok());
         
         let value = result.unwrap();
@@ -739,7 +721,8 @@ mod tests {
     
     #[test]
     fn test_web_request_creation() {
-        let result = web_request(&Value::Unit, &[Value::String("https://example.com".to_string())]);
+        let mut interpreter = Interpreter::new();
+        let result = web_request(&mut interpreter, &Value::Unit, &[Value::String("https://example.com".to_string())]);
         assert!(result.is_ok());
         
         let value = result.unwrap();

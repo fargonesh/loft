@@ -1,4 +1,4 @@
-use super::value::Value;
+use super::value::{Value, PromiseState};
 use super::{RuntimeError, RuntimeResult};
 use rust_decimal::Decimal;
 
@@ -53,6 +53,8 @@ impl Add for Value {
         match (self, other) {
             (Value::Number(l), Value::Number(r)) => Ok(Value::Number(*l + *r)),
             (Value::String(l), Value::String(r)) => Ok(Value::String(format!("{}{}", l, r))),
+            (Value::String(l), _) => Ok(Value::String(format!("{}{}", l, other.to_string()))),
+            (_, Value::String(r)) => Ok(Value::String(format!("{}{}", self.to_string(), r))),
             _ => Err(RuntimeError::new(format!(
                 "Cannot add {:?} and {:?}",
                 self, other
@@ -156,7 +158,14 @@ impl ToString for Value {
             Value::BoundMethod { method_name, .. } => format!("<bound method {}>", method_name),
             Value::UserMethod { method_name, .. } => format!("<method {}>", method_name),
             Value::Closure { params, .. } => format!("<closure with {} params>", params.len()),
-            Value::Promise(value) => format!("<promise {}>", value.to_string()),
+            Value::Promise(promise) => {
+                let data = promise.borrow();
+                match &data.state {
+                    PromiseState::Pending(_) => "<promise pending>".to_string(),
+                    PromiseState::Resolved(v) => format!("<promise resolved: {}>", v.to_string()),
+                    PromiseState::Rejected(v) => format!("<promise rejected: {}>", v.to_string()),
+                }
+            },
             Value::EnumVariant { enum_name, variant_name, values } => {
                 if values.is_empty() {
                     format!("{}.{}", enum_name, variant_name)
@@ -191,6 +200,19 @@ pub fn call_binop_trait(op: &str, left: &Value, right: &Value) -> RuntimeResult<
         "-" => left.sub(right),
         "*" => left.mul(right),
         "/" => left.div(right),
+        "%" => match (left, right) {
+            (Value::Number(l), Value::Number(r)) => {
+                if *r == Decimal::ZERO {
+                    Err(RuntimeError::new("Division by zero (modulo)"))
+                } else {
+                    Ok(Value::Number(*l % *r))
+                }
+            }
+            _ => Err(RuntimeError::new(format!(
+                "Cannot calculate modulo of {:?} and {:?}",
+                left, right
+            ))),
+        },
         // Comparison operators don't use traits, handle them separately
         ">" => match (left, right) {
             (Value::Number(l), Value::Number(r)) => Ok(Value::Boolean(l > r)),

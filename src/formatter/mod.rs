@@ -301,20 +301,22 @@ impl Formatter {
     fn format_trait_method(&self, method: &TraitMethod, level: usize) -> String {
         let indent = self.indent(level);
         match method {
-            TraitMethod::Signature { name, params, return_type } => {
+            TraitMethod::Signature { name, params, return_type, is_async } => {
                 let params_str = params.iter()
                     .map(|(n, t)| format!("{}: {}", n, self.format_type(t)))
                     .collect::<Vec<_>>()
                     .join(", ");
-                format!("{}fn {}({}) -> {};", indent, name, params_str, self.format_type(return_type))
+                let async_prefix = if *is_async { "async " } else { "" };
+                format!("{}{}fn {}({}) -> {};", indent, async_prefix, name, params_str, self.format_type(return_type))
             }
-            TraitMethod::Default { name, params, return_type, body } => {
+            TraitMethod::Default { name, params, return_type, body, is_async } => {
                 let params_str = params.iter()
                     .map(|(n, t)| format!("{}: {}", n, self.format_type(t)))
                     .collect::<Vec<_>>()
                     .join(", ");
                 let body_str = self.format_stmt(body, level);
-                format!("{}fn {}({}) -> {} {}", indent, name, params_str, self.format_type(return_type), body_str.trim_start())
+                let async_prefix = if *is_async { "async " } else { "" };
+                format!("{}{}fn {}({}) -> {} {}", indent, async_prefix, name, params_str, self.format_type(return_type), body_str.trim_start())
             }
         }
     }

@@ -1,6 +1,6 @@
 use crate::runtime::builtin::{BuiltinStruct, BuiltinMethod};
 use crate::runtime::value::Value;
-use crate::runtime::{RuntimeError, RuntimeResult};
+use crate::runtime::{RuntimeError, RuntimeResult, Interpreter};
 use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
 use std::thread;
@@ -9,7 +9,7 @@ use loft_builtin_macros::loft_builtin;
 
 /// Sleep for the specified number of milliseconds and return a promise
 #[loft_builtin(time.sleep)]
-fn time_sleep(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn time_sleep(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("time.sleep() requires a duration argument"));
     }
@@ -27,12 +27,14 @@ fn time_sleep(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     thread::sleep(Duration::from_millis(duration_ms));
     
     // Return a promise that resolves to Unit (void)
-    Ok(Value::Promise(Box::new(Value::Unit)))
+    Ok(Value::Promise(std::rc::Rc::new(std::cell::RefCell::new(crate::runtime::value::PromiseData {
+        state: crate::runtime::value::PromiseState::Resolved(Value::Unit),
+    }))))
 }
 
 /// Get the current time in milliseconds since Unix epoch
 #[loft_builtin(time.now)]
-fn time_now(_this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn time_now(_interpreter: &mut Interpreter, _this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|e| RuntimeError::new(format!("Failed to get current time: {}", e)))?;
@@ -43,7 +45,7 @@ fn time_now(_this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Create a high-resolution timer for performance measurement
 #[loft_builtin(time.perf_now)]
-fn time_perf_now(_this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn time_perf_now(_interpreter: &mut Interpreter, _this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     // For simplicity, we'll use a static start time
     // In a real implementation, this would be more sophisticated
     static START_TIME: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
@@ -57,7 +59,7 @@ fn time_perf_now(_this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Format a duration in milliseconds to a human-readable string
 #[loft_builtin(time.format)]
-fn time_format(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn time_format(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("time.format() requires a duration argument"));
     }
@@ -84,7 +86,7 @@ fn time_format(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Create a benchmark function that measures execution time
 #[loft_builtin(time.benchmark)]
-fn time_benchmark(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn time_benchmark(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("time.benchmark() requires a function argument"));
     }

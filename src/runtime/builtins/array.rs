@@ -1,12 +1,12 @@
 use crate::runtime::builtin::{BuiltinStruct, BuiltinMethod};
 use crate::runtime::value::Value;
-use crate::runtime::{RuntimeError, RuntimeResult};
+use crate::runtime::{RuntimeError, RuntimeResult, Interpreter};
 use rust_decimal::Decimal;
 use loft_builtin_macros::loft_builtin;
 
 /// Get the length of an array
 #[loft_builtin(array.length)]
-fn array_length(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn array_length(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::Array(arr) => Ok(Value::Number(Decimal::from(arr.len()))),
         _ => Err(RuntimeError::new("length() can only be called on arrays")),
@@ -16,7 +16,7 @@ fn array_length(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 /// Push a value to the end of an array
 /// Returns a new array with the value added
 #[loft_builtin(array.push)]
-fn array_push(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn array_push(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("push() requires a value to push"));
     }
@@ -35,7 +35,7 @@ fn array_push(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 /// Returns the popped value, or Unit if array is empty
 /// Note: This doesn't modify the original array
 #[loft_builtin(array.pop)]
-fn array_pop(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn array_pop(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::Array(arr) => {
             if arr.is_empty() {
@@ -50,7 +50,7 @@ fn array_pop(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Remove last element and return new array
 #[loft_builtin(array.remove_last)]
-fn array_remove_last(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn array_remove_last(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::Array(arr) => {
             if arr.is_empty() {
@@ -67,7 +67,7 @@ fn array_remove_last(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Get a value at a specific index
 #[loft_builtin(array.get)]
-fn array_get(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn array_get(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("get() requires an index"));
     }
@@ -86,7 +86,7 @@ fn array_get(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Set a value at a specific index (returns new array)
 #[loft_builtin(array.set)]
-fn array_set(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn array_set(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.len() < 2 {
         return Err(RuntimeError::new("set() requires an index and a value"));
     }
@@ -111,7 +111,7 @@ fn array_set(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Check if array is empty
 #[loft_builtin(array.is_empty)]
-fn array_is_empty(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn array_is_empty(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::Array(arr) => Ok(Value::Boolean(arr.is_empty())),
         _ => Err(RuntimeError::new("is_empty() can only be called on arrays")),
@@ -120,7 +120,7 @@ fn array_is_empty(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Create a slice of the array
 #[loft_builtin(array.slice)]
-fn array_slice(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn array_slice(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::Array(arr) => {
             let start = if args.is_empty() {

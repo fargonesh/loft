@@ -1649,7 +1649,7 @@ impl LoftLanguageServer {
                 Stmt::TraitDecl { name, methods } => {
                     let method_infos: Vec<TraitMethodInfo> = methods.iter()
                         .map(|m| match m {
-                            crate::parser::TraitMethod::Signature { name, params, return_type } => TraitMethodInfo {
+                            crate::parser::TraitMethod::Signature { name, params, return_type, .. } => TraitMethodInfo {
                                 name: name.clone(),
                                 params: params.iter().map(|(n, t)| (n.clone(), Self::type_to_string(t))).collect(),
                                 return_type: Self::type_to_string(return_type),

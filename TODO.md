@@ -4,8 +4,6 @@ Last Updated: December 20, 2024
 
 ### Future Work
 - Performance benchmarks not yet defined
-- Array methods with closures (map, filter, reduce)
-- Mutable variable captures in closures
 - Advanced async/await patterns
 - Generic trait implementations
 - Const generics
@@ -14,14 +12,12 @@ Last Updated: December 20, 2024
 
 ### Parser
 - Improve error recovery
-- Better error messages with suggestions
 - Support for more expression contexts
 - Optimize parsing performance
 
 ### Runtime
 - Memory management improvements
 - Garbage collection strategy
-- Stack overflow protection
 - Better async runtime
 
 ### LSP
