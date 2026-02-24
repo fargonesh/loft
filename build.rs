@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
-use syn::{Attribute, Item, ItemFn, Meta, Lit};
+use syn::{Attribute, Item, ItemFn, Lit, Meta};
 
 type BuiltinInfo = HashMap<String, HashMap<String, serde_json::Value>>;
 
@@ -79,11 +79,8 @@ fn scan_rust_file(path: &Path, builtins: &mut BuiltinInfo) -> std::io::Result<()
 
                 let mut method_info = HashMap::new();
                 method_info.insert("documentation".to_string(), serde_json::Value::String(doc));
-                
-                module.insert(
-                    method_name,
-                    serde_json::json!(method_info),
-                );
+
+                module.insert(method_name, serde_json::json!(method_info));
             }
         }
     }
@@ -124,7 +121,7 @@ fn main() {
     // Write to output file
     let out_dir = std::env::var("OUT_DIR").unwrap();
     let dest_path = Path::new(&out_dir).join("builtins_generated.json");
-    
+
     if let Err(e) = fs::write(&dest_path, json) {
         eprintln!("Warning: Failed to write builtins.json: {}", e);
     } else {

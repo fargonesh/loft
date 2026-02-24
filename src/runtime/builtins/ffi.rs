@@ -1,43 +1,48 @@
 use crate::runtime::builtin::BuiltinStruct;
 use crate::runtime::value::Value;
-use crate::runtime::{RuntimeError, RuntimeResult, Interpreter};
+use crate::runtime::{RuntimeError, RuntimeResult};
+use libloading::{Library, Symbol};
 use rust_decimal::Decimal;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard};
-use libloading::{Library, Symbol};
 
 lazy_static::lazy_static! {
-    static ref LOADED_LIBRARIES: Arc<Mutex<HashMap<String, Arc<Library>>>> = 
+    static ref LOADED_LIBRARIES: Arc<Mutex<HashMap<String, Arc<Library>>>> =
         Arc::new(Mutex::new(HashMap::new()));
 }
 
 /// Helper to acquire mutex lock with proper error handling
 fn lock_libraries() -> RuntimeResult<MutexGuard<'static, HashMap<String, Arc<Library>>>> {
-    LOADED_LIBRARIES.lock()
+    LOADED_LIBRARIES
+        .lock()
         .map_err(|e| RuntimeError::new(format!("Failed to lock library registry: {}", e)))
 }
 
 /// Helper to convert Decimal to f64
 fn decimal_to_f64(d: &Decimal) -> RuntimeResult<f64> {
-    d.to_string().parse::<f64>()
+    d.to_string()
+        .parse::<f64>()
         .map_err(|_| RuntimeError::new("Failed to convert number to f64"))
 }
 
 /// Helper to convert Decimal to i32
 fn decimal_to_i32(d: &Decimal) -> RuntimeResult<i32> {
-    d.to_string().parse::<i32>()
+    d.to_string()
+        .parse::<i32>()
         .map_err(|_| RuntimeError::new("Failed to convert number to i32"))
 }
 
 /// Helper to convert Decimal to i64
 fn decimal_to_i64(d: &Decimal) -> RuntimeResult<i64> {
-    d.to_string().parse::<i64>()
+    d.to_string()
+        .parse::<i64>()
         .map_err(|_| RuntimeError::new("Failed to convert number to i64"))
 }
 
 /// Helper to convert Decimal to f32
 fn decimal_to_f32(d: &Decimal) -> RuntimeResult<f32> {
-    d.to_string().parse::<f32>()
+    d.to_string()
+        .parse::<f32>()
         .map_err(|_| RuntimeError::new("Failed to convert number to f32"))
 }
 
@@ -50,7 +55,9 @@ fn f64_to_value(result: f64) -> RuntimeResult<Value> {
     if result.is_infinite() {
         return Err(RuntimeError::new("FFI function returned infinite value"));
     }
-    Ok(Value::Number(Decimal::from_f64_retain(result).unwrap_or(Decimal::ZERO)))
+    Ok(Value::Number(
+        Decimal::from_f64_retain(result).unwrap_or(Decimal::ZERO),
+    ))
 }
 
 /// Helper to convert f32 result to Value
@@ -62,16 +69,18 @@ fn f32_to_value(result: f32) -> RuntimeResult<Value> {
     if result.is_infinite() {
         return Err(RuntimeError::new("FFI function returned infinite value"));
     }
-    Ok(Value::Number(Decimal::from_f32_retain(result).unwrap_or(Decimal::ZERO)))
+    Ok(Value::Number(
+        Decimal::from_f32_retain(result).unwrap_or(Decimal::ZERO),
+    ))
 }
 
 /// Load a shared library
-/// 
+///
 /// # Example
 /// ```loft
 /// let lib = ffi.load("libm.so.6");
 /// ```
-pub fn ffi_load(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+pub fn ffi_load(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("ffi.load() requires a library path"));
     }
@@ -87,8 +96,9 @@ pub fn ffi_load(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -
         if !libs.contains_key(&path) {
             // Load the library
             let lib = unsafe {
-                Library::new(&path)
-                    .map_err(|e| RuntimeError::new(format!("Failed to load library '{}': {}", path, e)))?
+                Library::new(&path).map_err(|e| {
+                    RuntimeError::new(format!("Failed to load library '{}': {}", path, e))
+                })?
             };
             libs.insert(path.clone(), Arc::new(lib));
         }
@@ -105,9 +115,11 @@ pub fn ffi_load(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -
 
 /// Convenience method: call a function directly on the library
 /// Usage: lib.call("symbol_name", "signature", args...)
-fn ffi_lib_call(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn ffi_lib_call(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.len() < 2 {
-        return Err(RuntimeError::new("lib.call() requires at least symbol name and signature"));
+        return Err(RuntimeError::new(
+            "lib.call() requires at least symbol name and signature",
+        ));
     }
 
     let symbol_name = match &args[0] {
@@ -116,27 +128,33 @@ fn ffi_lib_call(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) ->
     };
 
     // Get the symbol first
-    let symbol_result = ffi_symbol(_interpreter, this, &[Value::String(symbol_name)])?;
-    
+    let symbol_result = ffi_symbol(this, &[Value::String(symbol_name)])?;
+
     // Then call it with the remaining arguments
-    ffi_call(_interpreter, &symbol_result, &args[1..])
+    ffi_call(&symbol_result, &args[1..])
 }
 
 /// Get a symbol (function) from a loaded library
-fn ffi_symbol(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn ffi_symbol(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("symbol() requires a symbol name"));
     }
 
     // Extract the library path from the struct
     let path = match this {
-        Value::Builtin(builtin) => {
-            match builtin.fields.get("path") {
-                Some(Value::String(s)) => s.clone(),
-                _ => return Err(RuntimeError::new("Internal error: FfiLibrary missing path field")),
+        Value::Builtin(builtin) => match builtin.fields.get("path") {
+            Some(Value::String(s)) => s.clone(),
+            _ => {
+                return Err(RuntimeError::new(
+                    "Internal error: FfiLibrary missing path field",
+                ))
             }
+        },
+        _ => {
+            return Err(RuntimeError::new(
+                "symbol() must be called on an FfiLibrary",
+            ))
         }
-        _ => return Err(RuntimeError::new("symbol() must be called on an FfiLibrary")),
     };
 
     let symbol_name = match &args[0] {
@@ -146,13 +164,13 @@ fn ffi_symbol(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> R
 
     // Get the library from the global registry
     let libs = lock_libraries()?;
-    let lib = libs.get(&path)
+    let lib = libs
+        .get(&path)
         .ok_or_else(|| RuntimeError::new(format!("Library '{}' not found in registry", path)))?;
 
     // Verify the symbol exists
-    let _symbol_check: Result<Symbol<unsafe extern "C" fn()>, _> = unsafe {
-        lib.get(symbol_name.as_bytes())
-    };
+    let _symbol_check: Result<Symbol<unsafe extern "C" fn()>, _> =
+        unsafe { lib.get(symbol_name.as_bytes()) };
 
     if _symbol_check.is_err() {
         return Err(RuntimeError::new(format!(
@@ -171,17 +189,25 @@ fn ffi_symbol(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> R
 }
 
 /// Call a foreign function with type conversion
-fn ffi_call(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn ffi_call(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     // Extract the symbol name and library path from the struct
     let (symbol_name, library_path) = match this {
         Value::Builtin(builtin) => {
             let name = match builtin.fields.get("name") {
                 Some(Value::String(s)) => s.clone(),
-                _ => return Err(RuntimeError::new("Internal error: FfiFunction missing name field")),
+                _ => {
+                    return Err(RuntimeError::new(
+                        "Internal error: FfiFunction missing name field",
+                    ))
+                }
             };
             let path = match builtin.fields.get("library_path") {
                 Some(Value::String(s)) => s.clone(),
-                _ => return Err(RuntimeError::new("Internal error: FfiFunction missing library_path field")),
+                _ => {
+                    return Err(RuntimeError::new(
+                        "Internal error: FfiFunction missing library_path field",
+                    ))
+                }
             };
             (name, path)
         }
@@ -190,19 +216,26 @@ fn ffi_call(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> Run
 
     // Get the library from the global registry
     let libs = lock_libraries()?;
-    let lib = libs.get(&library_path)
-        .ok_or_else(|| RuntimeError::new(format!("Library '{}' not found in registry", library_path)))?;
-    
+    let lib = libs.get(&library_path).ok_or_else(|| {
+        RuntimeError::new(format!("Library '{}' not found in registry", library_path))
+    })?;
+
     // For simplicity, we'll support common function signatures
     // Users can specify the signature as the first argument
-    
+
     if args.is_empty() {
-        return Err(RuntimeError::new("call() requires at least a signature string (e.g., 'f64(f64)' for cos)"));
+        return Err(RuntimeError::new(
+            "call() requires at least a signature string (e.g., 'f64(f64)' for cos)",
+        ));
     }
 
     let signature = match &args[0] {
         Value::String(s) => s.clone(),
-        _ => return Err(RuntimeError::new("First argument must be a signature string")),
+        _ => {
+            return Err(RuntimeError::new(
+                "First argument must be a signature string",
+            ))
+        }
     };
 
     let fn_args = &args[1..];
@@ -210,10 +243,12 @@ fn ffi_call(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> Run
     // Parse signature to determine how to call the function
     // Format: "return_type(arg_type1, arg_type2, ...)"
     // Supported types: i32, i64, f32, f64, void
-    
+
     let parts: Vec<&str> = signature.split('(').collect();
     if parts.len() != 2 {
-        return Err(RuntimeError::new("Invalid signature format. Expected: 'return_type(arg_types)'"));
+        return Err(RuntimeError::new(
+            "Invalid signature format. Expected: 'return_type(arg_types)'",
+        ));
     }
 
     let return_type = parts[0].trim();
@@ -246,7 +281,7 @@ fn call_by_signature(
 ) -> RuntimeResult<Value> {
     // This is a simplified implementation supporting common cases
     // A full implementation would need a more sophisticated type system
-    
+
     match (return_type, arg_types) {
         // f64() functions
         ("f64", []) if args.is_empty() => {
@@ -257,7 +292,7 @@ fn call_by_signature(
             let result = unsafe { func() };
             f64_to_value(result)
         }
-        
+
         // f64(f64) functions like sqrt, sin, cos, etc.
         ("f64", ["f64"]) if args.len() == 1 => {
             let arg = match &args[0] {
@@ -365,7 +400,7 @@ fn call_by_signature(
             unsafe { func() };
             Ok(Value::Unit)
         }
-        
+
         // void(i32) functions
         ("void", ["i32"]) if args.len() == 1 => {
             let arg = match &args[0] {
@@ -397,7 +432,7 @@ pub fn create_ffi_builtin() -> BuiltinStruct {
 }
 
 // Register the builtin automatically
-crate::submit_builtin!("ffi", create_ffi_builtin);
+crate::submit_builtin!("ffi", create_ffi_builtin, "ffi");
 
 #[cfg(test)]
 mod tests {
@@ -405,16 +440,17 @@ mod tests {
 
     #[test]
     fn test_ffi_load_invalid_path() {
-        let mut interpreter = Interpreter::new();
-        let result = ffi_load(&mut interpreter, &Value::Unit, &[Value::String("nonexistent.so".to_string())]);
+        let result = ffi_load(&Value::Unit, &[Value::String("nonexistent.so".to_string())]);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_ffi_load_requires_path() {
-        let mut interpreter = Interpreter::new();
-        let result = ffi_load(&mut interpreter, &Value::Unit, &[]);
+        let result = ffi_load(&Value::Unit, &[]);
         assert!(result.is_err());
-        assert!(result.unwrap_err().message.contains("requires a library path"));
+        assert!(result
+            .unwrap_err()
+            .message
+            .contains("requires a library path"));
     }
 }

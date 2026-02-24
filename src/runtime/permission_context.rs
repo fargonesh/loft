@@ -17,9 +17,7 @@ pub fn with_permissions<F, R>(f: F) -> Option<R>
 where
     F: FnOnce(&mut PermissionManager) -> R,
 {
-    PERMISSION_MANAGER.with(|pm| {
-        pm.borrow_mut().as_mut().map(f)
-    })
+    PERMISSION_MANAGER.with(|pm| pm.borrow_mut().as_mut().map(f))
 }
 
 /// Check if a path is in the protected permissions directory
@@ -33,7 +31,7 @@ pub fn check_read_permission(path: &str, context: Option<&str>) -> Result<bool, 
     if is_protected_path(path) {
         return Err("Access to loft permissions directory is not allowed".to_string());
     }
-    
+
     with_permissions(|pm| pm.request_read(path, context))
         // NOTE: Default to allowed for backward compatibility with existing tests
         // In production, the permission manager is ALWAYS initialized in main.rs
@@ -47,7 +45,7 @@ pub fn check_write_permission(path: &str, context: Option<&str>) -> Result<bool,
     if is_protected_path(path) {
         return Err("Access to loft permissions directory is not allowed".to_string());
     }
-    
+
     with_permissions(|pm| pm.request_write(path, context))
         // NOTE: Default to allowed for backward compatibility with existing tests
         // In production, the permission manager is ALWAYS initialized in main.rs
