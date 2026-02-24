@@ -15,44 +15,44 @@ pub struct Manifest {
 impl Manifest {
     /// Load a manifest from a file path
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, ManifestError> {
-        let content = fs::read_to_string(path.as_ref())
-            .map_err(|e| ManifestError::IoError(e.to_string()))?;
-        
-        let manifest: Manifest = serde_json::from_str(&content)
-            .map_err(|e| ManifestError::ParseError(e.to_string()))?;
-        
+        let content =
+            fs::read_to_string(path.as_ref()).map_err(|e| ManifestError::IoError(e.to_string()))?;
+
+        let manifest: Manifest =
+            serde_json::from_str(&content).map_err(|e| ManifestError::ParseError(e.to_string()))?;
+
         Ok(manifest)
     }
-    
+
     /// Find and load manifest.json in the current directory or parent directories
     pub fn find_and_load<P: AsRef<Path>>(start_dir: P) -> Result<Self, ManifestError> {
         let mut current = start_dir.as_ref().to_path_buf();
-        
+
         loop {
             let manifest_path = current.join("manifest.json");
             if manifest_path.exists() {
                 return Self::load(manifest_path);
             }
-            
+
             if !current.pop() {
                 return Err(ManifestError::NotFound);
             }
         }
     }
-    
+
     /// Resolve an import path to a file path
     pub fn resolve_import(&self, import_path: &[String]) -> Result<String, ManifestError> {
         if import_path.is_empty() {
             return Err(ManifestError::InvalidPath("Empty import path".to_string()));
         }
-        
+
         let project_name = &import_path[0];
-        
+
         // If importing from this project, use entrypoint
         if project_name == &self.name {
             return Ok(self.entrypoint.clone());
         }
-        
+
         // Check .twlibs folder first (installed dependencies)
         if let Ok(current_dir) = std::env::current_dir() {
             let twlibs_path = current_dir.join(".twlibs");
@@ -63,12 +63,17 @@ impl Manifest {
                         let path = entry.path();
                         if let Some(dir_name) = path.file_name().and_then(|n| n.to_str()) {
                             // Check if directory name starts with the project name
-                            if dir_name.starts_with(&format!("{}@", project_name)) || dir_name == project_name {
+                            if dir_name.starts_with(&format!("{}@", project_name))
+                                || dir_name == project_name
+                            {
                                 let manifest_path = path.join("manifest.json");
                                 if manifest_path.exists() {
                                     if let Ok(dep_manifest) = Self::load(&manifest_path) {
                                         // Always use the entrypoint - exports are now managed by the `teach` keyword in files
-                                        return Ok(path.join(&dep_manifest.entrypoint).to_string_lossy().to_string());
+                                        return Ok(path
+                                            .join(&dep_manifest.entrypoint)
+                                            .to_string_lossy()
+                                            .to_string());
                                     }
                                 }
                             }
@@ -77,14 +82,14 @@ impl Manifest {
                 }
             }
         }
-        
+
         // Check dependencies
         if let Some(dep_path) = self.dependencies.get(project_name) {
             // In the future, this would resolve through a package manager
             // For now, treat as a relative path
             return Ok(dep_path.clone());
         }
-        
+
         Err(ManifestError::UnresolvedImport(import_path.join("::")))
     }
 }
@@ -123,7 +128,7 @@ mod tests {
             "version": "1.0.0",
             "entrypoint": "src/main.lf"
         }"#;
-        
+
         let manifest: Manifest = serde_json::from_str(manifest_json).unwrap();
         assert_eq!(manifest.name, "myproject");
         assert_eq!(manifest.version, "1.0.0");
@@ -138,8 +143,10 @@ mod tests {
             entrypoint: "src/main.lf".to_string(),
             dependencies: HashMap::new(),
         };
-        
-        let result = manifest.resolve_import(&["myproject".to_string()]).unwrap();
+
+        let result = manifest
+            .resolve_import(&vec!["myproject".to_string()])
+            .unwrap();
         assert_eq!(result, "src/main.lf");
     }
 
@@ -147,15 +154,15 @@ mod tests {
     fn test_resolve_import_dependency() {
         let mut dependencies = HashMap::new();
         dependencies.insert("utils".to_string(), "./deps/utils".to_string());
-        
+
         let manifest = Manifest {
             name: "myproject".to_string(),
             version: "1.0.0".to_string(),
             entrypoint: "src/main.lf".to_string(),
             dependencies,
         };
-        
-        let result = manifest.resolve_import(&["utils".to_string()]).unwrap();
+
+        let result = manifest.resolve_import(&vec!["utils".to_string()]).unwrap();
         assert_eq!(result, "./deps/utils");
     }
 }

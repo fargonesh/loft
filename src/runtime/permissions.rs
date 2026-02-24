@@ -1,7 +1,7 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 use std::io::{self, Write};
-use serde::{Serialize, Deserialize};
+use std::path::{Path, PathBuf};
 
 /// Types of permissions that can be requested
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -90,7 +90,13 @@ impl PermissionManager {
     }
 
     /// Create a permission manager with specific flags
-    pub fn with_flags(allow_all: bool, allow_read: bool, allow_write: bool, allow_net: bool, allow_run: bool) -> Self {
+    pub fn with_flags(
+        allow_all: bool,
+        allow_read: bool,
+        allow_write: bool,
+        allow_net: bool,
+        allow_run: bool,
+    ) -> Self {
         if allow_all {
             Self::allow_all()
         } else {
@@ -130,9 +136,7 @@ impl PermissionManager {
 
         #[cfg(target_family = "windows")]
         {
-            let base_dir = std::env::var("LOCALAPPDATA")
-                .ok()
-                .map(PathBuf::from)?;
+            let base_dir = std::env::var("LOCALAPPDATA").ok().map(PathBuf::from)?;
             Some(base_dir.join("loft").join("permissions.json"))
         }
     }
@@ -217,7 +221,11 @@ impl PermissionManager {
     }
 
     /// Request permission from user with a prompt
-    pub fn request(&mut self, perm: &PermissionType, context: Option<&str>) -> Result<bool, String> {
+    pub fn request(
+        &mut self,
+        perm: &PermissionType,
+        context: Option<&str>,
+    ) -> Result<bool, String> {
         match self.check(perm) {
             PermissionState::Granted => Ok(true),
             PermissionState::Denied => Err(format!("Permission denied: {:?}", perm)),
@@ -230,7 +238,7 @@ impl PermissionManager {
 
                 // Prompt user
                 let response = self.prompt_user(perm, context)?;
-                
+
                 match response {
                     PermissionResponse::AllowOnce => {
                         // Don't cache, just allow this once
@@ -258,13 +266,17 @@ impl PermissionManager {
     }
 
     /// Prompt the user for permission
-    fn prompt_user(&self, perm: &PermissionType, context: Option<&str>) -> Result<PermissionResponse, String> {
+    fn prompt_user(
+        &self,
+        perm: &PermissionType,
+        context: Option<&str>,
+    ) -> Result<PermissionResponse, String> {
         use owo_colors::OwoColorize;
 
         println!();
         println!("{}", "⚠️  Permission Request".bright_yellow().bold());
         println!("{}", "─────────────────────".bright_yellow());
-        
+
         // Show what permission is being requested
         match perm {
             PermissionType::Read(path) => {
@@ -299,8 +311,10 @@ impl PermissionManager {
         io::stdout().flush().expect("Failed to flush stdout");
 
         let mut input = String::new();
-        io::stdin().read_line(&mut input).map_err(|e| e.to_string())?;
-        
+        io::stdin()
+            .read_line(&mut input)
+            .map_err(|e| e.to_string())?;
+
         match input.trim().to_lowercase().as_str() {
             "y" | "yes" => Ok(PermissionResponse::AllowOnce),
             "a" | "all" => Ok(PermissionResponse::AllowAll),
@@ -314,15 +328,19 @@ impl PermissionManager {
     }
 
     /// Check if a path is under a granted parent path (for batch permissions)
-    /// 
+    ///
     /// This method is designed for future batch permission prompting functionality,
     /// where granting permission for a directory would also grant permission for all
     /// subdirectories and files within it.
-    /// 
+    ///
     /// Example: If permission is granted for "/home/user/projects", then access to
     /// "/home/user/projects/myapp/src/main.lf" would also be allowed.
-    #[allow(dead_code)]  // Reserved for future batch permission feature
-    pub fn has_parent_permission(&self, path: &str, perm_type: fn(String) -> PermissionType) -> bool {
+    #[allow(dead_code)] // Reserved for future batch permission feature
+    pub fn has_parent_permission(
+        &self,
+        path: &str,
+        perm_type: fn(String) -> PermissionType,
+    ) -> bool {
         // Check if we have permission for the exact path
         if let Some(&granted) = self.granted.get(&perm_type(path.to_string())) {
             return granted;
@@ -377,34 +395,55 @@ mod tests {
     #[test]
     fn test_allow_all_permits_everything() {
         let mut pm = PermissionManager::allow_all();
-        
-        assert_eq!(pm.check(&PermissionType::Read("/tmp/test".to_string())), PermissionState::Granted);
-        assert_eq!(pm.check(&PermissionType::Write("/tmp/test".to_string())), PermissionState::Granted);
-        assert_eq!(pm.check(&PermissionType::Net("example.com".to_string())), PermissionState::Granted);
-        assert_eq!(pm.check(&PermissionType::Run("ls".to_string())), PermissionState::Granted);
+
+        assert_eq!(
+            pm.check(&PermissionType::Read("/tmp/test".to_string())),
+            PermissionState::Granted
+        );
+        assert_eq!(
+            pm.check(&PermissionType::Write("/tmp/test".to_string())),
+            PermissionState::Granted
+        );
+        assert_eq!(
+            pm.check(&PermissionType::Net("example.com".to_string())),
+            PermissionState::Granted
+        );
+        assert_eq!(
+            pm.check(&PermissionType::Run("ls".to_string())),
+            PermissionState::Granted
+        );
     }
 
     #[test]
     fn test_specific_flags() {
         let mut pm = PermissionManager::with_flags(false, true, false, false, false);
-        
-        assert_eq!(pm.check(&PermissionType::Read("/tmp/test".to_string())), PermissionState::Granted);
-        assert_eq!(pm.check(&PermissionType::Write("/tmp/test".to_string())), PermissionState::Prompt);
+
+        assert_eq!(
+            pm.check(&PermissionType::Read("/tmp/test".to_string())),
+            PermissionState::Granted
+        );
+        assert_eq!(
+            pm.check(&PermissionType::Write("/tmp/test".to_string())),
+            PermissionState::Prompt
+        );
     }
 
     #[test]
     fn test_default_requires_prompt() {
         let mut pm = PermissionManager::new();
         pm.interactive = false; // Disable interactive mode for test
-        
-        assert_eq!(pm.check(&PermissionType::Read("/tmp/test".to_string())), PermissionState::Prompt);
+
+        assert_eq!(
+            pm.check(&PermissionType::Read("/tmp/test".to_string())),
+            PermissionState::Prompt
+        );
     }
 
     #[test]
     fn test_cached_permission_grants() {
         let mut pm = PermissionManager::new();
         let perm = PermissionType::Read("/tmp/test".to_string());
-        
+
         pm.granted.insert(perm.clone(), true);
         assert_eq!(pm.check(&perm), PermissionState::Granted);
     }
@@ -413,7 +452,7 @@ mod tests {
     fn test_cached_permission_denies() {
         let mut pm = PermissionManager::new();
         let perm = PermissionType::Read("/tmp/test".to_string());
-        
+
         pm.granted.insert(perm.clone(), false);
         assert_eq!(pm.check(&perm), PermissionState::Denied);
     }
@@ -426,7 +465,7 @@ mod tests {
             if let Ok(home) = std::env::var("HOME") {
                 let protected_path = format!("{}/.local/share/loft/permissions.json", home);
                 assert!(PermissionManager::is_protected_path(&protected_path));
-                
+
                 let safe_path = "/tmp/test.txt";
                 assert!(!PermissionManager::is_protected_path(safe_path));
             }
@@ -437,7 +476,7 @@ mod tests {
             if let Ok(appdata) = std::env::var("LOCALAPPDATA") {
                 let protected_path = format!("{}\\loft\\permissions.json", appdata);
                 assert!(PermissionManager::is_protected_path(&protected_path));
-                
+
                 let safe_path = "C:\\temp\\test.txt";
                 assert!(!PermissionManager::is_protected_path(safe_path));
             }

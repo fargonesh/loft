@@ -20,6 +20,7 @@ import Docs from './Docs';
 import PackageInfo from './PackageInfo';
 import PackageDocs from './PackageDocs';
 import Layout from './Layout';
+import Playground from './Playground';
 
 const Home = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -153,6 +154,12 @@ const Home = () => {
                   Architecture
                 </Link>
               </li>
+              <li>
+                <Link to="/playground" className="flex items-center gap-2 text-bio-green font-bold hover:underline transition-colors">
+                  <span className="w-1.5 h-1.5 rounded-full bg-bio-green"></span>
+                  Try Playground ✨
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
@@ -171,6 +178,7 @@ const App = () => {
         <Route path="/book/*" element={<Docs />} />
         <Route path="/p/:package" element={<PackageInfo />} />
         <Route path="/d/:package" element={<PackageDocs />} />
+        <Route path="/playground" element={<Playground />} />
       </Routes>
     </BrowserRouter>
   );

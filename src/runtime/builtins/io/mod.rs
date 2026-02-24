@@ -9,4 +9,4 @@ pub fn create_io_builtin() -> BuiltinStruct {
 }
 
 // Register the builtin automatically
-crate::submit_builtin!("fs", create_io_builtin);
+crate::submit_builtin!("fs", create_io_builtin, "io");

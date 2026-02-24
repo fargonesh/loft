@@ -1,0 +1,6 @@
+{
+  "dependencies": {},
+  "entrypoint": "src/main.lf",
+  "name": "test_proj",
+  "version": "0.1.0"
+}

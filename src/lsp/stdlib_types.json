@@ -856,6 +856,41 @@
         }
       }
     },
+    "Ord": {
+      "documentation": "Trait for comparison operations (>, >=, <, <=, ==, !=)",
+      "methods": {
+        "gt": {
+          "params": ["self", "other: any"],
+          "return_type": "bool",
+          "documentation": "Check if this value is greater than another"
+        },
+        "ge": {
+          "params": ["self", "other: any"],
+          "return_type": "bool",
+          "documentation": "Check if this value is greater than or equal to another"
+        },
+        "lt": {
+          "params": ["self", "other: any"],
+          "return_type": "bool",
+          "documentation": "Check if this value is less than another"
+        },
+        "le": {
+          "params": ["self", "other: any"],
+          "return_type": "bool",
+          "documentation": "Check if this value is less than or equal to another"
+        },
+        "eq": {
+          "params": ["self", "other: any"],
+          "return_type": "bool",
+          "documentation": "Check if this value is equal to another"
+        },
+        "ne": {
+          "params": ["self", "other: any"],
+          "return_type": "bool",
+          "documentation": "Check if this value is not equal to another"
+        }
+      }
+    },
     "Index": {
       "documentation": "Trait for indexing operation ([])",
       "methods": {
@@ -863,6 +898,56 @@
           "params": ["self", "index: any"],
           "return_type": "any",
           "documentation": "Get a value at the specified index"
+        }
+      }
+    },
+    "BitAnd": {
+      "documentation": "Trait for bitwise AND operation (&)",
+      "methods": {
+        "bit_and": {
+          "params": ["self", "other: any"],
+          "return_type": "any",
+          "documentation": "Perform bitwise AND with another value"
+        }
+      }
+    },
+    "BitOr": {
+      "documentation": "Trait for bitwise OR operation (|)",
+      "methods": {
+        "bit_or": {
+          "params": ["self", "other: any"],
+          "return_type": "any",
+          "documentation": "Perform bitwise OR with another value"
+        }
+      }
+    },
+    "BitXor": {
+      "documentation": "Trait for bitwise XOR operation (^)",
+      "methods": {
+        "bit_xor": {
+          "params": ["self", "other: any"],
+          "return_type": "any",
+          "documentation": "Perform bitwise XOR with another value"
+        }
+      }
+    },
+    "Shl": {
+      "documentation": "Trait for bitwise left shift operation (<<)",
+      "methods": {
+        "shl": {
+          "params": ["self", "other: any"],
+          "return_type": "any",
+          "documentation": "Perform bitwise left shift by another value"
+        }
+      }
+    },
+    "Shr": {
+      "documentation": "Trait for bitwise right shift operation (>>)",
+      "methods": {
+        "shr": {
+          "params": ["self", "other: any"],
+          "return_type": "any",
+          "documentation": "Perform bitwise right shift by another value"
         }
       }
     },

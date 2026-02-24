@@ -48,7 +48,7 @@ impl Iterator for InputStream<'_> {
         if let Some(c) = self.input.get(self.position) {
             let ch = *c as char;
             self.position += 1;
-            
+
             // Update line and column tracking
             if ch == '\n' {
                 self.line += 1;
@@ -56,7 +56,7 @@ impl Iterator for InputStream<'_> {
             } else {
                 self.column += 1;
             }
-            
+
             return Some(ch);
         };
 

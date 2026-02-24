@@ -1,5 +1,5 @@
-use std::str::FromStr;
 use std::fmt;
+use std::str::FromStr;
 
 use rust_decimal::Decimal;
 
@@ -13,13 +13,13 @@ pub enum Token {
     String(String),
     Punct(String),
     Op(String),
-    DocComment(String),  // For doc comments like /// or /** */
-    Comment(String),     // For regular comments like // or /* */
-    TemplateStart,       // `
+    DocComment(String),     // For doc comments like /// or /** */
+    Comment(String),        // For regular comments like // or /* */
+    TemplateStart,          // `
     TemplateString(String), // Text part of template literal
-    TemplateExprStart,   // ${
-    TemplateExprEnd,     // }
-    TemplateEnd,         // `
+    TemplateExprStart,      // ${
+    TemplateExprEnd,        // }
+    TemplateEnd,            // `
 }
 
 impl fmt::Display for Token {
@@ -45,12 +45,18 @@ impl fmt::Display for Token {
 pub struct TokenStream<'a> {
     pub(crate) input: InputStream<'a>,
     pub(crate) buffer: Vec<Token>,
-    pub(crate) last_doc_comment: Option<String>,  // Store the last doc comment
+    pub(crate) last_doc_comment: Option<String>, // Store the last doc comment
 }
 
-pub const KEYWORDS: &[&str] = &["let", "const", "fn", "if", "else", "while", "for", "in", "return", "break", "continue", "match", "def", "enum", "impl", "trait", "async", "await", "lazy", "mut", "true", "false", "learn", "teach"];
-pub const OPERATORS: &[char] = &['+', '-', '*', '/', '%', '=', '!', '<', '>', '&', '|', '^', '~', '.', '@', '?'];
-pub const PUNCT: &[char] = &[',', ';', ':', '(', ')', '{', '}', '[', ']'];
+pub const KEYWORDS: &[&str] = &[
+    "let", "const", "fn", "if", "else", "while", "for", "in", "return", "break", "continue",
+    "match", "def", "enum", "impl", "trait", "async", "await", "lazy", "mut", "true", "false",
+    "learn", "teach",
+];
+pub const OPERATORS: &[char] = &[
+    '+', '-', '*', '/', '%', '=', '!', '<', '>', '&', '|', '^', '~', '.', '@', '?',
+];
+pub const PUNCT: &[char] = &[',', ';', ':', '(', ')', '{', '}', '[', ']', '#'];
 
 impl TokenStream<'_> {
     pub fn is_keyword(s: &str) -> bool {
@@ -144,7 +150,7 @@ impl TokenStream<'_> {
             }
         }
 
-        s
+        return s;
     }
 
     pub fn read_string(&mut self) -> Result<Token> {
@@ -153,15 +159,15 @@ impl TokenStream<'_> {
 
     pub fn read_template_literal(&mut self) -> Result<Vec<Token>> {
         let mut tokens = vec![Token::TemplateStart];
-        
+
         // Skip the opening backtick
         self.input.next();
-        
+
         let mut text = String::new();
-        
+
         while !self.input.eof() {
             let c = self.input.peek().unwrap();
-            
+
             if c == '`' {
                 // End of template literal
                 if !text.is_empty() {
@@ -174,21 +180,21 @@ impl TokenStream<'_> {
                 // Check for interpolation start
                 let pos = self.input.save_position();
                 self.input.next(); // consume '$'
-                
+
                 if !self.input.eof() && self.input.peek().unwrap() == '{' {
                     // This is an interpolation
                     if !text.is_empty() {
                         tokens.push(Token::TemplateString(text));
                         text = String::new();
                     }
-                    
+
                     tokens.push(Token::TemplateExprStart);
                     self.input.next(); // consume '{'
-                    
+
                     // Parse the expression inside ${} by collecting characters until balanced }
                     let expr_tokens = self.parse_template_expression()?;
                     tokens.extend(expr_tokens);
-                    
+
                     tokens.push(Token::TemplateExprEnd);
                     // The closing '}' is consumed by parse_template_expression
                 } else {
@@ -218,11 +224,13 @@ impl TokenStream<'_> {
                 text.push(self.input.next().unwrap());
             }
         }
-        
+
         if !matches!(tokens.last(), Some(Token::TemplateEnd)) {
-            return Err(self.input.croak("Unterminated template literal".to_string(), None));
+            return Err(self
+                .input
+                .croak("Unterminated template literal".to_string(), None));
         }
-        
+
         Ok(tokens)
     }
 
@@ -230,11 +238,11 @@ impl TokenStream<'_> {
         let mut tokens = Vec::new();
         let mut brace_count = 1;
         let mut expr_text = String::new();
-        
+
         // Collect the expression text until we find the matching closing brace
         while !self.input.eof() && brace_count > 0 {
             let c = self.input.peek().unwrap();
-            
+
             if c == '{' {
                 brace_count += 1;
                 expr_text.push(self.input.next().unwrap());
@@ -250,50 +258,52 @@ impl TokenStream<'_> {
                 expr_text.push(self.input.next().unwrap());
             }
         }
-        
+
         if brace_count > 0 {
-            return Err(self.input.croak("Unterminated template expression".to_string(), None));
+            return Err(self
+                .input
+                .croak("Unterminated template expression".to_string(), None));
         }
-        
+
         // Now parse the expression text as a separate token stream
         if !expr_text.is_empty() {
             let expr_input = InputStream::new("template_expr", &expr_text);
             let mut expr_stream = TokenStream::new(expr_input);
-            
+
             // Parse all tokens from the expression
             while let Some(token_result) = expr_stream.next() {
                 tokens.push(token_result?);
             }
         }
-        
+
         Ok(tokens)
     }
 
     pub fn skip_whitespace_and_comments(&mut self) -> Result<()> {
         loop {
             // Skip regular whitespace
-            self.read_while(Self::is_whitespace);
-            
+            self.read_while(|c| Self::is_whitespace(c));
+
             if self.input.eof() {
                 break;
             }
-            
+
             // Check for comments
             let current = self.input.peek().unwrap();
             if current == '/' {
                 // Look ahead to see if it's a comment
                 let pos = self.input.save_position();
                 self.input.next(); // consume first '/'
-                
+
                 if !self.input.eof() {
                     let next = self.input.peek().unwrap();
                     if next == '/' {
                         self.input.next(); // consume second '/'
-                        
+
                         // Check if it's a doc comment (///)
                         if !self.input.eof() && self.input.peek().unwrap() == '/' {
                             self.input.next(); // consume third '/'
-                            // This is a doc comment, capture it
+                                               // This is a doc comment, capture it
                             let doc_text = self.read_while(|c| c != '\n').trim().to_string();
                             self.last_doc_comment = Some(doc_text);
                             continue;
@@ -304,40 +314,43 @@ impl TokenStream<'_> {
                         }
                     } else if next == '*' {
                         self.input.next(); // consume '*'
-                        
+
                         // Check if it's a doc comment (/** */)
                         let is_doc_comment = !self.input.eof() && self.input.peek().unwrap() == '*';
                         if is_doc_comment {
                             self.input.next(); // consume third '*'
                         }
-                        
+
                         // Read block comment content
                         let mut comment_text = String::new();
                         let mut found_end = false;
                         while !self.input.eof() {
                             let c = self.input.next().unwrap();
-                            if c == '*' && !self.input.eof()
-                                && self.input.peek().unwrap() == '/' {
+                            if c == '*' && !self.input.eof() {
+                                if self.input.peek().unwrap() == '/' {
                                     self.input.next(); // consume '/'
                                     found_end = true;
                                     break;
                                 }
+                            }
                             if is_doc_comment {
                                 comment_text.push(c);
                             }
                         }
-                        
+
                         if !found_end {
-                            return Err(self.input.croak("Unterminated block comment".to_string(), None));
+                            return Err(self
+                                .input
+                                .croak("Unterminated block comment".to_string(), None));
                         }
-                        
+
                         if is_doc_comment {
                             self.last_doc_comment = Some(comment_text.trim().to_string());
                         }
                         continue;
                     }
                 }
-                
+
                 // Not a comment, restore position
                 self.input.restore_position(pos);
                 break;
@@ -354,7 +367,7 @@ impl TokenStream<'_> {
         if !self.buffer.is_empty() {
             return Ok(Some(self.buffer.remove(0)));
         }
-        
+
         self.skip_whitespace_and_comments()?;
         if self.input.eof() {
             return Ok(None);
@@ -378,31 +391,53 @@ impl TokenStream<'_> {
                 self.input.next(); // consume the character
                 Ok(Token::Punct(c.to_string()))
             }
-            c if Self::is_op(c) => {
-                let op = self.read_while(Self::is_op);
-                Ok(Token::Op(op))
-            }
+            c if Self::is_op(c) => self.read_op(),
             c => {
-                let msg = format!("Unexpected character '{}'", c);
-                let help = "This character is not recognized as part of any token in loft.";
                 return Err(self
                     .input
-                    .croak_with_help(msg, help, Some(1)));
+                    .croak(format!("Unexpected token '{}'", c), Some(1)));
             }
         };
 
         Some(tok).transpose()
     }
 
-    #[allow(clippy::should_implement_trait)]
+    fn read_op(&mut self) -> Result<Token> {
+        let mut op = String::new();
+
+        while let Some(c) = self.input.peek() {
+            if Self::is_op(c) {
+                // Peek lookahead for specific multi-character operators
+                if op.is_empty() {
+                    op.push(c);
+                    self.input.next();
+                } else {
+                    let combined = format!("{}{}", op, c);
+                    match combined.as_str() {
+                        "==" | "!=" | "<=" | ">=" | "&&" | "||" | "<<" | ">>" | "=>" | "->" => {
+                            op.push(c);
+                            self.input.next();
+                            break; // Done with these specific 2-char ops
+                        }
+                        _ => break, // Don't combine other operators
+                    }
+                }
+            } else {
+                break;
+            }
+        }
+
+        Ok(Token::Op(op))
+    }
+
     pub fn next(&mut self) -> Option<Result<Token>> {
         self.parse_next().transpose()
     }
-    
+
     pub fn push_back(&mut self, token: Token) {
         self.buffer.insert(0, token);
     }
-    
+
     pub fn take_last_doc_comment(&mut self) -> Option<String> {
         self.last_doc_comment.take()
     }

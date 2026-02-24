@@ -1,151 +1,192 @@
-use crate::runtime::builtin::{BuiltinStruct, BuiltinMethod};
+use crate::runtime::builtin::{BuiltinMethod, BuiltinStruct};
 use crate::runtime::value::Value;
-use crate::runtime::{RuntimeError, RuntimeResult, Interpreter};
-use crate::{loft_arg, loft_this};
-use rust_decimal::Decimal;
+use crate::runtime::{RuntimeError, RuntimeResult};
 use loft_builtin_macros::loft_builtin;
+use rust_decimal::Decimal;
 
 /// Split a string by a delimiter
-/// @param delimiter: str
-/// @return Array<str>
 #[loft_builtin(string.split)]
-fn string_split(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    let s = loft_this!(this, String, "split()");
-    let delim = loft_arg!(args, 0, String, "split()");
-    
-    let parts: Vec<Value> = s.split(delim.as_str())
-        .map(|part| Value::String(part.to_string()))
-        .collect();
-    Ok(Value::Array(parts))
+fn string_split(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    if args.is_empty() {
+        return Err(RuntimeError::new("split() requires a delimiter argument"));
+    }
+
+    match (this, &args[0]) {
+        (Value::String(s), Value::String(delim)) => {
+            let parts: Vec<Value> = s
+                .split(delim.as_str())
+                .map(|part| Value::String(part.to_string()))
+                .collect();
+            Ok(Value::Array(parts))
+        }
+        (Value::String(_), _) => Err(RuntimeError::new("split() delimiter must be a string")),
+        _ => Err(RuntimeError::new("split() can only be called on strings")),
+    }
 }
 
 /// Join an array of strings with a delimiter
-/// @param array: Array<any>
-/// @param delimiter: str
-/// @return str
 #[loft_builtin(string.join)]
-fn string_join(_interpreter: &mut Interpreter, _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    let arr = loft_arg!(args, 0, Array, "join()");
-    let delim = loft_arg!(args, 1, String, "join()");
-    
-    let strings: Result<Vec<String>, RuntimeError> = arr.iter()
-        .map(|v| match v {
-            Value::String(s) => Ok(s.clone()),
-            Value::Number(n) => Ok(n.to_string()),
-            Value::Boolean(b) => Ok(b.to_string()),
-            _ => Err(RuntimeError::new("join() array must contain strings, numbers, or booleans")),
-        })
-        .collect();
-    
-    let strings = strings?;
-    Ok(Value::String(strings.join(delim)))
+fn string_join(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    if args.len() < 2 {
+        return Err(RuntimeError::new(
+            "join() requires an array and delimiter arguments",
+        ));
+    }
+
+    match (&args[0], &args[1]) {
+        (Value::Array(arr), Value::String(delim)) => {
+            let strings: Result<Vec<String>, RuntimeError> = arr
+                .iter()
+                .map(|v| match v {
+                    Value::String(s) => Ok(s.clone()),
+                    Value::Number(n) => Ok(n.to_string()),
+                    Value::Boolean(b) => Ok(b.to_string()),
+                    _ => Err(RuntimeError::new(
+                        "join() array must contain strings, numbers, or booleans",
+                    )),
+                })
+                .collect();
+
+            let strings = strings?;
+            Ok(Value::String(strings.join(delim)))
+        }
+        (Value::Array(_), _) => Err(RuntimeError::new("join() delimiter must be a string")),
+        _ => Err(RuntimeError::new("join() first argument must be an array")),
+    }
 }
 
 /// Trim whitespace from both ends of a string
-/// @return str
 #[loft_builtin(string.trim)]
-fn string_trim(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
-    let s = loft_this!(this, String, "trim()");
-    Ok(Value::String(s.trim().to_string()))
+fn string_trim(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+    match this {
+        Value::String(s) => Ok(Value::String(s.trim().to_string())),
+        _ => Err(RuntimeError::new("trim() can only be called on strings")),
+    }
 }
 
 /// Trim whitespace from the start of a string
-/// @return str
 #[loft_builtin(string.trim_start)]
-fn string_trim_start(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
-    let s = loft_this!(this, String, "trim_start()");
-    Ok(Value::String(s.trim_start().to_string()))
+fn string_trim_start(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+    match this {
+        Value::String(s) => Ok(Value::String(s.trim_start().to_string())),
+        _ => Err(RuntimeError::new(
+            "trim_start() can only be called on strings",
+        )),
+    }
 }
 
 /// Trim whitespace from the end of a string
-/// @return str
 #[loft_builtin(string.trim_end)]
-fn string_trim_end(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
-    let s = loft_this!(this, String, "trim_end()");
-    Ok(Value::String(s.trim_end().to_string()))
+fn string_trim_end(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+    match this {
+        Value::String(s) => Ok(Value::String(s.trim_end().to_string())),
+        _ => Err(RuntimeError::new(
+            "trim_end() can only be called on strings",
+        )),
+    }
 }
 
 /// Replace all occurrences of a substring with another
-/// @param pattern: str
-/// @param replacement: str
-/// @return str
 #[loft_builtin(string.replace)]
-fn string_replace(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    let s = loft_this!(this, String, "replace()");
-    let pattern = loft_arg!(args, 0, String, "replace()");
-    let replacement = loft_arg!(args, 1, String, "replace()");
-    
-    Ok(Value::String(s.replace(pattern.as_str(), replacement.as_str())))
+fn string_replace(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    if args.len() < 2 {
+        return Err(RuntimeError::new(
+            "replace() requires pattern and replacement arguments",
+        ));
+    }
+
+    match (this, &args[0], &args[1]) {
+        (Value::String(s), Value::String(pattern), Value::String(replacement)) => Ok(
+            Value::String(s.replace(pattern.as_str(), replacement.as_str())),
+        ),
+        (Value::String(_), _, _) => Err(RuntimeError::new("replace() arguments must be strings")),
+        _ => Err(RuntimeError::new("replace() can only be called on strings")),
+    }
 }
 
 /// Convert string to uppercase
-/// @return str
 #[loft_builtin(string.to_upper)]
-fn string_to_upper(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
-    let s = loft_this!(this, String, "to_upper()");
-    Ok(Value::String(s.to_uppercase()))
+fn string_to_upper(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+    match this {
+        Value::String(s) => Ok(Value::String(s.to_uppercase())),
+        _ => Err(RuntimeError::new(
+            "to_upper() can only be called on strings",
+        )),
+    }
 }
 
 /// Convert string to lowercase
 #[loft_builtin(string.to_lower)]
-fn string_to_lower(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn string_to_lower(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::String(s) => Ok(Value::String(s.to_lowercase())),
-        _ => Err(RuntimeError::new("to_lower() can only be called on strings")),
+        _ => Err(RuntimeError::new(
+            "to_lower() can only be called on strings",
+        )),
     }
 }
 
 /// Check if string starts with a prefix
 #[loft_builtin(string.starts_with)]
-fn string_starts_with(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn string_starts_with(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
-        return Err(RuntimeError::new("starts_with() requires a prefix argument"));
+        return Err(RuntimeError::new(
+            "starts_with() requires a prefix argument",
+        ));
     }
-    
+
     match (this, &args[0]) {
         (Value::String(s), Value::String(prefix)) => {
             Ok(Value::Boolean(s.starts_with(prefix.as_str())))
         }
         (Value::String(_), _) => Err(RuntimeError::new("starts_with() argument must be a string")),
-        _ => Err(RuntimeError::new("starts_with() can only be called on strings")),
+        _ => Err(RuntimeError::new(
+            "starts_with() can only be called on strings",
+        )),
     }
 }
 
 /// Check if string ends with a suffix
 #[loft_builtin(string.ends_with)]
-fn string_ends_with(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn string_ends_with(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("ends_with() requires a suffix argument"));
     }
-    
+
     match (this, &args[0]) {
         (Value::String(s), Value::String(suffix)) => {
             Ok(Value::Boolean(s.ends_with(suffix.as_str())))
         }
         (Value::String(_), _) => Err(RuntimeError::new("ends_with() argument must be a string")),
-        _ => Err(RuntimeError::new("ends_with() can only be called on strings")),
+        _ => Err(RuntimeError::new(
+            "ends_with() can only be called on strings",
+        )),
     }
 }
 
 /// Check if string contains a substring
 #[loft_builtin(string.contains)]
-fn string_contains(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn string_contains(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
-        return Err(RuntimeError::new("contains() requires a substring argument"));
+        return Err(RuntimeError::new(
+            "contains() requires a substring argument",
+        ));
     }
-    
+
     match (this, &args[0]) {
         (Value::String(s), Value::String(substring)) => {
             Ok(Value::Boolean(s.contains(substring.as_str())))
         }
         (Value::String(_), _) => Err(RuntimeError::new("contains() argument must be a string")),
-        _ => Err(RuntimeError::new("contains() can only be called on strings")),
+        _ => Err(RuntimeError::new(
+            "contains() can only be called on strings",
+        )),
     }
 }
 
 /// Get the length of a string
 #[loft_builtin(string.length)]
-fn string_length(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
+fn string_length(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::String(s) => Ok(Value::Number(Decimal::from(s.len()))),
         _ => Err(RuntimeError::new("length() can only be called on strings")),
@@ -154,49 +195,56 @@ fn string_length(_interpreter: &mut Interpreter, this: &Value, _args: &[Value]) 
 
 /// Get a substring
 #[loft_builtin(string.substring)]
-fn string_substring(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn string_substring(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("substring() requires a start index"));
     }
-    
+
     match this {
         Value::String(s) => {
             let start = match &args[0] {
-                Value::Number(n) => n.to_string().parse::<usize>()
+                Value::Number(n) => n
+                    .to_string()
+                    .parse::<usize>()
                     .map_err(|_| RuntimeError::new("Start index must be a non-negative integer"))?,
                 _ => return Err(RuntimeError::new("Start index must be a number")),
             };
-            
+
             let end = if args.len() > 1 {
                 match &args[1] {
-                    Value::Number(n) => n.to_string().parse::<usize>()
-                        .map_err(|_| RuntimeError::new("End index must be a non-negative integer"))?,
+                    Value::Number(n) => n.to_string().parse::<usize>().map_err(|_| {
+                        RuntimeError::new("End index must be a non-negative integer")
+                    })?,
                     _ => return Err(RuntimeError::new("End index must be a number")),
                 }
             } else {
                 s.len()
             };
-            
+
             if start > s.len() || end > s.len() || start > end {
                 return Err(RuntimeError::new("Invalid substring indices"));
             }
-            
+
             Ok(Value::String(s[start..end].to_string()))
         }
-        _ => Err(RuntimeError::new("substring() can only be called on strings")),
+        _ => Err(RuntimeError::new(
+            "substring() can only be called on strings",
+        )),
     }
 }
 
 /// Repeat a string n times
 #[loft_builtin(string.repeat)]
-fn string_repeat(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn string_repeat(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("repeat() requires a count argument"));
     }
-    
+
     match (this, &args[0]) {
         (Value::String(s), Value::Number(n)) => {
-            let count = n.to_string().parse::<usize>()
+            let count = n
+                .to_string()
+                .parse::<usize>()
                 .map_err(|_| RuntimeError::new("Count must be a non-negative integer"))?;
             Ok(Value::String(s.repeat(count)))
         }
@@ -207,26 +255,32 @@ fn string_repeat(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -
 
 /// Pad string to a certain length with spaces on the left
 #[loft_builtin(string.pad_start)]
-fn string_pad_start(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn string_pad_start(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("pad_start() requires a length argument"));
     }
-    
+
     match (this, &args[0]) {
         (Value::String(s), Value::Number(n)) => {
-            let target_len = n.to_string().parse::<usize>()
+            let target_len = n
+                .to_string()
+                .parse::<usize>()
                 .map_err(|_| RuntimeError::new("Length must be a non-negative integer"))?;
-            
+
             let pad_char = if args.len() > 1 {
                 match &args[1] {
                     Value::String(c) if c.len() == 1 => c.chars().next().unwrap(),
-                    Value::String(_) => return Err(RuntimeError::new("Pad character must be a single character")),
+                    Value::String(_) => {
+                        return Err(RuntimeError::new(
+                            "Pad character must be a single character",
+                        ))
+                    }
                     _ => ' ',
                 }
             } else {
                 ' '
             };
-            
+
             if s.len() >= target_len {
                 Ok(Value::String(s.clone()))
             } else {
@@ -235,32 +289,40 @@ fn string_pad_start(_interpreter: &mut Interpreter, this: &Value, args: &[Value]
             }
         }
         (Value::String(_), _) => Err(RuntimeError::new("pad_start() length must be a number")),
-        _ => Err(RuntimeError::new("pad_start() can only be called on strings")),
+        _ => Err(RuntimeError::new(
+            "pad_start() can only be called on strings",
+        )),
     }
 }
 
 /// Pad string to a certain length with spaces on the right
 #[loft_builtin(string.pad_end)]
-fn string_pad_end(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn string_pad_end(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("pad_end() requires a length argument"));
     }
-    
+
     match (this, &args[0]) {
         (Value::String(s), Value::Number(n)) => {
-            let target_len = n.to_string().parse::<usize>()
+            let target_len = n
+                .to_string()
+                .parse::<usize>()
                 .map_err(|_| RuntimeError::new("Length must be a non-negative integer"))?;
-            
+
             let pad_char = if args.len() > 1 {
                 match &args[1] {
                     Value::String(c) if c.len() == 1 => c.chars().next().unwrap(),
-                    Value::String(_) => return Err(RuntimeError::new("Pad character must be a single character")),
+                    Value::String(_) => {
+                        return Err(RuntimeError::new(
+                            "Pad character must be a single character",
+                        ))
+                    }
                     _ => ' ',
                 }
             } else {
                 ' '
             };
-            
+
             if s.len() >= target_len {
                 Ok(Value::String(s.clone()))
             } else {
@@ -275,7 +337,7 @@ fn string_pad_end(_interpreter: &mut Interpreter, this: &Value, args: &[Value]) 
 
 pub fn create_string_builtin() -> BuiltinStruct {
     let mut string = BuiltinStruct::new("string");
-    
+
     // These are methods that can be called on string values
     // They will be available via the method dispatch system
     string.add_method("split", string_split as BuiltinMethod);
@@ -295,7 +357,7 @@ pub fn create_string_builtin() -> BuiltinStruct {
     string.add_method("repeat", string_repeat as BuiltinMethod);
     string.add_method("pad_start", string_pad_start as BuiltinMethod);
     string.add_method("pad_end", string_pad_end as BuiltinMethod);
-    
+
     string
 }
 

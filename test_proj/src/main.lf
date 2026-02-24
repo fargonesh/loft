@@ -1,0 +1,8 @@
+// Welcome to your new loft project!
+
+term.println("Hello, world!");
+
+// Try some basic operations
+let x = 42;
+let y = x * 2;
+term.println("The answer is:", y);

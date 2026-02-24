@@ -1,11 +1,11 @@
 pub mod stdlib;
-pub mod scanner;
+pub mod terminal;
 
 use crate::parser::{InputStream, Parser, Stmt, Type};
+use regex;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use regex;
 
 #[derive(Debug, Clone)]
 pub struct DocItem {
@@ -40,15 +40,9 @@ pub enum DocItemKind {
 }
 
 pub struct DocGenerator {
-    items: Vec<DocItem>,
-    source_files: HashMap<PathBuf, String>,
-    impl_relations: Vec<(String, String)>,
-}
-
-impl Default for DocGenerator {
-    fn default() -> Self {
-        Self::new()
-    }
+    pub items: Vec<DocItem>,
+    pub source_files: HashMap<PathBuf, String>,
+    pub impl_relations: Vec<(String, String)>,
 }
 
 impl DocGenerator {
@@ -60,18 +54,20 @@ impl DocGenerator {
         }
     }
 
-    /// Parse a loft file and extract documentation items
+    /// Parse a Twang file and extract documentation items
     pub fn parse_file<P: AsRef<Path>>(&mut self, path: P) -> Result<(), String> {
         let path = path.as_ref();
         let content = fs::read_to_string(path)
             .map_err(|e| format!("Failed to read file {}: {}", path.display(), e))?;
 
-        self.source_files.insert(path.to_path_buf(), content.clone());
+        self.source_files
+            .insert(path.to_path_buf(), content.clone());
 
         let input_stream = InputStream::new(path.to_str().unwrap_or("unknown"), &content);
         let mut parser = Parser::new(input_stream);
 
-        let stmts = parser.parse()
+        let stmts = parser
+            .parse()
             .map_err(|e| format!("Failed to parse {}: {}", path.display(), e.message))?;
 
         self.extract_items(&stmts, &content);
@@ -84,15 +80,16 @@ impl DocGenerator {
 
         for stmt in stmts {
             match stmt {
-                Stmt::FunctionDecl { 
-                    name, 
-                    params, 
-                    return_type, 
+                Stmt::FunctionDecl {
+                    name,
+                    params,
+                    return_type,
                     is_async,
                     is_exported,
-                    .. 
+                    ..
                 } => {
-                    let params_vec: Vec<(String, String)> = params.iter()
+                    let params_vec: Vec<(String, String)> = params
+                        .iter()
                         .map(|(n, t)| (n.clone(), Self::type_to_string(t)))
                         .collect();
 
@@ -101,7 +98,8 @@ impl DocGenerator {
                         if *is_exported { "teach " } else { "" },
                         if *is_async { "async " } else { "" },
                         name,
-                        params_vec.iter()
+                        params_vec
+                            .iter()
                             .map(|(n, t)| format!("{}: {}", n, t))
                             .collect::<Vec<_>>()
                             .join(", "),
@@ -121,14 +119,16 @@ impl DocGenerator {
                     });
                 }
                 Stmt::StructDecl { name, fields } => {
-                    let fields_vec: Vec<(String, String)> = fields.iter()
+                    let fields_vec: Vec<(String, String)> = fields
+                        .iter()
                         .map(|(n, t)| (n.clone(), Self::type_to_string(t)))
                         .collect();
 
                     let signature = format!(
                         "def {} {{\n{}\n}}",
                         name,
-                        fields_vec.iter()
+                        fields_vec
+                            .iter()
                             .map(|(n, t)| format!("    {}: {}", n, t))
                             .collect::<Vec<_>>()
                             .join(",\n")
@@ -145,10 +145,13 @@ impl DocGenerator {
                     });
                 }
                 Stmt::TraitDecl { name, methods } => {
-                    let method_names: Vec<String> = methods.iter()
-                        .map(|m| match m {
-                            crate::parser::TraitMethod::Signature { name, .. } => name.clone(),
-                            crate::parser::TraitMethod::Default { name, .. } => name.clone(),
+                    let method_names: Vec<String> = methods
+                        .iter()
+                        .filter_map(|m| match m {
+                            crate::parser::TraitMethod::Signature { name, .. } => {
+                                Some(name.clone())
+                            }
+                            crate::parser::TraitMethod::Default { name, .. } => Some(name.clone()),
                         })
                         .collect();
 
@@ -162,9 +165,12 @@ impl DocGenerator {
                         signature: Some(format!("trait {}", name)),
                     });
                 }
-                Stmt::ConstDecl { name, const_type, .. } => {
-                    let type_str = const_type.as_ref()
-                        .map(Self::type_to_string)
+                Stmt::ConstDecl {
+                    name, const_type, ..
+                } => {
+                    let type_str = const_type
+                        .as_ref()
+                        .map(|t| Self::type_to_string(t))
                         .unwrap_or_else(|| "unknown".to_string());
 
                     self.items.push(DocItem {
@@ -177,8 +183,9 @@ impl DocGenerator {
                     });
                 }
                 Stmt::VarDecl { name, var_type, .. } => {
-                    let type_str = var_type.as_ref()
-                        .map(Self::type_to_string)
+                    let type_str = var_type
+                        .as_ref()
+                        .map(|t| Self::type_to_string(t))
                         .unwrap_or_else(|| "unknown".to_string());
 
                     self.items.push(DocItem {
@@ -190,12 +197,20 @@ impl DocGenerator {
                         signature: Some(format!("let {}: {}", name, type_str)),
                     });
                 }
-                Stmt::ImplBlock { type_name, trait_name, methods } => {
+                Stmt::ImplBlock {
+                    type_name,
+                    trait_name,
+                    methods,
+                } => {
                     if let Some(trait_name) = trait_name {
-                        self.impl_relations.push((trait_name.clone(), type_name.clone()));
+                        self.impl_relations
+                            .push((trait_name.clone(), type_name.clone()));
                     }
                     // Recursively process methods in impl blocks
                     self.extract_items(methods, source);
+                }
+                Stmt::AttrStmt { stmt, .. } => {
+                    self.extract_items(std::slice::from_ref(stmt), source);
                 }
                 _ => {}
             }
@@ -235,10 +250,11 @@ impl DocGenerator {
             } else if line.starts_with("/**") {
                 // Block doc comment
                 let mut doc_lines = vec![];
-                
+
                 if line.contains("*/") {
                     // Single-line block comment
-                    let doc_text = line.strip_prefix("/**")
+                    let doc_text = line
+                        .strip_prefix("/**")
                         .and_then(|s| s.strip_suffix("*/"))
                         .map(|s| s.trim())
                         .unwrap_or("");
@@ -314,17 +330,19 @@ impl DocGenerator {
         ];
 
         for (pattern, extract_next) in patterns {
-            if line.starts_with(pattern)
-                && extract_next {
+            if line.starts_with(pattern) {
+                if extract_next {
                     let rest = line.strip_prefix(pattern).unwrap();
                     // Extract identifier (alphanumeric + underscore)
-                    let name: String = rest.chars()
+                    let name: String = rest
+                        .chars()
                         .take_while(|c| c.is_alphanumeric() || *c == '_')
                         .collect();
                     if !name.is_empty() {
                         return Some(name);
                     }
                 }
+            }
         }
 
         None
@@ -338,17 +356,22 @@ impl DocGenerator {
                 format!(
                     "{}<{}>",
                     base,
-                    type_args.iter()
-                        .map(Self::type_to_string)
+                    type_args
+                        .iter()
+                        .map(|t| Self::type_to_string(t))
                         .collect::<Vec<_>>()
                         .join(", ")
                 )
             }
-            Type::Function { params, return_type } => {
+            Type::Function {
+                params,
+                return_type,
+            } => {
                 format!(
                     "({}) -> {}",
-                    params.iter()
-                        .map(Self::type_to_string)
+                    params
+                        .iter()
+                        .map(|t| Self::type_to_string(t))
                         .collect::<Vec<_>>()
                         .join(", "),
                     Self::type_to_string(return_type)
@@ -356,7 +379,7 @@ impl DocGenerator {
             }
         }
     }
-    
+
     fn opt_type_to_string(ty: &Option<Type>) -> String {
         match ty {
             Some(t) => Self::type_to_string(t),
@@ -379,7 +402,10 @@ impl DocGenerator {
             }
             // Update struct
             if let Some(item) = self.items.iter_mut().find(|i| i.name == type_name) {
-                if let DocItemKind::Struct { implemented_traits, .. } = &mut item.kind {
+                if let DocItemKind::Struct {
+                    implemented_traits, ..
+                } = &mut item.kind
+                {
                     if !implemented_traits.contains(&trait_name) {
                         implemented_traits.push(trait_name.clone());
                     }
@@ -399,8 +425,7 @@ impl DocGenerator {
         // Generate CSS
         let css = self.generate_css();
         let css_path = output_dir.join("style.css");
-        fs::write(&css_path, css)
-            .map_err(|e| format!("Failed to write style.css: {}", e))?;
+        fs::write(&css_path, css).map_err(|e| format!("Failed to write style.css: {}", e))?;
 
         Ok(())
     }
@@ -411,8 +436,13 @@ impl DocGenerator {
         html.push_str("<html lang=\"en\">\n");
         html.push_str("<head>\n");
         html.push_str("    <meta charset=\"UTF-8\">\n");
-        html.push_str("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n");
-        html.push_str(&format!("    <title>{} - loft Documentation</title>\n", package_name));
+        html.push_str(
+            "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n",
+        );
+        html.push_str(&format!(
+            "    <title>{} - Twang Documentation</title>\n",
+            package_name
+        ));
         html.push_str("    <link rel=\"stylesheet\" href=\"style.css\">\n");
         html.push_str("</head>\n");
         html.push_str("<body>\n");
@@ -420,16 +450,24 @@ impl DocGenerator {
         html.push_str("    <div class=\"container\">\n");
 
         // Group items by kind
-        let functions: Vec<_> = self.items.iter()
+        let functions: Vec<_> = self
+            .items
+            .iter()
             .filter(|item| matches!(item.kind, DocItemKind::Function { .. }))
             .collect();
-        let structs: Vec<_> = self.items.iter()
+        let structs: Vec<_> = self
+            .items
+            .iter()
             .filter(|item| matches!(item.kind, DocItemKind::Struct { .. }))
             .collect();
-        let traits: Vec<_> = self.items.iter()
+        let traits: Vec<_> = self
+            .items
+            .iter()
             .filter(|item| matches!(item.kind, DocItemKind::Trait { .. }))
             .collect();
-        let constants: Vec<_> = self.items.iter()
+        let constants: Vec<_> = self
+            .items
+            .iter()
             .filter(|item| matches!(item.kind, DocItemKind::Constant { .. }))
             .collect();
 
@@ -474,16 +512,27 @@ impl DocGenerator {
     fn generate_item_html(&self, item: &DocItem) -> String {
         let mut html = String::new();
         html.push_str("        <div class=\"doc-item\">\n");
-        html.push_str(&format!("            <h3 id=\"{}\">{}</h3>\n", item.name, item.name));
+        html.push_str(&format!(
+            "            <h3 id=\"{}\">{}</h3>\n",
+            item.name, item.name
+        ));
 
         // Generate signature with links
         let signature_html = match &item.kind {
-            DocItemKind::Function { params, return_type, is_async, is_exported } => {
-                let params_html = params.iter().map(|(name, ty)| {
-                    format!("{}: {}", name, self.type_to_html_string(ty))
-                }).collect::<Vec<_>>().join(", ");
-                
-                format!("{}{}fn {}({}) -> {}",
+            DocItemKind::Function {
+                params,
+                return_type,
+                is_async,
+                is_exported,
+            } => {
+                let params_html = params
+                    .iter()
+                    .map(|(name, ty)| format!("{}: {}", name, self.type_to_html_string(ty)))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+
+                format!(
+                    "{}{}fn {}({}) -> {}",
                     if *is_exported { "teach " } else { "" },
                     if *is_async { "async " } else { "" },
                     item.name,
@@ -518,7 +567,12 @@ impl DocGenerator {
 
         // Add details based on kind
         match &item.kind {
-            DocItemKind::Function { params, return_type, is_exported, .. } => {
+            DocItemKind::Function {
+                params,
+                return_type,
+                is_exported,
+                ..
+            } => {
                 if !params.is_empty() {
                     html.push_str("            <h4>Parameters</h4>\n");
                     html.push_str("            <ul class=\"parameters\">\n");
@@ -539,7 +593,10 @@ impl DocGenerator {
                     html.push_str("            <p class=\"exported\">✓ Exported (teach)</p>\n");
                 }
             }
-            DocItemKind::Struct { fields, implemented_traits } => {
+            DocItemKind::Struct {
+                fields,
+                implemented_traits,
+            } => {
                 if !implemented_traits.is_empty() {
                     html.push_str("            <h4>Implemented Traits</h4>\n");
                     html.push_str("            <ul class=\"traits\">\n");
@@ -566,7 +623,10 @@ impl DocGenerator {
                     html.push_str("            </ul>\n");
                 }
             }
-            DocItemKind::Trait { methods, implementors } => {
+            DocItemKind::Trait {
+                methods,
+                implementors,
+            } => {
                 if !implementors.is_empty() {
                     html.push_str("            <h4>Implementors</h4>\n");
                     html.push_str("            <ul class=\"implementors\">\n");
@@ -604,10 +664,10 @@ impl DocGenerator {
         // This is a simplification. Ideally we'd parse the type string.
         let mut html = Self::escape_html(type_str);
         let mut replacements = Vec::new();
-        
+
         // Sort items by name length descending to avoid partial replacements
         let mut item_names: Vec<String> = self.items.iter().map(|i| i.name.clone()).collect();
-        item_names.sort_by_key(|b| std::cmp::Reverse(b.len()));
+        item_names.sort_by(|a, b| b.len().cmp(&a.len()));
 
         for (i, name) in item_names.iter().enumerate() {
             // Only replace whole words
@@ -771,7 +831,10 @@ let x = 42;
 
         let doc_comments = DocGenerator::extract_doc_comments(source);
         assert!(doc_comments.contains_key("add"));
-        assert_eq!(doc_comments.get("add").unwrap(), "This is a documented function\nIt adds two numbers");
+        assert_eq!(
+            doc_comments.get("add").unwrap(),
+            "This is a documented function\nIt adds two numbers"
+        );
         assert!(doc_comments.contains_key("x"));
     }
 
@@ -798,10 +861,25 @@ fn add(a: num, b: num) -> num {
 
     #[test]
     fn test_extract_name_from_declaration() {
-        assert_eq!(DocGenerator::extract_name_from_declaration("fn test() {}"), Some("test".to_string()));
-        assert_eq!(DocGenerator::extract_name_from_declaration("teach fn exported() {}"), Some("exported".to_string()));
-        assert_eq!(DocGenerator::extract_name_from_declaration("let x = 42;"), Some("x".to_string()));
-        assert_eq!(DocGenerator::extract_name_from_declaration("const PI = 3.14;"), Some("PI".to_string()));
-        assert_eq!(DocGenerator::extract_name_from_declaration("def Point {"), Some("Point".to_string()));
+        assert_eq!(
+            DocGenerator::extract_name_from_declaration("fn test() {}"),
+            Some("test".to_string())
+        );
+        assert_eq!(
+            DocGenerator::extract_name_from_declaration("teach fn exported() {}"),
+            Some("exported".to_string())
+        );
+        assert_eq!(
+            DocGenerator::extract_name_from_declaration("let x = 42;"),
+            Some("x".to_string())
+        );
+        assert_eq!(
+            DocGenerator::extract_name_from_declaration("const PI = 3.14;"),
+            Some("PI".to_string())
+        );
+        assert_eq!(
+            DocGenerator::extract_name_from_declaration("def Point {"),
+            Some("Point".to_string())
+        );
     }
 }
