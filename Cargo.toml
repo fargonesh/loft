@@ -18,6 +18,7 @@ strum = { version = "0.27.2", features = ["derive"] }
 rustyline = "14.0"
 owo-colors = "4.0"
 itertools = "0.13"
+chrono = "0.4"
 clap = { version = "4.5", features = ["derive"] }
 tower-lsp = { package = "tower-lsp-f", version = "0.24.0" }
 tokio = { version = "1", features = ["full"] }

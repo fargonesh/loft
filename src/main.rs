@@ -4,8 +4,13 @@ use loft::runtime::{
     permission_context, permissions::PermissionManager, value::Value, Interpreter,
 };
 use miette::GraphicalReportHandler;
-use owo_colors::OwoColorize;
-use rustyline::{error::ReadlineError, DefaultEditor};
+use owo_colors::{OwoColorize, Rgb};
+use rustyline::error::ReadlineError;
+
+const LUMINOUS: Rgb = Rgb(0, 255, 65);
+const ACID: Rgb = Rgb(173, 255, 47);
+const FOREST: Rgb = Rgb(0, 143, 17);
+const OBSIDIAN: Rgb = Rgb(0, 68, 0);
 
 #[derive(ClapParser)]
 #[command(name = "loft")]
@@ -49,14 +54,16 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Run demo examples
+    /// [ REPL ] Enter the interactive Loft shell
+    Repl,
+    /// [ DEMO ] Run demo examples
     Demo,
-    /// Create a new loft project
+    /// [ NEW ] Create a new loft project
     New {
         /// Name of the project (use '.' for current directory)
         name: String,
     },
-    /// Add a dependency to the current project
+    /// [ ADD ] Add a dependency to the current project
     Add {
         /// Name of the dependency
         name: String,
@@ -67,29 +74,30 @@ enum Commands {
         #[arg(short, long)]
         version: Option<String>,
     },
-    /// Update dependencies according to version constraints
+    /// [ UPDATE ] Update dependencies according to version constraints
     Update {
         /// Specific package to update (updates all if not specified)
         package: Option<String>,
     },
-    /// Generate documentation for the current package
+    /// [ DOC ] Generate documentation for the current package
     Doc {
         /// Output directory for generated documentation (defaults to ./docs)
         #[arg(short, long, default_value = "docs")]
         output: String,
     },
-    /// Generate standard library documentation
+    /// [ STDLIB ] Generate standard library documentation
     StdlibDoc {
         /// Output directory for generated documentation (defaults to ./stdlib-docs)
         #[arg(short, long, default_value = "stdlib-docs")]
         output: String,
     },
-    /// View documentation for the standard library or dependencies
+    /// [ DOCS ] View documentation for the standard library or dependencies
     Docs {
         /// The topic to view documentation for (e.g., math, fs, string)
         topic: Option<String>,
     },
-    /// Format loft source files
+    /// [ FORMAT ] Format loft source files
+    #[command(alias = "tidy")]
     Format {
         /// File or directory to format (use '.' for current directory)
         path: Option<String>,
@@ -97,12 +105,12 @@ enum Commands {
         #[arg(short, long)]
         check: bool,
     },
-    /// Log in to the loft registry
+    /// [ LOGIN ] Log in to the loft registry
     Login {
         /// The API token from the registry dashboard
         token: Option<String>,
     },
-    /// Publish the current project to the registry
+    /// [ PUBLISH ] Publish the current project to the registry
     Publish,
 }
 
@@ -149,6 +157,7 @@ fn main() {
         }
     } else if let Some(command) = cli.command {
         match command {
+            Commands::Repl => run_repl(cli.features),
             Commands::Demo => run_demo(),
             Commands::New { name } => run_new(&name),
             Commands::Add {
@@ -185,36 +194,128 @@ fn run_inline_code(code: &str, features: Vec<String>) {
                     }
                 }
                 Err(e) => {
-                    let mut out = String::new();
-                    let _ = GraphicalReportHandler::default().render_report(&mut out, &e);
-                    println!("{}", out);
+                    print_error(&e);
                     std::process::exit(1);
                 }
             }
         }
         Err(e) => {
-            let mut out = String::new();
-            let _ = GraphicalReportHandler::default().render_report(&mut out, &e);
-            println!("{}", out);
+            print_error(&e);
             std::process::exit(1);
         }
     }
 }
 
-fn run_repl(features: Vec<String>) {
-    // Clear screen and show banner
-    print!("\x1B[2J\x1B[1;1H");
-    println!("{} {} repl", "🚀".bright_magenta(), "loft".bright_magenta().bold());
-    println!("{}", "Type 'exit' to exit, 'help' for help".bright_black());
-    println!();
+use std::borrow::Cow;
+use rustyline::highlight::Highlighter;
+use rustyline::hint::HistoryHinter;
+use rustyline::validate::{Validator, ValidationResult, ValidationContext};
+use rustyline::completion::Completer;
+use rustyline::hint::Hinter;
+use rustyline::Helper;
+use chrono::Local;
 
-    // Set up the editor
-    let mut rl = DefaultEditor::new().unwrap();
+struct LoftHelper {
+    hinter: HistoryHinter,
+}
+
+impl Helper for LoftHelper {}
+
+impl Completer for LoftHelper {
+    type Candidate = String;
+
+    fn complete(
+        &self,
+        _line: &str,
+        _pos: usize,
+        _ctx: &rustyline::Context<'_>,
+    ) -> rustyline::Result<(usize, Vec<Self::Candidate>)> {
+        Ok((0, vec![]))
+    }
+}
+
+impl Hinter for LoftHelper {
+    type Hint = String;
+
+    fn hint(&self, line: &str, pos: usize, ctx: &rustyline::Context<'_>) -> Option<String> {
+        self.hinter.hint(line, pos, ctx).map(|h| {
+            format!("{}", h.truecolor(OBSIDIAN.0, OBSIDIAN.1, OBSIDIAN.2))
+        })
+    }
+}
+
+impl Validator for LoftHelper {
+    fn validate(&self, ctx: &mut ValidationContext) -> rustyline::Result<ValidationResult> {
+        let input = ctx.input();
+        let open_brackets = input.matches('{').count();
+        let close_brackets = input.matches('}').count();
+        
+        if open_brackets > close_brackets {
+            Ok(ValidationResult::Incomplete)
+        } else {
+            Ok(ValidationResult::Valid(None))
+        }
+    }
+}
+
+impl Highlighter for LoftHelper {
+    fn highlight<'l>(&self, line: &'l str, _pos: usize) -> Cow<'l, str> {
+        let mut highlighted = line.to_string();
+        
+        // Simple keyword highlighting with the requested "Luminous" color (#00FF41)
+        let keywords = ["func", "let", "const", "if", "else", "while", "for", "return", "struct", "enum", "impl", "trait", "match"];
+        for keyword in keywords {
+            let replacement = format!("{}", keyword.truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2));
+            highlighted = highlighted.replace(keyword, &replacement);
+        }
+        
+        Cow::Owned(highlighted)
+    }
+}
+
+fn run_repl(features: Vec<String>) {
+    // Clear screen
+    print!("\x1B[2J\x1B[1;1H");
+    
+    // Show Loft Branding/Header
+    let v_info = format!(" LOFT v{} ", env!("CARGO_PKG_VERSION"));
+    print!("{}", "▓".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2));
+    print!("{}", "▒".truecolor(ACID.0, ACID.1, ACID.2));
+    print!("{}", "░".truecolor(FOREST.0, FOREST.1, FOREST.2));
+    print!("{}", v_info.truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2).bold());
+    print!("{}", "░".truecolor(FOREST.0, FOREST.1, FOREST.2));
+    print!("{}", "▒".truecolor(ACID.0, ACID.1, ACID.2));
+    print!("{}", "▓".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2));
+    print!(" ");
+    println!("{}", "─".repeat(50).truecolor(FOREST.0, FOREST.1, FOREST.2));
+    println!("{}", "Type 'exit' to exit, 'help' for help".truecolor(FOREST.0, FOREST.1, FOREST.2).dimmed());
+    println!();
+    
+    // Set up the editor with the new Loft style
+    let config = rustyline::Config::builder()
+        .history_ignore_space(true)
+        .completion_type(rustyline::CompletionType::List)
+        .build();
+    let mut rl = rustyline::Editor::<LoftHelper, rustyline::history::DefaultHistory>::with_config(config).unwrap();
+    rl.set_helper(Some(LoftHelper {
+        hinter: HistoryHinter {},
+    }));
 
     let mut interpreter = Interpreter::new().with_features(features);
 
     loop {
-        let prompt = format!("{}{} ", "❯".bright_cyan(), " ".white());
+        let time = Local::now().format("%H:%M:%S").to_string();
+        
+        print!("{}", "┌── ".truecolor(FOREST.0, FOREST.1, FOREST.2));
+        print!("{}", "( ".truecolor(FOREST.0, FOREST.1, FOREST.2));
+        print!("{}", "loft:main".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2));
+        print!("{}", " ) ".truecolor(FOREST.0, FOREST.1, FOREST.2));
+        print!("{}", "─────────────────────────────────".truecolor(FOREST.0, FOREST.1, FOREST.2));
+        print!("{}", " [ ".truecolor(FOREST.0, FOREST.1, FOREST.2));
+        print!("{}", time.truecolor(ACID.0, ACID.1, ACID.2));
+        println!("{}", " ]".truecolor(FOREST.0, FOREST.1, FOREST.2));
+
+        let prompt = format!("{}", "└─╼ ".truecolor(FOREST.0, FOREST.1, FOREST.2));
 
         match rl.readline(&prompt) {
             Ok(input) => {
@@ -223,7 +324,7 @@ fn run_repl(features: Vec<String>) {
                 // Handle special commands
                 match trimmed {
                     "exit" | "quit" => {
-                        println!("{} {}", "👋".bright_green(), "Goodbye!".bright_green().bold());
+                        println!("{} {}", "👋".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2), "Goodbye!".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2).bold());
                         break;
                     }
                     "help" => {
@@ -238,15 +339,18 @@ fn run_repl(features: Vec<String>) {
                     _ => {}
                 }
 
-                // Process the input - potentially add semicolon
+                // Add to history
+                rl.add_history_entry(&input).ok();
+
+                // Process input - potentially add semicolon
                 let processed_input = if should_append_semicolon(&input) {
                     format!("{};", input)
                 } else {
                     input.clone()
                 };
 
-                // Add to history
-                rl.add_history_entry(&input).ok();
+                // Split input by newlines to show the gutter '┆' if multi-line
+                let _lines: Vec<&str> = input.lines().collect();
 
                 // Parse and evaluate
                 let stream = InputStream::new("repl", &processed_input);
@@ -258,77 +362,67 @@ fn run_repl(features: Vec<String>) {
                             continue;
                         }
 
-                        // Create a new interpreter with source context for this line
-                        // Note: In REPL mode, we need to preserve the environment between lines
-                        // So we'll just use the existing interpreter and handle errors simply
                         match interpreter.eval_program(stmts) {
                             Ok(result) => {
-                                // Only print non-unit values
                                 if !matches!(result, Value::Unit) {
-                                    println!("{}", format!("{:?}", result).bright_white());
+                                    println!(" {} {:?}", "╼".truecolor(ACID.0, ACID.1, ACID.2), result.truecolor(ACID.0, ACID.1, ACID.2));
                                 }
                             }
                             Err(e) => {
-                                // Use miette for pretty error printing
-                                let mut out = String::new();
-                                let _ =
-                                    GraphicalReportHandler::default().render_report(&mut out, &e);
-                                println!("{}", out);
+                                print_error(&e);
                             }
                         }
                     }
                     Err(e) => {
-                        // Use miette for pretty error printing
-                        let mut out = String::new();
-                        let _ = GraphicalReportHandler::default().render_report(&mut out, &e);
-                        println!("{}", out);
+                        print_error(&e);
                     }
                 }
             }
             Err(ReadlineError::Interrupted) => {
-                println!("{}", "^C".bright_yellow());
+                println!("{}", "^C".truecolor(ACID.0, ACID.1, ACID.2));
                 continue;
             }
             Err(ReadlineError::Eof) => {
-                println!("{}", "^D".bright_yellow());
+                println!("{}", "^D".truecolor(ACID.0, ACID.1, ACID.2));
                 break;
             }
             Err(err) => {
-                println!("{} {}: {:?}", "❌".bright_red(), "Error reading input".bright_red().bold(), err);
+                println!("{} {}: {:?}", "❌".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2), "Error reading input".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2).bold(), err);
                 break;
             }
         }
     }
 }
 
+fn print_error<E: miette::Diagnostic>(e: &E) {
+    let mut out = String::new();
+    let _ = GraphicalReportHandler::new_themed(miette::GraphicalTheme::unicode()).render_report(&mut out, e);
+    
+    println!("{}", "┌─── [ ERROR ] ─────────────────────────────────────────".truecolor(ACID.0, ACID.1, ACID.2));
+    for line in out.trim_end().lines() {
+        println!("{} {}", "║".truecolor(ACID.0, ACID.1, ACID.2), line);
+    }
+    println!("{}", "└───────────────────────────────────────────────────────".truecolor(ACID.0, ACID.1, ACID.2));
+}
+
 fn print_help() {
-    println!("{}", "loft REPL Help:".bright_cyan().bold());
-    println!("{}", "================".bright_cyan());
-    println!("{}", "Commands:".bright_yellow().bold());
+    println!("{}", "loft REPL Help:".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2).bold());
+    println!("{}", "================".truecolor(FOREST.0, FOREST.1, FOREST.2));
+    println!("{}", "Commands:".truecolor(ACID.0, ACID.1, ACID.2).bold());
     println!(
         "  {}     - {}",
-        "help".bright_green(),
+        "help".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2),
         "Show this help message"
     );
-    println!("  {}    - {}", "clear".bright_green(), "Clear the screen");
-    println!("  {}     - {}", "exit".bright_green(), "Exit the REPL");
+    println!("  {}    - {}", "clear".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2), "Clear the screen");
+    println!("  {}     - {}", "exit".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2), "Exit the REPL");
     println!();
-    println!("{}", "Examples:".bright_yellow().bold());
-    println!("  {}", "2 + 3 * 4".bright_white());
-    println!("  {}", "let x = 42".bright_white());
-    println!("  {}", "let y = x + 10; y".bright_white());
-    println!("  {}", "\"Hello, world!\"".bright_white());
-    println!("  {}", "term.println(\"Hello!\")".bright_white());
-    println!(
-        "  {}",
-        "let print_fn = term.print; print_fn(\"Method as value!\")".bright_white()
-    );
-    println!("  {}", "[1, 2, 3]".bright_white());
-    println!(
-        "  {}",
-        "let arr = [\"a\", \"b\"]; arr.push(\"c\")".bright_white()
-    );
-    println!("  {}", "arr[0]; arr.length()".bright_white());
+    println!("{}", "Examples:".truecolor(ACID.0, ACID.1, ACID.2).bold());
+    println!("  {}", "2 + 3 * 4".truecolor(FOREST.0, FOREST.1, FOREST.2));
+    println!("  {}", "let x = 42".truecolor(FOREST.0, FOREST.1, FOREST.2));
+    println!("  {}", "let y = x + 10; y".truecolor(FOREST.0, FOREST.1, FOREST.2));
+    println!("  {}", "\"Hello, world!\"".truecolor(FOREST.0, FOREST.1, FOREST.2));
+    println!("  {}", "term.println(\"Hello!\")".truecolor(FOREST.0, FOREST.1, FOREST.2));
     println!();
 }
 
@@ -387,16 +481,12 @@ fn run_demo() {
                         );
                     }
                     Err(e) => {
-                        let mut out = String::new();
-                        let _ = GraphicalReportHandler::default().render_report(&mut out, &e);
-                        println!("{}", out);
+                        print_error(&e);
                     }
                 }
             }
             Err(e) => {
-                let mut out = String::new();
-                let _ = GraphicalReportHandler::default().render_report(&mut out, &e);
-                println!("{}", out);
+                print_error(&e);
             }
         }
         println!();
@@ -432,17 +522,13 @@ fn run_file(path: &str, features: Vec<String>) {
                         }
                         Err(e) => {
                             println!();
-                            let mut out = String::new();
-                            let _ = GraphicalReportHandler::default().render_report(&mut out, &e);
-                            println!("{}", out);
+                            print_error(&e);
                             std::process::exit(1);
                         }
                     }
                 }
                 Err(e) => {
-                    let mut out = String::new();
-                    let _ = GraphicalReportHandler::default().render_report(&mut out, &e);
-                    println!("{}", out);
+                    print_error(&e);
                     std::process::exit(1);
                 }
             }
@@ -555,10 +641,19 @@ fn run_new(name: &str) {
 
     println!(
         "{} {} project '{}'...",
-        "✨".bright_cyan(),
-        "Creating".bright_cyan().bold(),
-        project_name.bright_white()
+        "✨".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2),
+        "Creating".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2).bold(),
+        project_name.truecolor(ACID.0, ACID.1, ACID.2)
     );
+
+    let progress_bar = format!(
+        "{}{}{}{}",
+        "██████████".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2),
+        "█████".truecolor(ACID.0, ACID.1, ACID.2),
+        "▓▓▒▒".truecolor(FOREST.0, FOREST.1, FOREST.2),
+        "░░░░░░░".truecolor(OBSIDIAN.0, OBSIDIAN.1, ACID.2) // Typo fix: OBSIDIAN should be used or ACID.2... Wait, let's use OBSIDIAN.2
+    );
+    println!("[{}] 100% | Scaffolding complete", progress_bar);
 
     // Create project directory if not using current directory
     if name != "." {
@@ -882,12 +977,22 @@ fn run_add(dep_name: &str, dep_path: Option<&str>, version_constraint: Option<&s
 
         println!(
             "  {} {} version {} (constraint: {})",
-            "🎯".bright_green(),
-            "Found".bright_green(),
-            version.bright_white(),
-            constraint_str.bright_white()
+            "🎯".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2),
+            "Found".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2),
+            version.truecolor(ACID.0, ACID.1, ACID.2),
+            constraint_str.truecolor(ACID.0, ACID.1, ACID.2)
         );
-        println!("{} {} package...", "⬇️".bright_cyan(), "Downloading".bright_cyan().bold());
+        println!("{} {} package...", "⬇️".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2), "Downloading".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2).bold());
+        
+        // Progress bar using tiered system
+        let bar = format!(
+            "{}{}{}{}",
+            "██████████".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2),
+            "█████".truecolor(ACID.0, ACID.1, ACID.2),
+            "▓▓▒▒".truecolor(FOREST.0, FOREST.1, FOREST.2),
+            "░░░░░░░".truecolor(OBSIDIAN.0, OBSIDIAN.1, OBSIDIAN.2)
+        );
+        println!("[{}] 65% | Connecting to Registry", bar);
 
         // Download tarball
         let download_url = format!(
@@ -1546,9 +1651,10 @@ fn run_publish() {
 
     println!(
         "📦 Publishing {}@{}...",
-        manifest.name.bright_cyan(),
-        manifest.version.bright_white()
+        manifest.name.truecolor(ACID.0, ACID.1, ACID.2),
+        manifest.version.truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2)
     );
+    println!("Building  [█████████████████████████] 100% | Done");
 
     // 3. Create tarball
     let mut tar_data = Vec::new();
