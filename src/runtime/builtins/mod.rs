@@ -1,6 +1,5 @@
 pub mod array;
 pub mod collections;
-pub mod console;
 pub mod encoding;
 pub mod ffi;
 pub mod io;

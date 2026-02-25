@@ -458,20 +458,20 @@ impl Interpreter {
         self
     }
 
-    fn check_cfg(&self, attr: &crate::parser::Attribute) -> bool {
-        if attr.name != "cfg" {
+    fn check_gated(&self, attr: &crate::parser::Attribute) -> bool {
+        if attr.name != "gated" {
             return true;
         }
 
-        fn eval_cfg(expr: &Expr, enabled: &std::collections::HashSet<String>) -> bool {
+        fn eval_gated(expr: &Expr, enabled: &std::collections::HashSet<String>) -> bool {
             match expr {
                 Expr::Ident(name) => enabled.contains(name),
                 Expr::Call { func, args } => {
                     if let Expr::Ident(ref name) = **func {
                         match name.as_str() {
-                            "all" => args.iter().all(|arg| eval_cfg(arg, enabled)),
-                            "any" => args.iter().any(|arg| eval_cfg(arg, enabled)),
-                            "not" => args.get(0).map_or(false, |arg| !eval_cfg(arg, enabled)),
+                            "all" => args.iter().all(|arg| eval_gated(arg, enabled)),
+                            "any" => args.iter().any(|arg| eval_gated(arg, enabled)),
+                            "not" => args.get(0).map_or(false, |arg| !eval_gated(arg, enabled)),
                             _ => false,
                         }
                     } else {
@@ -484,7 +484,7 @@ impl Interpreter {
 
         attr.args
             .iter()
-            .all(|arg| eval_cfg(arg, &self.enabled_features))
+            .all(|arg| eval_gated(arg, &self.enabled_features))
     }
 
     pub fn eval_program(&mut self, stmts: Vec<Stmt>) -> RuntimeResult<Value> {
@@ -530,7 +530,7 @@ impl Interpreter {
                 Ok(Value::Unit)
             }
             Stmt::AttrStmt { attr, stmt } => {
-                if self.check_cfg(&attr) {
+                if self.check_gated(&attr) {
                     self.eval_stmt(*stmt)
                 } else {
                     Ok(Value::Unit)
