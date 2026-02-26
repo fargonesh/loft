@@ -8,6 +8,7 @@ import { Heading, Text, Input, BrutalCard } from 'botanical-ui';
 import BrutalButton from './BrutalButton';
 import Layout from './Layout';
 import loftGrammar from './loft.tmLanguage.json';
+import LoftCodeBlock from './LoftCodeBlock';
 
 const Book = () => {
   const { "*": path } = useParams();
@@ -280,49 +281,17 @@ const Book = () => {
                     h3: ({node, ...props}) => <Heading level={3} className="mt-8 mb-4" {...props} />, 
                     p: ({node, ...props}) => <Text variant="body" className="mb-6 leading-relaxed text-lg text-gray-700" {...props} />, 
                     pre: ({node, children}) => <>{children}</>,
-                    code: ({node, className, children, ...props}) => {
+                    code: ({node, className, children}) => {
                       const match = /language-(\w+)/.exec(className || '');
                       const lang = match ? match[1] : null;
                       const isBlock = !!lang || String(children).includes('\n');
-                      
-                      if (isBlock && highlighter) {
-                        try {
-                          const html = highlighter.codeToHtml(String(children).replace(/\n$/, ''), {
-                            lang: lang || 'text',
-                            theme: 'one-dark-pro'
-                          });
-                          return <div className="my-8 rounded-lg overflow-hidden shadow-lg border border-gray-800" dangerouslySetInnerHTML={{ __html: html }} />;
-                        } catch (e) {
-                          console.error('Shiki error:', e);
-                        }
-                      }
-
-                      if (!isBlock && highlighter) {
-                        try {
-                          const html = highlighter.codeToHtml(String(children), {
-                            lang: 'loft',
-                            theme: 'one-dark-pro'
-                          });
-                          const innerMatch = html.match(/<code[^>]*>([\s\S]*)<\/code>/);
-                          const innerHtml = innerMatch ? innerMatch[1] : null;
-                          if (innerHtml) {
-                            return <code
-                              className="inline rounded font-mono text-[0.9em] font-medium"
-                              style={{ background: '#282c34', padding: '0.2em 0.4em' }}
-                              dangerouslySetInnerHTML={{ __html: innerHtml }}
-                            />;
-                          }
-                        } catch (e) {
-                          // fall through to plain inline code
-                        }
-                      }
-
-                      return isBlock ? (
-                        <pre className="bg-gray-900 text-gray-100 p-6 rounded-lg font-mono text-sm overflow-x-auto my-8 shadow-lg">
-                          <code className={className} {...props}>{children}</code>
-                        </pre>
-                      ) : (
-                        <code className="bg-gray-100 px-1.5 py-0.5 rounded font-mono text-[0.9em] text-pink-600 font-medium" {...props}>{children}</code>
+                      return (
+                        <LoftCodeBlock
+                          code={String(children).replace(/\n$/, '')}
+                          inline={!isBlock}
+                          lang={lang}
+                          highlighter={highlighter}
+                        />
                       );
                     },
                     ul: ({node, ...props}) => <ul className="list-disc pl-6 mb-6 space-y-2 text-gray-700" {...props} />, 

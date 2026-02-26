@@ -6,6 +6,7 @@ import { Text, Heading } from 'botanical-ui';
 import BrutalButton from './BrutalButton';
 import Layout from './Layout';
 import loftGrammar from './loft.tmLanguage.json';
+import { SIGNATURE_STYLE, wrapBlockHtml, wrapInlineHtml, LOFT_RESET_CSS } from './LoftCodeHtml';
 
 // Parse the sidebar nav sections out of the fetched HTML string.
 // Returns [{ section: string, items: [{ label, href, subItems?: [{label, href}] }] }]
@@ -53,11 +54,6 @@ function parseStylesheetHref(html) {
   return link ? link.getAttribute('href') : null;
 }
 
-/**
- * Minimal CSS scoper: prefixes every selector with `scope` so the doc styles
- * only apply inside the content container and don't leak into the rest of the app.
- * Skips body/*, .sidebar, and .content (the now-removed wrapper) selectors.
- */
 function scopeCSS(css, scope) {
   // Handle @media blocks recursively
   let result = '';
@@ -110,8 +106,9 @@ async function highlightCodeBlocks(html, highlighter) {
       const tmp = document.createElement('div');
       tmp.innerHTML = highlighted;
       const shikiEl = tmp.firstChild;
-      shikiEl.style.cssText = 'margin: 12px 0; border-radius: 6px; overflow: hidden; border: 1px solid #333;';
-      code.closest('pre').replaceWith(shikiEl);
+      const wrapped = document.createElement('div');
+      wrapped.innerHTML = wrapBlockHtml(shikiEl.outerHTML);
+      code.closest('pre').replaceWith(wrapped.firstChild);
     } catch (_) { /* leave as-is on parse/highlight error */ }
   }
 
@@ -125,18 +122,21 @@ async function highlightCodeBlocks(html, highlighter) {
       tmp.innerHTML = inlineHtml;
       const shikiCode = tmp.querySelector('code');
       if (shikiCode) {
-        // Replace the code element content and style the pre as a signature block
         code.innerHTML = shikiCode.innerHTML;
         const pre = code.closest('pre');
-        pre.style.cssText = 'background:#282c34;color:#abb2bf;padding:0.4em 0.75em;border-radius:4px;margin:6px 0;overflow-x:auto;font-family:monospace;font-size:0.9em;display:block;';
+        pre.style.cssText = SIGNATURE_STYLE;
+        pre.setAttribute('data-loft-block', '');
       }
     } catch (_) { /* leave as-is */ }
   }
 
-  // Highlight inline <code> elements that are NOT inside a <pre>
-  // (e.g. "Returns: <code>any</code>" in stdlib method docs)
+  // Highlight inline <code> elements that are NOT inside a handled <pre>.
+  // We only skip pre.example (already replaced above) and pre.signature
+  // (already highlighted above). Any other pre — e.g. pre.return-type or
+  // bare pres used as inline display by the doc generator — should have
+  // their <code> children styled as inline tokens.
   for (const code of doc.querySelectorAll('code')) {
-    if (code.closest('pre')) continue; // already handled or intentionally kept as HTML
+    if (code.closest('pre.signature, [data-loft-block]')) continue;
     try {
       const raw = code.textContent.trim();
       if (!raw) continue;
@@ -145,10 +145,9 @@ async function highlightCodeBlocks(html, highlighter) {
       tmp.innerHTML = inlineHtml;
       const shikiCode = tmp.querySelector('code');
       if (shikiCode) {
-        const el = document.createElement('code');
-        el.innerHTML = shikiCode.innerHTML;
-        el.style.cssText = 'background:#282c34;color:#abb2bf;padding:0.2em 0.4em;border-radius:4px;font-family:monospace;font-size:0.9em;';
-        code.replaceWith(el);
+        const tmp2 = document.createElement('span');
+        tmp2.innerHTML = wrapInlineHtml(shikiCode.innerHTML);
+        code.replaceWith(tmp2.firstChild);
       }
     } catch (_) { /* leave as-is */ }
   }
@@ -338,6 +337,25 @@ const Docs = () => {
   // Intercept clicks on relative links and route them through React Router
   useEffect(() => {
     const handleClick = (e) => {
+      const copyBtn = e.target.closest('[data-loft-copy-btn]');
+      if (copyBtn) {
+        const codeEl = copyBtn.closest('[style*="position:relative"]')?.querySelector('pre, code');
+        const text = codeEl?.textContent ?? '';
+        navigator.clipboard.writeText(text).catch(() => {});
+        const orig = copyBtn.textContent;
+        copyBtn.textContent = 'copied!';
+        copyBtn.style.color = '#68d391';
+        copyBtn.style.borderColor = '#68d391';
+        copyBtn.style.background = 'rgba(104,211,145,0.12)';
+        setTimeout(() => {
+          copyBtn.textContent = orig;
+          copyBtn.style.color = '#4a5568';
+          copyBtn.style.borderColor = 'rgba(255,255,255,0.1)';
+          copyBtn.style.background = 'rgba(255,255,255,0.05)';
+        }, 1800);
+        return;
+      }
+
       const target = e.target.closest('a');
       if (!target) return;
       const href = target.getAttribute('href');
@@ -593,6 +611,7 @@ const Docs = () => {
             ) : (
               <>
                 {scopedCSS && <style>{scopedCSS}</style>}
+                <style>{LOFT_RESET_CSS}</style>
                 <article
                   ref={contentRef}
                   className="pkg-doc-content prose prose-bio max-w-none prose-headings:font-serif prose-headings:font-bold prose-h1:text-4xl prose-h2:text-2xl prose-a:text-bio-green prose-code:text-bio-green-dark prose-pre:bg-bio-black prose-pre:shadow-lg prose-pre:border-2 prose-pre:border-bio-black"
