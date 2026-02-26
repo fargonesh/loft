@@ -141,9 +141,21 @@ impl TokenStream<'_> {
         while !self.input.eof() {
             let c = self.input.next().unwrap();
             if esc {
-                s.push(c);
-            } else if c == '\\' {
+                match c {
+                    'n' => s.push('\n'),
+                    't' => s.push('\t'),
+                    'r' => s.push('\r'),
+                    '\\' => s.push('\\'),
+                    '"' => s.push('"'),
+                    '\'' => s.push('\''),
+                    _ => {
+                        s.push('\\');
+                        s.push(c);
+                    }
+                }
                 esc = false;
+            } else if c == '\\' {
+                esc = true;
             } else if c == end {
                 break;
             } else {

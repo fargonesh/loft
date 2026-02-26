@@ -5,15 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Response - loft stdlib</title>
     <link rel="stylesheet" href="style.css">
-    <script src="search_index.js"></script>
-    <script src="search.js"></script>
 </head>
 <body>
     <div class="sidebar">
         <h2><a href="index.html">loft stdlib</a></h2>
-        <div class="search-container">
-            <input type="text" id="doc-search" placeholder="Search docs...">
-        </div>
         <div class="nav-section">
             <h3>Primitives</h3>
             <ul>
@@ -27,36 +22,50 @@
         <div class="nav-section">
             <h3>Builtins</h3>
             <ul>
-                <li><a href="object.html">object</a></li>
-                <li><a href="term.html">term</a></li>
-                <li><a href="json.html">json</a></li>
+                <li><a href="array.html">array</a></li>
                 <li><a href="encoding.html">encoding</a></li>
-                <li><a href="web.html">web</a></li>
-                <li><a href="math.html">math</a></li>
-                <li><a href="time.html">time</a></li>
                 <li><a href="fs.html">fs</a></li>
+                <li><a href="json.html">json</a></li>
+                <li><a href="math.html">math</a></li>
+                <li><a href="object.html">object</a></li>
                 <li><a href="random.html">random</a></li>
+                <li><a href="string.html">string</a></li>
+                <li><a href="term.html">term</a></li>
+                <li><a href="time.html">time</a></li>
+                <li><a href="web.html">web</a></li>
             </ul>
         </div>
         <div class="nav-section">
             <h3>Types</h3>
             <ul>
-                <li><a href="type-Response.html">Response</a></li>
-                <li><a href="type-RequestBuilder.html">RequestBuilder</a></li>
                 <li><a href="type-Buffer.html">Buffer</a></li>
                 <li><a href="type-Headers.html">Headers</a></li>
-                <li><a href="type-Array.html">Array</a></li>
+                <li><a href="type-Option.html">Option</a></li>
+                <li><a href="type-RequestBuilder.html">RequestBuilder</a></li>
+                <li><a href="type-Response.html">Response</a>
+                    <ul class="nav-subitems">
+                        <li><a href="#json">fn json</a></li>
+                        <li><a href="#text">fn text</a></li>
+                    </ul>
+                </li>
+                <li><a href="type-Result.html">Result</a></li>
             </ul>
         </div>
         <div class="nav-section">
             <h3>Traits</h3>
             <ul>
-                <li><a href="trait-Printable.html">Printable</a></li>
-                <li><a href="trait-Sub.html">Sub</a></li>
-                <li><a href="trait-Div.html">Div</a></li>
-                <li><a href="trait-Mul.html">Mul</a></li>
                 <li><a href="trait-Add.html">Add</a></li>
+                <li><a href="trait-BitAnd.html">BitAnd</a></li>
+                <li><a href="trait-BitOr.html">BitOr</a></li>
+                <li><a href="trait-BitXor.html">BitXor</a></li>
+                <li><a href="trait-Div.html">Div</a></li>
                 <li><a href="trait-Index.html">Index</a></li>
+                <li><a href="trait-Mul.html">Mul</a></li>
+                <li><a href="trait-Ord.html">Ord</a></li>
+                <li><a href="trait-Printable.html">Printable</a></li>
+                <li><a href="trait-Shl.html">Shl</a></li>
+                <li><a href="trait-Shr.html">Shr</a></li>
+                <li><a href="trait-Sub.html">Sub</a></li>
                 <li><a href="trait-ToString.html">ToString</a></li>
             </ul>
         </div>
@@ -65,23 +74,23 @@
         <div class="breadcrumb"><a href="index.html">stdlib</a> / <span>Response</span></div>
         <h1>Type: Response</h1>
         <p class="description">HTTP Response object returned from web requests</p>
-        <h2>Fields</h2>
-        <div class="method-item">
-            <h3 id="headers">headers</h3>
-            <pre class="signature"><code>headers: <a href="type-Headers.html">Headers</a></code></pre>
-            <p>HTTP response headers</p>
-        </div>
+        <h2 id="fields">Fields</h2>
         <div class="method-item">
             <h3 id="status">status</h3>
             <pre class="signature"><code>status: <a href="num.html">num</a></code></pre>
             <p>HTTP status code (e.g., 200, 404, 500)</p>
         </div>
         <div class="method-item">
+            <h3 id="headers">headers</h3>
+            <pre class="signature"><code>headers: <a href="type-Headers.html">Headers</a></code></pre>
+            <p>HTTP response headers</p>
+        </div>
+        <div class="method-item">
             <h3 id="body">body</h3>
             <pre class="signature"><code>body: Promise&lt;<a href="type-Buffer.html">Buffer</a>&gt;</code></pre>
             <p>Response body as a Promise&lt;Buffer&gt;</p>
         </div>
-        <h2>Methods</h2>
+        <h2 id="methods">Methods</h2>
         <div class="method-item">
             <h3 id="text">text</h3>
             <pre class="signature"><code>Response.text() -> Promise&lt;<a href="string.html">str</a>&gt;</code></pre>

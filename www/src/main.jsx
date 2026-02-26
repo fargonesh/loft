@@ -17,9 +17,9 @@ import './index.css';
 
 import AuthCallback from './AuthCallback';
 import Dashboard from './Dashboard';
-import Docs from './Docs';
+import Book from './Book';
 import PackageInfo from './PackageInfo';
-import PackageDocs from './PackageDocs';
+import Docs from './Docs';
 import Playground from './Playground';
 import Layout from './Layout';
 import NotFound from './NotFound';
@@ -226,7 +226,7 @@ const Home = () => {
                     return (
                       <div key={result.item.path} className="bg-bio-cream/30 p-6 rounded-xl border border-bio-green/10 shadow-sm hover:shadow-md transition-all duration-200 group">
                         <Heading level={3} className="text-xl mb-2">
-                          <Link to={`/book/${result.item.path}`} className="group-hover:text-bio-green transition-colors">
+                          <Link to={`/book/${result.item.path.replace(/\.md$/, '')}`} className="group-hover:text-bio-green transition-colors">
                             {result.item.title}
                           </Link>
                         </Heading>
@@ -234,7 +234,7 @@ const Home = () => {
                           {highlightMatch(snippet.text, [{ key: 'text', indices: snippet.indices }], 'text')}
                         </div>
                         <div className="mt-4 flex justify-end">
-                          <Link to={`/book/${result.item.path}`} className="text-sm font-bold text-bio-green hover:underline">
+                          <Link to={`/book/${result.item.path.replace(/\.md$/, '')}`} className="text-sm font-bold text-bio-green hover:underline">
                             Read more →
                           </Link>
                         </div>
@@ -299,7 +299,7 @@ const Home = () => {
                   const snippet = getDocSnippet(result.item.content, result.matches);
                   return (
                     <li key={result.item.path} className="border-b border-gray-50 pb-3 last:border-0 last:pb-0">
-                      <Link to={`/book/${result.item.path}`} className="block group">
+                      <Link to={`/book/${result.item.path.replace(/\.md$/, '')}`} className="block group">
                         <div className="text-sm font-bold text-bio-black group-hover:text-bio-green transition-colors">
                           {result.item.title}
                         </div>
@@ -315,9 +315,9 @@ const Home = () => {
               ) : (
                 <>
                   <li>
-                    <Link to="/book/introduction.md" className="flex items-center gap-2 text-gray-700 hover:text-bio-green transition-colors text-sm">
+                    <Link to="/book/introduction" className="flex items-center gap-2 text-gray-700 hover:text-bio-green transition-colors text-sm">
                       <span className="w-1.5 h-1.5 rounded-full bg-bio-green"></span>
-                      Language Guide
+                      Book
                     </Link>
                   </li>
                   <li>
@@ -349,9 +349,9 @@ const App = () => {
         <Route path="/" element={<Home />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/book/*" element={<Docs />} />
+        <Route path="/book/*" element={<Book />} />
         <Route path="/p/:package" element={<PackageInfo />} />
-        <Route path="/d/:package/*" element={<PackageDocs />} />
+        <Route path="/d/:package/*" element={<Docs />} />
         <Route path="/playground" element={<Playground />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

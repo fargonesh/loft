@@ -98,17 +98,20 @@
               export OPENSSL_INCLUDE_DIR="${pkgs.openssl.dev}/include"
               
               if [ ! -d "registry" ] || [ ! -d "www" ]; then
-                echo "Error: Must be run from the root of the loft repository"
-                exit 1
+              echo "Error: Must be run from the root of the loft repository"
+              exit 1
               fi
 
               echo "Starting Loft Package Registry..."
               echo "Starting Loft Package Registry..." >> /tmp/loft-serve.log
               
               if [ -d "src/wasm" ]; then
-                echo "Building WASM runtime..."
-                (cd src/wasm && wasm-pack build --target web --out-dir ../../www/src/wasm) >/dev/null 2>&1 || echo "WASM build failed, check logs"
+              echo "Building WASM runtime..."
+              (cd src/wasm && wasm-pack build --target web --out-dir ../../www/src/wasm) >/dev/null 2>&1 || echo "WASM build failed, check logs"
               fi
+              
+              echo "Generating stdlib documentation..."
+              loft stdlib-doc --output www/public/docs/stdlib || echo "Stdlib doc generation failed"
               
               (cd registry && cargo run) &
               REG_PID=$!
@@ -116,10 +119,14 @@
               echo "Building WASM runtime..."
               # Try to build WASM if wasm-pack is available or if user has it
               if command -v wasm-pack >/dev/null 2>&1; then
-                 (cd src/wasm && wasm-pack build --target web --out-dir ../../www/src/wasm) || echo "WASM build failed, playground may not work"
+               (cd src/wasm && wasm-pack build --target web --out-dir ../../www/src/wasm) || echo "WASM build failed, playground may not work"
               else
-                 echo "wasm-pack not found, skipping WASM build"
+               echo "wasm-pack not found, skipping WASM build"
               fi
+
+              echo "Copying book source markdown to www/public/docs/..."
+              mkdir -p www/public/docs
+              cp -r book/src/. www/public/docs/
 
               echo "Starting Loft Web Server..."
               (cd www && npm install && npm run dev) &

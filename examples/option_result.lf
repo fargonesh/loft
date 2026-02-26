@@ -1,0 +1,73 @@
+// Native Option<T> and Result<T, E> — no enum declaration needed
+
+term.println("=== Option<T> ===\n");
+
+// Constructing Option values
+let name: Option<str> = Option.Some("Alice");
+let empty: Option<str> = Option.None;
+
+// is_some / is_none
+term.println(name.is_some());   // true
+term.println(empty.is_none());  // true
+
+// unwrap
+let value = name.unwrap();
+term.println(value);  // Alice
+
+// unwrap_or
+let fallback = empty.unwrap_or("anonymous");
+term.println(fallback);  // anonymous
+
+// expect
+let greeted = name.expect("expected a name");
+term.println(greeted);  // Alice
+
+// Pattern matching
+let msg = match name {
+    Option.Some(n) => n,
+    Option.None => "nobody",
+};
+term.println(msg);  // Alice
+
+// ? operator — unwraps Some, propagates None
+let inner = name?;
+term.println(inner);  // Alice
+
+term.println("\n=== Result<T, E> ===\n");
+
+// Constructing Result values
+let ok_val: Result<num, str>  = Result.Ok(42);
+let err_val: Result<num, str> = Result.Err("something went wrong");
+
+// is_ok / is_err
+term.println(ok_val.is_ok());   // true
+term.println(err_val.is_err()); // true
+
+// unwrap
+let num_val = ok_val.unwrap();
+term.println(num_val);  // 42
+
+// unwrap_or
+let safe = err_val.unwrap_or(0);
+term.println(safe);  // 0
+
+// unwrap_err
+let reason = err_val.unwrap_err();
+term.println(reason);  // something went wrong
+
+// expect
+let n = ok_val.expect("expected a number");
+term.println(n);  // 42
+
+// Pattern matching
+let result_msg = match err_val {
+    Result.Ok(v)  => "success",
+    Result.Err(e) => e,
+};
+term.println(result_msg);  // something went wrong
+
+// ? operator — unwraps Ok, propagates Err
+let extracted = ok_val?;
+term.println(extracted);  // 42
+
+term.println("\ndone.");

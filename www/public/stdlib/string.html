@@ -5,19 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>str - loft stdlib</title>
     <link rel="stylesheet" href="style.css">
-    <script src="search_index.js"></script>
-    <script src="search.js"></script>
 </head>
 <body>
     <div class="sidebar">
         <h2><a href="index.html">loft stdlib</a></h2>
-        <div class="search-container">
-            <input type="text" id="doc-search" placeholder="Search docs...">
-        </div>
         <div class="nav-section">
             <h3>Primitives</h3>
             <ul>
-                <li><a href="string.html">str</a></li>
+                <li><a href="string.html">str</a>
+                    <ul class="nav-subitems">
+                        <li><a href="#contains">fn contains</a></li>
+                        <li><a href="#ends_with">fn ends_with</a></li>
+                        <li><a href="#len">fn len</a></li>
+                        <li><a href="#length">fn length</a></li>
+                        <li><a href="#pad_end">fn pad_end</a></li>
+                        <li><a href="#pad_start">fn pad_start</a></li>
+                        <li><a href="#repeat">fn repeat</a></li>
+                        <li><a href="#replace">fn replace</a></li>
+                        <li><a href="#split">fn split</a></li>
+                        <li><a href="#starts_with">fn starts_with</a></li>
+                        <li><a href="#substring">fn substring</a></li>
+                        <li><a href="#to_lower">fn to_lower</a></li>
+                        <li><a href="#to_upper">fn to_upper</a></li>
+                        <li><a href="#trim">fn trim</a></li>
+                        <li><a href="#trim_end">fn trim_end</a></li>
+                        <li><a href="#trim_start">fn trim_start</a></li>
+                        <li><a href="#impl-Add">impl Add</a></li>
+                        <li><a href="#impl-Index">impl Index</a></li>
+                        <li><a href="#impl-Ord">impl Ord</a></li>
+                        <li><a href="#impl-Printable">impl Printable</a></li>
+                        <li><a href="#impl-ToString">impl ToString</a></li>
+                    </ul>
+                </li>
                 <li><a href="array.html">Array</a></li>
                 <li><a href="num.html">num</a></li>
                 <li><a href="bool.html">bool</a></li>
@@ -27,36 +46,69 @@
         <div class="nav-section">
             <h3>Builtins</h3>
             <ul>
-                <li><a href="object.html">object</a></li>
-                <li><a href="term.html">term</a></li>
-                <li><a href="json.html">json</a></li>
+                <li><a href="array.html">array</a></li>
                 <li><a href="encoding.html">encoding</a></li>
-                <li><a href="web.html">web</a></li>
-                <li><a href="math.html">math</a></li>
-                <li><a href="time.html">time</a></li>
                 <li><a href="fs.html">fs</a></li>
+                <li><a href="json.html">json</a></li>
+                <li><a href="math.html">math</a></li>
+                <li><a href="object.html">object</a></li>
                 <li><a href="random.html">random</a></li>
+                <li><a href="string.html">string</a>
+                    <ul class="nav-subitems">
+                        <li><a href="#contains">fn contains</a></li>
+                        <li><a href="#ends_with">fn ends_with</a></li>
+                        <li><a href="#len">fn len</a></li>
+                        <li><a href="#length">fn length</a></li>
+                        <li><a href="#pad_end">fn pad_end</a></li>
+                        <li><a href="#pad_start">fn pad_start</a></li>
+                        <li><a href="#repeat">fn repeat</a></li>
+                        <li><a href="#replace">fn replace</a></li>
+                        <li><a href="#split">fn split</a></li>
+                        <li><a href="#starts_with">fn starts_with</a></li>
+                        <li><a href="#substring">fn substring</a></li>
+                        <li><a href="#to_lower">fn to_lower</a></li>
+                        <li><a href="#to_upper">fn to_upper</a></li>
+                        <li><a href="#trim">fn trim</a></li>
+                        <li><a href="#trim_end">fn trim_end</a></li>
+                        <li><a href="#trim_start">fn trim_start</a></li>
+                        <li><a href="#impl-Add">impl Add</a></li>
+                        <li><a href="#impl-Index">impl Index</a></li>
+                        <li><a href="#impl-Ord">impl Ord</a></li>
+                        <li><a href="#impl-Printable">impl Printable</a></li>
+                        <li><a href="#impl-ToString">impl ToString</a></li>
+                    </ul>
+                </li>
+                <li><a href="term.html">term</a></li>
+                <li><a href="time.html">time</a></li>
+                <li><a href="web.html">web</a></li>
             </ul>
         </div>
         <div class="nav-section">
             <h3>Types</h3>
             <ul>
-                <li><a href="type-Response.html">Response</a></li>
-                <li><a href="type-RequestBuilder.html">RequestBuilder</a></li>
                 <li><a href="type-Buffer.html">Buffer</a></li>
                 <li><a href="type-Headers.html">Headers</a></li>
-                <li><a href="type-Array.html">Array</a></li>
+                <li><a href="type-Option.html">Option</a></li>
+                <li><a href="type-RequestBuilder.html">RequestBuilder</a></li>
+                <li><a href="type-Response.html">Response</a></li>
+                <li><a href="type-Result.html">Result</a></li>
             </ul>
         </div>
         <div class="nav-section">
             <h3>Traits</h3>
             <ul>
-                <li><a href="trait-Printable.html">Printable</a></li>
-                <li><a href="trait-Sub.html">Sub</a></li>
-                <li><a href="trait-Div.html">Div</a></li>
-                <li><a href="trait-Mul.html">Mul</a></li>
                 <li><a href="trait-Add.html">Add</a></li>
+                <li><a href="trait-BitAnd.html">BitAnd</a></li>
+                <li><a href="trait-BitOr.html">BitOr</a></li>
+                <li><a href="trait-BitXor.html">BitXor</a></li>
+                <li><a href="trait-Div.html">Div</a></li>
                 <li><a href="trait-Index.html">Index</a></li>
+                <li><a href="trait-Mul.html">Mul</a></li>
+                <li><a href="trait-Ord.html">Ord</a></li>
+                <li><a href="trait-Printable.html">Printable</a></li>
+                <li><a href="trait-Shl.html">Shl</a></li>
+                <li><a href="trait-Shr.html">Shr</a></li>
+                <li><a href="trait-Sub.html">Sub</a></li>
                 <li><a href="trait-ToString.html">ToString</a></li>
             </ul>
         </div>
@@ -64,94 +116,13 @@
     <div class="content">
         <div class="breadcrumb"><a href="index.html">stdlib</a> / <span>str</span></div>
         <h1>str</h1>
-        <p class="description">String primitive type with utility methods for text manipulation.</p>
-        <h2>Methods</h2>
-        <div class="method-item">
-            <h3 id="to_lower">to_lower</h3>
-            <pre class="signature"><code>value.to_lower(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>Convert string to lowercase</p>
-            <h4>Example</h4>
-            <pre class="example"><code>let quiet = &quot;HELLO&quot;.to_lower();
-term.println(quiet); // &quot;hello&quot;</code></pre>
-        </div>
-        <div class="method-item">
-            <h3 id="len">len</h3>
-            <pre class="signature"><code>value.len() -> <a href="num.html">num</a></code></pre>
-            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
-            <p>Get the length of the string (alias for length)</p>
-        </div>
-        <div class="method-item">
-            <h3 id="join">join</h3>
-            <pre class="signature"><code>value.join(array: <a href="array.html">Array</a>&lt;any&gt;, delimiter: <a href="string.html">str</a>) -> <a href="string.html">str</a></code></pre>
-            <p><strong>Returns:</strong> <code><a href="string.html">str</a></code></p>
-            <p>Join an array of strings with a delimiter</p>
-        </div>
+        <p class="description">The basic string type, packed with handy methods for working with text.</p>
+        <h2 id="methods">Methods</h2>
         <div class="method-item">
             <h3 id="contains">contains</h3>
-            <pre class="signature"><code>value.contains(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
+            <pre class="signature"><code>value.contains(substring: <a href="string.html">str</a>) -> <a href="bool.html">bool</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="bool.html">bool</a></code></p>
             <p>Check if string contains a substring</p>
-        </div>
-        <div class="method-item">
-            <h3 id="length">length</h3>
-            <pre class="signature"><code>value.length(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>Get the length of a string</p>
-            <h4>Example</h4>
-            <pre class="example"><code>let len = &quot;hello&quot;.length();
-term.println(len); // 5</code></pre>
-        </div>
-        <div class="method-item">
-            <h3 id="trim_end">trim_end</h3>
-            <pre class="signature"><code>value.trim_end(...args) -> <a href="string.html">str</a></code></pre>
-            <p><strong>Returns:</strong> <code><a href="string.html">str</a></code></p>
-            <p>Trim whitespace from the end of a string</p>
-        </div>
-        <div class="method-item">
-            <h3 id="repeat">repeat</h3>
-            <pre class="signature"><code>value.repeat(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>Repeat a string n times</p>
-        </div>
-        <div class="method-item">
-            <h3 id="trim">trim</h3>
-            <pre class="signature"><code>value.trim(...args) -> <a href="string.html">str</a></code></pre>
-            <p><strong>Returns:</strong> <code><a href="string.html">str</a></code></p>
-            <p>Trim whitespace from both ends of a string</p>
-            <h4>Example</h4>
-            <pre class="example"><code>let clean = &quot;  hello  &quot;.trim();
-term.println(clean); // &quot;hello&quot;</code></pre>
-        </div>
-        <div class="method-item">
-            <h3 id="substring">substring</h3>
-            <pre class="signature"><code>value.substring(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>Get a substring</p>
-        </div>
-        <div class="method-item">
-            <h3 id="pad_start">pad_start</h3>
-            <pre class="signature"><code>value.pad_start(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>Pad string to a certain length with spaces on the left</p>
-        </div>
-        <div class="method-item">
-            <h3 id="to_upper">to_upper</h3>
-            <pre class="signature"><code>value.to_upper(...args) -> <a href="string.html">str</a></code></pre>
-            <p><strong>Returns:</strong> <code><a href="string.html">str</a></code></p>
-            <p>Convert string to uppercase</p>
-            <h4>Example</h4>
-            <pre class="example"><code>let loud = &quot;hello&quot;.to_upper();
-term.println(loud); // &quot;HELLO&quot;</code></pre>
-        </div>
-        <div class="method-item">
-            <h3 id="replace">replace</h3>
-            <pre class="signature"><code>value.replace(pattern: <a href="string.html">str</a>, replacement: <a href="string.html">str</a>) -> <a href="string.html">str</a></code></pre>
-            <p><strong>Returns:</strong> <code><a href="string.html">str</a></code></p>
-            <p>Replace all occurrences of a substring with another</p>
-            <h4>Example</h4>
-            <pre class="example"><code>let fixed = &quot;hello world&quot;.replace(&quot;world&quot;, &quot;loft&quot;);
-term.println(fixed); // &quot;hello loft&quot;</code></pre>
         </div>
         <div class="method-item">
             <h3 id="split">split</h3>
@@ -163,28 +134,119 @@ term.println(fixed); // &quot;hello loft&quot;</code></pre>
 term.println(words); // [&quot;hello&quot;, &quot;world&quot;]</code></pre>
         </div>
         <div class="method-item">
-            <h3 id="trim_start">trim_start</h3>
-            <pre class="signature"><code>value.trim_start(...args) -> <a href="string.html">str</a></code></pre>
+            <h3 id="trim_end">trim_end</h3>
+            <pre class="signature"><code>value.trim_end() -> <a href="string.html">str</a></code></pre>
             <p><strong>Returns:</strong> <code><a href="string.html">str</a></code></p>
-            <p>Trim whitespace from the start of a string</p>
-        </div>
-        <div class="method-item">
-            <h3 id="starts_with">starts_with</h3>
-            <pre class="signature"><code>value.starts_with(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>Check if string starts with a prefix</p>
-        </div>
-        <div class="method-item">
-            <h3 id="pad_end">pad_end</h3>
-            <pre class="signature"><code>value.pad_end(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>Pad string to a certain length with spaces on the right</p>
+            <p>Remove whitespace from the end</p>
         </div>
         <div class="method-item">
             <h3 id="ends_with">ends_with</h3>
-            <pre class="signature"><code>value.ends_with(...args) -> any</code></pre>
-            <p><strong>Returns:</strong> <code>any</code></p>
-            <p>Check if string ends with a suffix</p>
+            <pre class="signature"><code>value.ends_with(suffix: <a href="string.html">str</a>) -> <a href="bool.html">bool</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="bool.html">bool</a></code></p>
+            <p>Check if string ends with suffix</p>
+        </div>
+        <div class="method-item">
+            <h3 id="length">length</h3>
+            <pre class="signature"><code>value.length() -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Get the length of the string</p>
+            <h4>Example</h4>
+            <pre class="example"><code>let len = &quot;hello&quot;.length();
+term.println(len); // 5</code></pre>
+        </div>
+        <div class="method-item">
+            <h3 id="to_upper">to_upper</h3>
+            <pre class="signature"><code>value.to_upper() -> <a href="string.html">str</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="string.html">str</a></code></p>
+            <p>Convert to uppercase</p>
+            <h4>Example</h4>
+            <pre class="example"><code>let loud = &quot;hello&quot;.to_upper();
+term.println(loud); // &quot;HELLO&quot;</code></pre>
+        </div>
+        <div class="method-item">
+            <h3 id="len">len</h3>
+            <pre class="signature"><code>value.len() -> <a href="num.html">num</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="num.html">num</a></code></p>
+            <p>Get the length of the string (alias for length)</p>
+        </div>
+        <div class="method-item">
+            <h3 id="repeat">repeat</h3>
+            <pre class="signature"><code>value.repeat(count: <a href="num.html">num</a>) -> <a href="string.html">str</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="string.html">str</a></code></p>
+            <p>Repeat a string n times</p>
+        </div>
+        <div class="method-item">
+            <h3 id="trim_start">trim_start</h3>
+            <pre class="signature"><code>value.trim_start() -> <a href="string.html">str</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="string.html">str</a></code></p>
+            <p>Remove whitespace from the start</p>
+        </div>
+        <div class="method-item">
+            <h3 id="pad_start">pad_start</h3>
+            <pre class="signature"><code>value.pad_start(length: <a href="num.html">num</a>, char?: <a href="string.html">str</a>) -> <a href="string.html">str</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="string.html">str</a></code></p>
+            <p>Pad string to length at start. Char defaults to space</p>
+        </div>
+        <div class="method-item">
+            <h3 id="to_lower">to_lower</h3>
+            <pre class="signature"><code>value.to_lower() -> <a href="string.html">str</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="string.html">str</a></code></p>
+            <p>Convert to lowercase</p>
+            <h4>Example</h4>
+            <pre class="example"><code>let quiet = &quot;HELLO&quot;.to_lower();
+term.println(quiet); // &quot;hello&quot;</code></pre>
+        </div>
+        <div class="method-item">
+            <h3 id="substring">substring</h3>
+            <pre class="signature"><code>value.substring(start: <a href="num.html">num</a>, end?: <a href="num.html">num</a>) -> <a href="string.html">str</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="string.html">str</a></code></p>
+            <p>Get a substring. End is optional</p>
+        </div>
+        <div class="method-item">
+            <h3 id="pad_end">pad_end</h3>
+            <pre class="signature"><code>value.pad_end(length: <a href="num.html">num</a>, char?: <a href="string.html">str</a>) -> <a href="string.html">str</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="string.html">str</a></code></p>
+            <p>Pad string to length at end. Char defaults to space</p>
+        </div>
+        <div class="method-item">
+            <h3 id="replace">replace</h3>
+            <pre class="signature"><code>value.replace(pattern: <a href="string.html">str</a>, replacement: <a href="string.html">str</a>) -> <a href="string.html">str</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="string.html">str</a></code></p>
+            <p>Replace all occurrences of a pattern</p>
+            <h4>Example</h4>
+            <pre class="example"><code>let fixed = &quot;hello world&quot;.replace(&quot;world&quot;, &quot;loft&quot;);
+term.println(fixed); // &quot;hello loft&quot;</code></pre>
+        </div>
+        <div class="method-item">
+            <h3 id="trim">trim</h3>
+            <pre class="signature"><code>value.trim() -> <a href="string.html">str</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="string.html">str</a></code></p>
+            <p>Remove whitespace from both ends</p>
+            <h4>Example</h4>
+            <pre class="example"><code>let clean = &quot;  hello  &quot;.trim();
+term.println(clean); // &quot;hello&quot;</code></pre>
+        </div>
+        <div class="method-item">
+            <h3 id="starts_with">starts_with</h3>
+            <pre class="signature"><code>value.starts_with(prefix: <a href="string.html">str</a>) -> <a href="bool.html">bool</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="bool.html">bool</a></code></p>
+            <p>Check if string starts with prefix</p>
+        </div>
+        <h2 id="trait-impls">Trait Implementations</h2>
+        <div class="method-item trait-impl">
+            <h3 id="impl-Add"><a href="trait-Add.html">Add</a></h3>
+        </div>
+        <div class="method-item trait-impl">
+            <h3 id="impl-Index"><a href="trait-Index.html">Index</a></h3>
+        </div>
+        <div class="method-item trait-impl">
+            <h3 id="impl-Ord"><a href="trait-Ord.html">Ord</a></h3>
+        </div>
+        <div class="method-item trait-impl">
+            <h3 id="impl-Printable"><a href="trait-Printable.html">Printable</a></h3>
+        </div>
+        <div class="method-item trait-impl">
+            <h3 id="impl-ToString"><a href="trait-ToString.html">ToString</a></h3>
         </div>
     </div>
 </body>

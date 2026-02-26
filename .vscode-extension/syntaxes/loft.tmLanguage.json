@@ -4,12 +4,13 @@
   "scopeName": "source.loft",
   "patterns": [
     { "include": "#comments" },
+    { "include": "#function-definitions" },
     { "include": "#keywords" },
     { "include": "#strings" },
     { "include": "#numbers" },
-    { "include": "#functions" },
+    { "include": "#special-values" },
     { "include": "#types" },
-    { "include": "#constants" },
+    { "include": "#builtin-calls" },
     { "include": "#operators" },
     { "include": "#punctuation" }
   ],
@@ -27,26 +28,38 @@
         }
       ]
     },
+    "function-definitions": {
+      "patterns": [
+        {
+          "comment": "fn/teach fn/async fn — matched without lookbehind, uses captures",
+          "match": "\\b(teach\\s+async\\s+fn|teach\\s+fn|async\\s+fn|fn)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.other.loft" },
+            "2": { "name": "entity.name.function.definition.loft" }
+          }
+        }
+      ]
+    },
     "keywords": {
       "patterns": [
         {
           "name": "keyword.control.loft",
-          "match": "\\b(if|else|while|for|in|return|break|continue|match)\\b"
+          "match": "\\b(if|else|while|for|in|return|break|continue|match|from|import|use)\\b"
         },
         {
           "name": "keyword.other.loft",
-          "match": "\\b(let|const|mut|fn|def|struct|enum|impl|trait|async|await|lazy|learn|teach)\\b"
+          "match": "\\b(let|const|fn|def|struct|enum|impl|trait|async|await|lazy|learn|teach|as|pub|self|type)\\b"
         },
         {
           "name": "storage.modifier.loft",
-          "match": "\\b(mut|async)\\b"
+          "match": "\\bmut\\b"
         }
       ]
     },
     "strings": {
       "patterns": [
         {
-          "name": "string.template.loft",
+          "name": "string.interpolated.loft",
           "begin": "`",
           "end": "`",
           "patterns": [
@@ -106,15 +119,19 @@
         }
       ]
     },
-    "functions": {
+    "special-values": {
       "patterns": [
         {
-          "name": "entity.name.function.loft",
-          "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\()"
+          "name": "constant.language.boolean.loft",
+          "match": "\\b(true|false)\\b"
         },
         {
-          "name": "entity.name.function.definition.loft",
-          "match": "(?<=fn\\s+)([a-zA-Z_][a-zA-Z0-9_]*)"
+          "name": "constant.language.null.loft",
+          "match": "\\b(null|void)\\b"
+        },
+        {
+          "name": "support.function.macro.loft",
+          "match": "\\b(Some|None|Ok|Err)\\b"
         }
       ]
     },
@@ -122,7 +139,7 @@
       "patterns": [
         {
           "name": "storage.type.loft",
-          "match": "\\b(num|str|bool)\\b"
+          "match": "\\b(num|str|bool|void|any)\\b"
         },
         {
           "name": "entity.name.type.loft",
@@ -130,15 +147,17 @@
         }
       ]
     },
-    "constants": {
+    "builtin-calls": {
       "patterns": [
         {
-          "name": "constant.language.boolean.loft",
-          "match": "\\b(true|false)\\b"
+          "comment": "stdlib module qualifier: term.println, math.abs, etc.",
+          "match": "\\b(term|math|json|fs|web|time|random|string|array|encoding|object)(?=\\.)",
+          "name": "support.class.loft"
         },
         {
-          "name": "variable.other.constant.loft",
-          "match": "\\b[A-Z][A-Z0-9_]*\\b"
+          "comment": "any function call",
+          "name": "entity.name.function.loft",
+          "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\()"
         }
       ]
     },
@@ -146,11 +165,19 @@
       "patterns": [
         {
           "name": "keyword.operator.comparison.loft",
-          "match": "(==|!=|<=|>=|<|>)"
+          "match": "(==|!=|<=|>=)"
         },
         {
           "name": "keyword.operator.logical.loft",
           "match": "(&&|\\|\\||!)"
+        },
+        {
+          "name": "keyword.operator.pipe.loft",
+          "match": "\\|>"
+        },
+        {
+          "name": "keyword.operator.optional-chain.loft",
+          "match": "\\?\\."
         },
         {
           "name": "keyword.operator.arithmetic.loft",
@@ -158,23 +185,43 @@
         },
         {
           "name": "keyword.operator.assignment.loft",
-          "match": "(=|\\+=|-=|\\*=|/=)"
+          "match": "(\\+=|-=|\\*=|/=|=)"
         },
         {
           "name": "keyword.operator.arrow.loft",
           "match": "(->|=>)"
         },
         {
-          "name": "keyword.operator.member.loft",
-          "match": "\\."
+          "name": "keyword.operator.spread.loft",
+          "match": "\\.\\.\\." 
+        },
+        {
+          "name": "keyword.operator.range.loft",
+          "match": "\\.\\."
+        },
+        {
+          "name": "keyword.operator.nullish.loft",
+          "match": "\\?\\?"
+        },
+        {
+          "name": "keyword.operator.optional.loft",
+          "match": "\\?"
         }
       ]
     },
     "punctuation": {
       "patterns": [
         {
-          "name": "punctuation.separator.loft",
-          "match": "[,;:]"
+          "name": "punctuation.separator.comma.loft",
+          "match": ","
+        },
+        {
+          "name": "punctuation.terminator.loft",
+          "match": ";"
+        },
+        {
+          "name": "punctuation.separator.colon.loft",
+          "match": ":"
         },
         {
           "name": "punctuation.bracket.loft",

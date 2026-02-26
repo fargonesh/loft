@@ -12,6 +12,11 @@ thread_local! {
     static OUTPUT_BUFFER: RefCell<String> = RefCell::new(String::new());
 }
 
+#[wasm_bindgen(start)]
+pub fn main() {
+    console_error_panic_hook::set_once();
+}
+
 fn custom_print(_this: &Value, args: &[Value]) -> loft::runtime::RuntimeResult<Value> {
     OUTPUT_BUFFER.with(|b| {
         let mut buf = b.borrow_mut();

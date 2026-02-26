@@ -325,7 +325,7 @@ impl LoftLanguageServer {
                 severity: Some(DiagnosticSeverity::ERROR),
                 code: None,
                 code_description: None,
-                source: Some("twang".to_string()),
+                source: Some("loft".to_string()),
                 message: error_msg,
                 related_information: None,
                 tags: None,
@@ -743,7 +743,7 @@ impl LoftLanguageServer {
                                     },
                                     severity: Some(DiagnosticSeverity::ERROR),
                                     code: Some(NumberOrString::String("signature_mismatch".to_string())),
-                                    source: Some("twang".to_string()),
+                                    source: Some("loft".to_string()),
                                     message: msg,
                                     ..Default::default()
                                 });
@@ -785,7 +785,7 @@ impl LoftLanguageServer {
                         },
                         severity: Some(DiagnosticSeverity::ERROR),
                         code: Some(NumberOrString::String("missing_impl".to_string())),
-                        source: Some("twang".to_string()),
+                        source: Some("loft".to_string()),
                         message: format!(
                             "Missing implementation for methods: {}",
                             missing_methods.join(", ")
@@ -869,7 +869,7 @@ impl LoftLanguageServer {
                             severity: Some(DiagnosticSeverity::WARNING),
                             code: None,
                             code_description: None,
-                            source: Some("twang".to_string()),
+                            source: Some("loft".to_string()),
                             message: format!("Unused variable '{}'", symbol.name),
                             related_information: None,
                             tags: Some(vec![DiagnosticTag::UNNECESSARY]),
@@ -900,7 +900,7 @@ impl LoftLanguageServer {
                             severity: Some(DiagnosticSeverity::HINT),
                             code: None,
                             code_description: None,
-                            source: Some("twang".to_string()),
+                            source: Some("loft".to_string()),
                             message: format!("Unused import '{}'", import_path),
                             related_information: None,
                             tags: Some(vec![DiagnosticTag::UNNECESSARY]),
@@ -942,7 +942,7 @@ impl LoftLanguageServer {
                         severity: Some(DiagnosticSeverity::WARNING),
                         code: None,
                         code_description: None,
-                        source: Some("twang".to_string()),
+                        source: Some("loft".to_string()),
                         message: "Unreachable code".to_string(),
                         related_information: None,
                         tags: Some(vec![DiagnosticTag::UNNECESSARY]),
@@ -996,7 +996,7 @@ impl LoftLanguageServer {
                         severity: Some(DiagnosticSeverity::WARNING),
                         code: None,
                         code_description: None,
-                        source: Some("twang".to_string()),
+                        source: Some("loft".to_string()),
                         message: "Unreachable code".to_string(),
                         related_information: None,
                         tags: Some(vec![DiagnosticTag::UNNECESSARY]),
@@ -1302,7 +1302,7 @@ impl LoftLanguageServer {
                                 severity: Some(DiagnosticSeverity::ERROR),
                                 code: None,
                                 code_description: None,
-                                source: Some("twang".to_string()),
+                                source: Some("loft".to_string()),
                                 message: format!("Undefined identifier '{}'", name),
                                 related_information: None,
                                 tags: None,
@@ -1354,7 +1354,7 @@ impl LoftLanguageServer {
                                         severity: Some(DiagnosticSeverity::ERROR),
                                         code: None,
                                         code_description: None,
-                                        source: Some("twang".to_string()),
+                                        source: Some("loft".to_string()),
                                         message: format!(
                                             "Function '{}' expects {} argument(s), but {} provided",
                                             func_name,
@@ -1551,7 +1551,7 @@ impl LoftLanguageServer {
                                 severity: Some(DiagnosticSeverity::ERROR),
                                 code: None,
                                 code_description: None,
-                                source: Some("twang".to_string()),
+                                source: Some("loft".to_string()),
                                 message: format!("Undefined identifier '{}'", name),
                                 related_information: None,
                                 tags: None,
@@ -1589,7 +1589,7 @@ impl LoftLanguageServer {
                                         severity: Some(DiagnosticSeverity::ERROR),
                                         code: None,
                                         code_description: None,
-                                        source: Some("twang".to_string()),
+                                        source: Some("loft".to_string()),
                                         message: format!(
                                             "Function '{}' expects {} argument(s), but {} provided",
                                             func_name,
@@ -2338,7 +2338,7 @@ impl LoftLanguageServer {
         let keywords = [
             "fn", "let", "const", "if", "else", "while", "for", "return", "struct", "trait",
             "impl", "learn", "teach", "async", "await", "try", "catch", "true", "false", "null",
-            "void", "num", "str", "bool",
+            "void", "num", "str", "bool", "Option", "Result",
         ];
 
         keywords
@@ -2501,6 +2501,55 @@ impl LoftLanguageServer {
                             });
                         }
                     }
+                    // Handle Option<T>
+                    else if type_name.starts_with("Option") {
+                        let methods: &[(&str, &str, &str, &str)] = &[
+                            ("is_some", "is_some()", "bool", "Returns `true` if this is `Some(value)`."),
+                            ("is_none", "is_none()", "bool", "Returns `true` if this is `None`."),
+                            ("unwrap", "unwrap()", "T", "Returns the inner value. Panics if `None`."),
+                            ("unwrap_or", "unwrap_or(default)", "T", "Returns the inner value or `default` if `None`."),
+                            ("expect", "expect(msg)", "T", "Returns the inner value or panics with `msg` if `None`."),
+                        ];
+                        for (name, detail, ret, doc) in methods {
+                            items.push(CompletionItem {
+                                label: name.to_string(),
+                                kind: Some(CompletionItemKind::METHOD),
+                                detail: Some(format!("{} -> {}", detail, ret)),
+                                documentation: Some(Documentation::MarkupContent(MarkupContent {
+                                    kind: MarkupKind::Markdown,
+                                    value: doc.to_string(),
+                                })),
+                                insert_text: Some(format!("{}($0)", name)),
+                                insert_text_format: Some(InsertTextFormat::SNIPPET),
+                                ..Default::default()
+                            });
+                        }
+                    }
+                    // Handle Result<T, E>
+                    else if type_name.starts_with("Result") {
+                        let methods: &[(&str, &str, &str, &str)] = &[
+                            ("is_ok",  "is_ok()",  "bool", "Returns `true` if this is `Ok(value)`."),
+                            ("is_err", "is_err()", "bool", "Returns `true` if this is `Err(error)`."),
+                            ("unwrap", "unwrap()", "T", "Returns the inner value. Panics if `Err`."),
+                            ("unwrap_or", "unwrap_or(default)", "T", "Returns the inner value or `default` if `Err`."),
+                            ("unwrap_err", "unwrap_err()", "E", "Returns the error value. Panics if `Ok`."),
+                            ("expect", "expect(msg)", "T", "Returns the inner value or panics with `msg` if `Err`."),
+                        ];
+                        for (name, detail, ret, doc) in methods {
+                            items.push(CompletionItem {
+                                label: name.to_string(),
+                                kind: Some(CompletionItemKind::METHOD),
+                                detail: Some(format!("{} -> {}", detail, ret)),
+                                documentation: Some(Documentation::MarkupContent(MarkupContent {
+                                    kind: MarkupKind::Markdown,
+                                    value: doc.to_string(),
+                                })),
+                                insert_text: Some(format!("{}($0)", name)),
+                                insert_text_format: Some(InsertTextFormat::SNIPPET),
+                                ..Default::default()
+                            });
+                        }
+                    }
                     // Handle stdlib types (Response, RequestBuilder, Buffer, etc.)
                     else if let Some(stdlib_type) = self.stdlib_types.types.get(type_name) {
                         // Add fields as completions
@@ -2585,7 +2634,7 @@ impl LoftLanguageServer {
         match &symbol.kind {
             SymbolKind::Variable { var_type, mutable } => {
                 // Code block first (like Rust/TypeScript)
-                text.push_str("```twang\n");
+                text.push_str("```loft\n");
                 if *mutable {
                     text.push_str("let mut ");
                 } else {
@@ -2606,7 +2655,7 @@ impl LoftLanguageServer {
             }
             SymbolKind::Constant { const_type } => {
                 // Code block first
-                text.push_str("```twang\n");
+                text.push_str("```loft\n");
                 text.push_str(&format!("const {}: {}", symbol.name, const_type));
                 text.push_str("\n```\n\n");
                 text.push_str("_(constant)_");
@@ -2616,7 +2665,7 @@ impl LoftLanguageServer {
                 return_type,
             } => {
                 // Code block with full signature
-                text.push_str("```twang\n");
+                text.push_str("```loft\n");
                 text.push_str("fn ");
                 text.push_str(&symbol.name);
                 text.push_str("(");
@@ -2633,7 +2682,7 @@ impl LoftLanguageServer {
             }
             SymbolKind::Struct { fields, methods } => {
                 // Code block with struct definition
-                text.push_str("```twang\n");
+                text.push_str("```loft\n");
                 text.push_str("struct ");
                 text.push_str(&symbol.name);
                 text.push_str(" {\n");
@@ -2655,7 +2704,7 @@ impl LoftLanguageServer {
             }
             SymbolKind::Trait { methods } => {
                 // Code block with trait signature
-                text.push_str("```twang\n");
+                text.push_str("```loft\n");
                 text.push_str("trait ");
                 text.push_str(&symbol.name);
                 text.push_str("\n```\n\n");
@@ -2769,28 +2818,28 @@ pub(crate) fn get_field_access_at_position(line: &str, col: usize) -> Option<(St
 fn get_hover_text(word: &str) -> Option<String> {
     match word {
         // Keywords
-        "learn" => Some("**learn** _keyword_\n\nImports a module.\n\n```twang\nlearn \"std\";\n```".to_string()),
-        "teach" => Some("**teach** _keyword_\n\nExports a function or value.\n\n```twang\nteach fn add(a: num, b: num) -> num { return a + b; }\n```".to_string()),
-        "fn" => Some("**fn** _keyword_\n\nDefines a function.\n\n```twang\nfn function_name(param: type) -> return_type { }\n```".to_string()),
-        "let" => Some("**let** _keyword_\n\nDeclares a variable. All variables are re-assignable and shadowable.\n\n```twang\nlet x = 42;\nx = 100; // re-assignment works\n```".to_string()),
-        "mut" => Some("**mut** _keyword_\n\n**Note**: In loft, all variables are re-assignable by default. The `mut` keyword is accepted for compatibility but is not required.\n\n```twang\nlet x = 0;\nx = x + 1; // works without mut\n```".to_string()),
-        "const" => Some("**const** _keyword_\n\nDeclares a constant.\n\n```twang\nconst PI: num = 3.14159;\n```".to_string()),
-        "if" => Some("**if** _keyword_\n\nConditional statement.\n\n```twang\nif (condition) { } else { }\n```".to_string()),
-        "else" => Some("**else** _keyword_\n\nElse branch of an if statement.\n\n```twang\nif (condition) { } else { }\n```".to_string()),
-        "while" => Some("**while** _keyword_\n\nWhile loop.\n\n```twang\nwhile (condition) { }\n```".to_string()),
-        "for" => Some("**for** _keyword_\n\nFor loop for iterating over collections.\n\n```twang\nfor item in collection { }\n```".to_string()),
-        "in" => Some("**in** _keyword_\n\nUsed in for loops to iterate.\n\n```twang\nfor item in collection { }\n```".to_string()),
-        "return" => Some("**return** _keyword_\n\nReturns a value from a function.\n\n```twang\nreturn value;\n```".to_string()),
+        "learn" => Some("**learn** _keyword_\n\nImports a module.\n\n```loft\nlearn \"std\";\n```".to_string()),
+        "teach" => Some("**teach** _keyword_\n\nExports a function or value.\n\n```loft\nteach fn add(a: num, b: num) -> num { return a + b; }\n```".to_string()),
+        "fn" => Some("**fn** _keyword_\n\nDefines a function.\n\n```loft\nfn function_name(param: type) -> return_type { }\n```".to_string()),
+        "let" => Some("**let** _keyword_\n\nDeclares a variable. All variables are re-assignable and shadowable.\n\n```loft\nlet x = 42;\nx = 100; // re-assignment works\n```".to_string()),
+        "mut" => Some("**mut** _keyword_\n\n**Note**: In loft, all variables are re-assignable by default. The `mut` keyword is accepted for compatibility but is not required.\n\n```loft\nlet x = 0;\nx = x + 1; // works without mut\n```".to_string()),
+        "const" => Some("**const** _keyword_\n\nDeclares a constant.\n\n```loft\nconst PI: num = 3.14159;\n```".to_string()),
+        "if" => Some("**if** _keyword_\n\nConditional statement.\n\n```loft\nif (condition) { } else { }\n```".to_string()),
+        "else" => Some("**else** _keyword_\n\nElse branch of an if statement.\n\n```loft\nif (condition) { } else { }\n```".to_string()),
+        "while" => Some("**while** _keyword_\n\nWhile loop.\n\n```loft\nwhile (condition) { }\n```".to_string()),
+        "for" => Some("**for** _keyword_\n\nFor loop for iterating over collections.\n\n```loft\nfor item in collection { }\n```".to_string()),
+        "in" => Some("**in** _keyword_\n\nUsed in for loops to iterate.\n\n```loft\nfor item in collection { }\n```".to_string()),
+        "return" => Some("**return** _keyword_\n\nReturns a value from a function.\n\n```loft\nreturn value;\n```".to_string()),
         "break" => Some("**break** _keyword_\n\nBreaks out of a loop.".to_string()),
         "continue" => Some("**continue** _keyword_\n\nContinues to the next iteration of a loop.".to_string()),
-        "def" => Some("**def** _keyword_\n\nDefines a struct.\n\n```twang\ndef Point { x: num, y: num }\n```".to_string()),
-        "impl" => Some("**impl** _keyword_\n\nImplementation block for a type.\n\n```twang\nimpl TypeName { fn method(self) -> type { } }\n```".to_string()),
-        "trait" => Some("**trait** _keyword_\n\nDefines a trait (interface).\n\n```twang\ntrait Drawable { fn draw(self) -> void; }\n```".to_string()),
-        "enum" => Some("**enum** _keyword_\n\nDefines an enumeration.\n\n```twang\nenum Color { Red, Green, Blue }\n```".to_string()),
-        "match" => Some("**match** _keyword_\n\nPattern matching.\n\n```twang\nmatch value { pattern => result }\n```".to_string()),
-        "async" => Some("**async** _keyword_\n\nMarks a function as asynchronous or creates an eager async expression.\n\n```twang\nasync fn fetch() -> str { }\nlet promise = async compute();\n```".to_string()),
-        "await" => Some("**await** _keyword_\n\nAwaits an async expression.\n\n```twang\nlet result = await promise;\n```".to_string()),
-        "lazy" => Some("**lazy** _keyword_\n\nCreates a lazily-evaluated async expression.\n\n```twang\nlet future = lazy expensive_computation();\n```".to_string()),
+        "def" => Some("**def** _keyword_\n\nDefines a struct.\n\n```loft\ndef Point { x: num, y: num }\n```".to_string()),
+        "impl" => Some("**impl** _keyword_\n\nImplementation block for a type.\n\n```loft\nimpl TypeName { fn method(self) -> type { } }\n```".to_string()),
+        "trait" => Some("**trait** _keyword_\n\nDefines a trait (interface).\n\n```loft\ntrait Drawable { fn draw(self) -> void; }\n```".to_string()),
+        "enum" => Some("**enum** _keyword_\n\nDefines an enumeration.\n\n```loft\nenum Color { Red, Green, Blue }\n```".to_string()),
+        "match" => Some("**match** _keyword_\n\nPattern matching.\n\n```loft\nmatch value { pattern => result }\n```".to_string()),
+        "async" => Some("**async** _keyword_\n\nMarks a function as asynchronous or creates an eager async expression.\n\n```loft\nasync fn fetch() -> str { }\nlet promise = async compute();\n```".to_string()),
+        "await" => Some("**await** _keyword_\n\nAwaits an async expression.\n\n```loft\nlet result = await promise;\n```".to_string()),
+        "lazy" => Some("**lazy** _keyword_\n\nCreates a lazily-evaluated async expression.\n\n```loft\nlet future = lazy expensive_computation();\n```".to_string()),
         
         // Types
         "num" => Some("**num** _type_\n\nNumeric type (integer or decimal).".to_string()),
@@ -2832,7 +2881,7 @@ impl LanguageServer for LoftLanguageServer {
     async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
         Ok(InitializeResult {
             server_info: Some(ServerInfo {
-                name: "twang-lsp".to_string(),
+                name: "loft-lsp".to_string(),
                 version: Some("0.1.0".to_string()),
             }),
             capabilities: ServerCapabilities {
@@ -3142,7 +3191,7 @@ impl LanguageServer for LoftLanguageServer {
             if let Some(builtin) = self.stdlib_types.builtins.get(&object_name) {
                 if let Some(method) = builtin.methods.get(&method_name) {
                     let hover_text = format!(
-                        "```twang\n{}.{}({})\n```\n\n_(method on {})_\n\n---\n\n{}\n\n**Returns:** `{}`",
+                        "```loft\n{}.{}({})\n```\n\n_(method on {})_\n\n---\n\n{}\n\n**Returns:** `{}`",
                         object_name,
                         method_name,
                         method.params.join(", "),
@@ -3162,7 +3211,7 @@ impl LanguageServer for LoftLanguageServer {
                 // Check if it's a constant on a builtin
                 if let Some(constant) = builtin.constants.get(&method_name) {
                     let hover_text = format!(
-                        "```twang\n{}.{}: {}\n```\n\n_(constant on {})_\n\n---\n\n{}",
+                        "```loft\n{}.{}: {}\n```\n\n_(constant on {})_\n\n---\n\n{}",
                         object_name,
                         method_name,
                         constant.const_type,
@@ -3197,7 +3246,7 @@ impl LanguageServer for LoftLanguageServer {
                     if type_name == "str" {
                         if let Some(method) = self.stdlib_types.string_methods.get(&method_name) {
                             let hover_text = format!(
-                                "```twang\n{}.{}({})\n```\n\n_(string method)_\n\n---\n\n{}\n\n**Returns:** `{}`",
+                                "```loft\n{}.{}({})\n```\n\n_(string method)_\n\n---\n\n{}\n\n**Returns:** `{}`",
                                 object_name,
                                 method_name,
                                 method.params.join(", "),
@@ -3217,7 +3266,7 @@ impl LanguageServer for LoftLanguageServer {
                     else if type_name.starts_with("Array") {
                         if let Some(method) = self.stdlib_types.array_methods.get(&method_name) {
                             let hover_text = format!(
-                                "```twang\n{}.{}({})\n```\n\n_(array method)_\n\n---\n\n{}\n\n**Returns:** `{}`",
+                                "```loft\n{}.{}({})\n```\n\n_(array method)_\n\n---\n\n{}\n\n**Returns:** `{}`",
                                 object_name,
                                 method_name,
                                 method.params.join(", "),
@@ -3239,7 +3288,7 @@ impl LanguageServer for LoftLanguageServer {
 
         // First, check if it's a builtin
         if let Some(builtin) = self.stdlib_types.builtins.get(&word) {
-            let mut hover_text = format!("```twang\n{}\n```\n\n_({})_", word, builtin.kind);
+            let mut hover_text = format!("```loft\n{}\n```\n\n_({})_", word, builtin.kind);
 
             if !builtin.documentation.is_empty() {
                 hover_text.push_str("\n\n---\n\n");
@@ -3284,7 +3333,7 @@ impl LanguageServer for LoftLanguageServer {
 
         // Check if it's a builtin trait
         if let Some(trait_def) = self.stdlib_types.traits.get(&word) {
-            let mut hover_text = format!("```twang\ntrait {}\n```\n\n_(builtin trait)_", word);
+            let mut hover_text = format!("```loft\ntrait {}\n```\n\n_(builtin trait)_", word);
 
             if !trait_def.documentation.is_empty() {
                 hover_text.push_str("\n\n---\n\n");
@@ -3317,7 +3366,7 @@ impl LanguageServer for LoftLanguageServer {
         for (trait_name, trait_def) in &self.stdlib_types.traits {
             if let Some(method) = trait_def.methods.get(&word) {
                 let hover_text = format!(
-                    "```twang\n(trait {}) fn {}({})\n```\n\n_(builtin trait method)_\n\n---\n\n{}\n\n**Returns:** `{}`",
+                    "```loft\n(trait {}) fn {}({})\n```\n\n_(builtin trait method)_\n\n---\n\n{}\n\n**Returns:** `{}`",
                     trait_name,
                     word,
                     method.params.join(", "),
@@ -3476,14 +3525,14 @@ impl LanguageServer for LoftLanguageServer {
                             if let Ok(entries) = std::fs::read_dir(parent) {
                                 for entry in entries.flatten() {
                                     if let Some(name) = entry.file_name().to_str() {
-                                        if name.ends_with(".twang")
+                                        if name.ends_with(".loft")
                                             && name
                                                 != path
                                                     .file_name()
                                                     .and_then(|n| n.to_str())
                                                     .unwrap_or("")
                                         {
-                                            let mod_name = name.trim_end_matches(".twang");
+                                            let mod_name = name.trim_end_matches(".loft");
                                             import_items.push(CompletionItem {
                                                 label: mod_name.to_string(),
                                                 kind: Some(CompletionItemKind::FILE),
@@ -3658,7 +3707,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Import module".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Import a module into the current scope.\n\n```twang\nlearn \"std\";\n```".to_string(),
+                    value: "Import a module into the current scope.\n\n```loft\nlearn \"std\";\n```".to_string(),
                 })),
                 insert_text: Some("learn \"$1\";".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3670,7 +3719,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Export function/value".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Export a function or value from the module.\n\n```twang\nteach fn add(a: num, b: num) -> num { return a + b; }\n```".to_string(),
+                    value: "Export a function or value from the module.\n\n```loft\nteach fn add(a: num, b: num) -> num { return a + b; }\n```".to_string(),
                 })),
                 ..Default::default()
             },
@@ -3680,7 +3729,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Function declaration".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Define a function.\n\n```twang\nfn name(param: type) -> return_type {\n    // body\n}\n```".to_string(),
+                    value: "Define a function.\n\n```loft\nfn name(param: type) -> return_type {\n    // body\n}\n```".to_string(),
                 })),
                 insert_text: Some("fn ${1:name}(${2:param}: ${3:type}) -> ${4:type} {\n    $0\n}".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3693,7 +3742,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Variable declaration".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Declare a variable. All variables are re-assignable.\n\n```twang\nlet x = 42;\nx = 100; // re-assignment works\n```".to_string(),
+                    value: "Declare a variable. All variables are re-assignable.\n\n```loft\nlet x = 42;\nx = 100; // re-assignment works\n```".to_string(),
                 })),
                 insert_text: Some("let ${1:name} = $0;".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3706,7 +3755,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Mutable modifier (optional)".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "In loft, all variables are re-assignable. The `mut` keyword is optional.\n\n```twang\nlet x = 0;\nx = x + 1; // works without mut\n```".to_string(),
+                    value: "In loft, all variables are re-assignable. The `mut` keyword is optional.\n\n```loft\nlet x = 0;\nx = x + 1; // works without mut\n```".to_string(),
                 })),
                 ..Default::default()
             },
@@ -3716,7 +3765,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Constant declaration".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Declare a constant.\n\n```twang\nconst PI: num = 3.14159;\n```".to_string(),
+                    value: "Declare a constant.\n\n```loft\nconst PI: num = 3.14159;\n```".to_string(),
                 })),
                 insert_text: Some("const ${1:NAME} = $0;".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3728,7 +3777,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Conditional statement".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Conditional branching.\n\n```twang\nif (condition) {\n    // then\n} else {\n    // else\n}\n```".to_string(),
+                    value: "Conditional branching.\n\n```loft\nif (condition) {\n    // then\n} else {\n    // else\n}\n```".to_string(),
                 })),
                 insert_text: Some("if (${1:condition}) {\n    $0\n}".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3741,7 +3790,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("While loop".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Loop while condition is true.\n\n```twang\nwhile (condition) {\n    // body\n}\n```".to_string(),
+                    value: "Loop while condition is true.\n\n```loft\nwhile (condition) {\n    // body\n}\n```".to_string(),
                 })),
                 insert_text: Some("while (${1:condition}) {\n    $0\n}".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3753,7 +3802,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("For loop".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Iterate over a collection.\n\n```twang\nfor item in collection {\n    // body\n}\n```".to_string(),
+                    value: "Iterate over a collection.\n\n```loft\nfor item in collection {\n    // body\n}\n```".to_string(),
                 })),
                 insert_text: Some("for ${1:item} in ${2:collection} {\n    $0\n}".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3765,7 +3814,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Return statement".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Return a value from a function.\n\n```twang\nreturn value;\n```".to_string(),
+                    value: "Return a value from a function.\n\n```loft\nreturn value;\n```".to_string(),
                 })),
                 insert_text: Some("return $0;".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3777,7 +3826,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Struct definition".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Define a struct.\n\n```twang\ndef Point {\n    x: num,\n    y: num,\n}\n```".to_string(),
+                    value: "Define a struct.\n\n```loft\ndef Point {\n    x: num,\n    y: num,\n}\n```".to_string(),
                 })),
                 insert_text: Some("def ${1:Name} {\n    ${2:field}: ${3:type},\n}".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3789,7 +3838,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Implementation block".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Implement methods for a type.\n\n```twang\nimpl TypeName {\n    fn method(self) -> type {\n        // body\n    }\n}\n```".to_string(),
+                    value: "Implement methods for a type.\n\n```loft\nimpl TypeName {\n    fn method(self) -> type {\n        // body\n    }\n}\n```".to_string(),
                 })),
                 insert_text: Some("impl ${1:TypeName} {\n    $0\n}".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3801,7 +3850,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Trait definition".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Define a trait (interface).\n\n```twang\ntrait Drawable {\n    fn draw(self) -> void;\n}\n```".to_string(),
+                    value: "Define a trait (interface).\n\n```loft\ntrait Drawable {\n    fn draw(self) -> void;\n}\n```".to_string(),
                 })),
                 insert_text: Some("trait ${1:Name} {\n    $0\n}".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3813,7 +3862,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Async function or expression".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Mark function as async or create async expression.\n\n```twang\nasync fn fetch() -> str { }\nlet promise = async compute();\n```".to_string(),
+                    value: "Mark function as async or create async expression.\n\n```loft\nasync fn fetch() -> str { }\nlet promise = async compute();\n```".to_string(),
                 })),
                 ..Default::default()
             },
@@ -3823,7 +3872,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Await async expression".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Await the result of an async expression.\n\n```twang\nlet result = await promise;\n```".to_string(),
+                    value: "Await the result of an async expression.\n\n```loft\nlet result = await promise;\n```".to_string(),
                 })),
                 insert_text: Some("await $0".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3835,7 +3884,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Pattern matching".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Pattern match on a value.\n\n```twang\nmatch value {\n    pattern => result,\n}\n```".to_string(),
+                    value: "Pattern match on a value.\n\n```loft\nmatch value {\n    pattern => result,\n}\n```".to_string(),
                 })),
                 insert_text: Some("match ${1:value} {\n    ${2:pattern} => $0,\n}".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3847,7 +3896,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Enum definition".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Define an enumeration.\n\n```twang\nenum Color {\n    Red,\n    Green,\n    Blue,\n}\n```".to_string(),
+                    value: "Define an enumeration.\n\n```loft\nenum Color {\n    Red,\n    Green,\n    Blue,\n}\n```".to_string(),
                 })),
                 insert_text: Some("enum ${1:Name} {\n    ${2:Variant},\n}".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3883,7 +3932,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Lazy async expression".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Create a lazily-evaluated async expression.\n\n```twang\nlet future = lazy expensive();\n```".to_string(),
+                    value: "Create a lazily-evaluated async expression.\n\n```loft\nlet future = lazy expensive();\n```".to_string(),
                 })),
                 insert_text: Some("lazy $0".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3895,7 +3944,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Template literal with interpolation".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Create a template literal with variable interpolation.\n\n```twang\nlet name = \"World\";\nlet message = `Hello, ${name}!`;\n```".to_string(),
+                    value: "Create a template literal with variable interpolation.\n\n```loft\nlet name = \"World\";\nlet message = `Hello, ${name}!`;\n```".to_string(),
                 })),
                 insert_text: Some("`${1:text} \\${${2:variable}}$0`".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3909,7 +3958,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Try-catch error handling".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Handle errors with try-catch.\n\n```twang\ntry {\n    // code\n} catch (error) {\n    // handle error\n}\n```".to_string(),
+                    value: "Handle errors with try-catch.\n\n```loft\ntry {\n    // code\n} catch (error) {\n    // handle error\n}\n```".to_string(),
                 })),
                 insert_text: Some("try {\n    ${1:// code}\n} catch (${2:error}) {\n    ${3:// handle error}\n}$0".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3923,7 +3972,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Lambda/arrow function".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Create a lambda expression.\n\n```twang\nlet add = (a, b) => a + b;\narray.map(x => x * 2);\n```".to_string(),
+                    value: "Create a lambda expression.\n\n```loft\nlet add = (a, b) => a + b;\narray.map(x => x * 2);\n```".to_string(),
                 })),
                 insert_text: Some("(${1:param}) => ${2:expr}$0".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3937,7 +3986,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Async function declaration".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Define an async function.\n\n```twang\nasync fn fetch_data() -> str {\n    await http.get(\"url\");\n}\n```".to_string(),
+                    value: "Define an async function.\n\n```loft\nasync fn fetch_data() -> str {\n    await http.get(\"url\");\n}\n```".to_string(),
                 })),
                 insert_text: Some("async fn ${1:name}(${2:params}) -> ${3:type} {\n    $0\n}".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3951,7 +4000,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("For-in loop over iterable".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Iterate over an iterable.\n\n```twang\nfor (item in array) {\n    term.println(item);\n}\n```".to_string(),
+                    value: "Iterate over an iterable.\n\n```loft\nfor (item in array) {\n    term.println(item);\n}\n```".to_string(),
                 })),
                 insert_text: Some("for (${1:item} in ${2:iterable}) {\n    $0\n}".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3965,7 +4014,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Print to console".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Print a value to the console.\n\n```twang\nterm.println(\"Hello!\");\n```".to_string(),
+                    value: "Print a value to the console.\n\n```loft\nterm.println(\"Hello!\");\n```".to_string(),
                 })),
                 insert_text: Some("term.println(${1:message})$0".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3979,7 +4028,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Debug print with value inspection".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Print a debug representation.\n\n```twang\nterm.println(`Debug: \\${value}`);\n```".to_string(),
+                    value: "Print a debug representation.\n\n```loft\nterm.println(`Debug: \\${value}`);\n```".to_string(),
                 })),
                 insert_text: Some("term.println(`${1:label}: \\${${2:value}}`)$0".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -3993,12 +4042,70 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("If-let pattern matching".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Pattern match with if-let.\n\n```twang\nif let Some(value) = option {\n    // use value\n}\n```".to_string(),
+                    value: "Pattern match with if-let.\n\n```loft\nif let Some(value) = option {\n    // use value\n}\n```".to_string(),
                 })),
                 insert_text: Some("if let ${1:pattern} = ${2:expr} {\n    $0\n}".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
                 filter_text: Some("if let pattern".to_string()),
                 sort_text: Some("zz_iflet".to_string()),
+                ..Default::default()
+            },
+            // Option constructors
+            CompletionItem {
+                label: "Option.Some".to_string(),
+                kind: Some(CompletionItemKind::ENUM_MEMBER),
+                detail: Some("Option<T> constructor".to_string()),
+                documentation: Some(Documentation::MarkupContent(MarkupContent {
+                    kind: MarkupKind::Markdown,
+                    value: "Wrap a value in `Option.Some`\n\n```loft\nlet x: Option<num> = Option.Some(42);\n```".to_string(),
+                })),
+                insert_text: Some("Option.Some(${1:value})$0".to_string()),
+                insert_text_format: Some(InsertTextFormat::SNIPPET),
+                filter_text: Some("Option Some".to_string()),
+                sort_text: Some("c_option_some".to_string()),
+                ..Default::default()
+            },
+            CompletionItem {
+                label: "Option.None".to_string(),
+                kind: Some(CompletionItemKind::ENUM_MEMBER),
+                detail: Some("Option<T> absent value".to_string()),
+                documentation: Some(Documentation::MarkupContent(MarkupContent {
+                    kind: MarkupKind::Markdown,
+                    value: "Represent the absence of a value\n\n```loft\nlet x: Option<num> = Option.None;\n```".to_string(),
+                })),
+                insert_text: Some("Option.None".to_string()),
+                insert_text_format: Some(InsertTextFormat::PLAIN_TEXT),
+                filter_text: Some("Option None".to_string()),
+                sort_text: Some("c_option_none".to_string()),
+                ..Default::default()
+            },
+            // Result constructors
+            CompletionItem {
+                label: "Result.Ok".to_string(),
+                kind: Some(CompletionItemKind::ENUM_MEMBER),
+                detail: Some("Result<T, E> success constructor".to_string()),
+                documentation: Some(Documentation::MarkupContent(MarkupContent {
+                    kind: MarkupKind::Markdown,
+                    value: "Wrap a success value in `Result.Ok`\n\n```loft\nlet r: Result<num, str> = Result.Ok(42);\n```".to_string(),
+                })),
+                insert_text: Some("Result.Ok(${1:value})$0".to_string()),
+                insert_text_format: Some(InsertTextFormat::SNIPPET),
+                filter_text: Some("Result Ok".to_string()),
+                sort_text: Some("c_result_ok".to_string()),
+                ..Default::default()
+            },
+            CompletionItem {
+                label: "Result.Err".to_string(),
+                kind: Some(CompletionItemKind::ENUM_MEMBER),
+                detail: Some("Result<T, E> error constructor".to_string()),
+                documentation: Some(Documentation::MarkupContent(MarkupContent {
+                    kind: MarkupKind::Markdown,
+                    value: "Wrap an error value in `Result.Err`\n\n```loft\nlet r: Result<num, str> = Result.Err(\"not found\");\n```".to_string(),
+                })),
+                insert_text: Some("Result.Err(${1:error})$0".to_string()),
+                insert_text_format: Some(InsertTextFormat::SNIPPET),
+                filter_text: Some("Result Err".to_string()),
+                sort_text: Some("c_result_err".to_string()),
                 ..Default::default()
             },
             CompletionItem {
@@ -4007,7 +4114,7 @@ impl LanguageServer for LoftLanguageServer {
                 detail: Some("Else-if branch".to_string()),
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: "Add an else-if branch.\n\n```twang\nelse if (condition) {\n    // branch\n}\n```".to_string(),
+                    value: "Add an else-if branch.\n\n```loft\nelse if (condition) {\n    // branch\n}\n```".to_string(),
                 })),
                 insert_text: Some("else if (${1:condition}) {\n    $0\n}".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
@@ -6237,7 +6344,7 @@ trait Drawable {
 
         let hover = LoftLanguageServer::format_symbol_hover(&var_symbol);
         // New format has code block first
-        assert!(hover.contains("```twang"));
+        assert!(hover.contains("```loft"));
         assert!(hover.contains("let counter"));
         assert!(hover.contains(": num"));
         assert!(hover.contains("_(variable)_"));
@@ -6263,7 +6370,7 @@ trait Drawable {
 
         let hover = LoftLanguageServer::format_symbol_hover(&func_symbol);
         // New format has code block with full signature
-        assert!(hover.contains("```twang"));
+        assert!(hover.contains("```loft"));
         assert!(hover.contains("fn add("));
         assert!(hover.contains("a: num"));
         assert!(hover.contains("-> num"));
@@ -6696,7 +6803,7 @@ let e = fs.read("file.txt");
         let server = service.inner();
 
         // Simulate a document with a Response variable
-        let uri = "file:///test.twang".to_string();
+        let uri = "file:///test.loft".to_string();
         let content = r#"
 let response = await web.get("https://google.com");
 "#
@@ -6778,7 +6885,7 @@ let response = await web.get("https://google.com");
         let server = service.inner();
 
         // Simulate a document with a RequestBuilder variable
-        let uri = "file:///test.twang".to_string();
+        let uri = "file:///test.loft".to_string();
         let content = r#"
 let req = web.request("https://api.example.com");
 "#
@@ -6862,7 +6969,7 @@ let req = web.request("https://api.example.com");
         let server = service.inner();
 
         // Simulate the exact code from the issue
-        let uri = "file:///test.twang".to_string();
+        let uri = "file:///test.loft".to_string();
         let content = r#"
 let a = web.get("https://google.com");
 let b = await a;
@@ -6996,7 +7103,7 @@ let b = await a;
         let content_with_error = "let x = ;".to_string(); // Missing value after =
 
         // Parse the content and verify we get an error
-        let input_stream = InputStream::new("test.twang", &content_with_error);
+        let input_stream = InputStream::new("test.loft", &content_with_error);
         let mut parser = Parser::new(input_stream);
         let result = parser.parse();
 
@@ -7017,7 +7124,7 @@ let b = await a;
         let content = "let x = 5;\nlet y = ;\nlet z = 10;".to_string();
 
         // Parse to get error
-        let input_stream = InputStream::new("test.twang", &content);
+        let input_stream = InputStream::new("test.loft", &content);
         let mut parser = Parser::new(input_stream);
         let result = parser.parse();
 
@@ -7036,14 +7143,14 @@ let b = await a;
     fn test_diagnostic_clearing_on_fix() {
         // First, parse content with error
         let bad_content = "let x = ;".to_string();
-        let input_stream = InputStream::new("test.twang", &bad_content);
+        let input_stream = InputStream::new("test.loft", &bad_content);
         let mut parser = Parser::new(input_stream);
         let result = parser.parse();
         assert!(result.is_err());
 
         // Then parse fixed content
         let good_content = "let x = 5;".to_string();
-        let input_stream = InputStream::new("test.twang", &good_content);
+        let input_stream = InputStream::new("test.loft", &good_content);
         let mut parser = Parser::new(input_stream);
         let result = parser.parse();
         assert!(result.is_ok());
@@ -7059,7 +7166,7 @@ let b = await a;
         // Test that when there are multiple errors, the first one is reported
         let content = "let x = ;\nlet y = ;\nlet z = ;".to_string();
 
-        let input_stream = InputStream::new("test.twang", &content);
+        let input_stream = InputStream::new("test.loft", &content);
         let mut parser = Parser::new(input_stream);
         let result = parser.parse();
 
@@ -7154,7 +7261,7 @@ let w = 4;"#;
         let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
         let server = service.inner();
 
-        let uri = "file:///test.twang".to_string();
+        let uri = "file:///test.loft".to_string();
         let source = r#"let x: num = 42;
 let y = 100;
 let name = "Alice";"#;
@@ -7277,7 +7384,7 @@ let name = "Alice";"#;
         let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
         let server = service.inner();
 
-        let uri = "file:///test.twang".to_string();
+        let uri = "file:///test.loft".to_string();
         let source = r#"learn "module";
 learn "other";
 
@@ -7334,7 +7441,7 @@ def Point {
         let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
         let server = service.inner();
 
-        let uri = "file:///test.twang".to_string();
+        let uri = "file:///test.loft".to_string();
 
         // Add document with symbols
         let mut docs = server.documents.write().await;
@@ -7417,9 +7524,9 @@ def Point {
         let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
         let server = service.inner();
 
-        let uri = "file:///test.twang".to_string();
+        let uri = "file:///test.loft".to_string();
         let source = r#"// See https://example.com for more info
-let url = "https://github.com/tascord/twang";
+let url = "https://github.com/tascord/loft";
 /* Check out http://rust-lang.org */"#;
 
         // Add document
@@ -7461,7 +7568,7 @@ let url = "https://github.com/tascord/twang";
         let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
         let server = service.inner();
 
-        let uri = "file:///test.twang".to_string();
+        let uri = "file:///test.loft".to_string();
         let source = r#"fn add(a: num, b: num) -> num {
     return a + b;
 }
@@ -7554,7 +7661,7 @@ let result2 = add(3, 4);"#;
         let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
         let server = service.inner();
 
-        let uri = "file:///test.twang".to_string();
+        let uri = "file:///test.loft".to_string();
         let source = r#"fn add(a: num, b: num) -> num {
     return a + b;
 }
@@ -7718,7 +7825,7 @@ fn calculate() -> num {
         let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
         let server = service.inner();
 
-        let uri = "file:///test.twang".to_string();
+        let uri = "file:///test.loft".to_string();
 
         // Test with unformatted code
         let unformatted = r#"fn add(a:num,b:num)->num{
@@ -7782,7 +7889,7 @@ term.println(result);
         let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
         let server = service.inner();
 
-        let uri = "file:///test.twang".to_string();
+        let uri = "file:///test.loft".to_string();
 
         // Test with partially unformatted code
         let source = r#"fn add(a: num, b: num) -> num {
@@ -7855,7 +7962,7 @@ fn well_formatted() -> void {
         let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
         let server = service.inner();
 
-        let uri = "file:///test.twang".to_string();
+        let uri = "file:///test.loft".to_string();
 
         // Code with unused variable
         let source = r#"fn test() -> void {
@@ -7869,7 +7976,7 @@ fn well_formatted() -> void {
             .did_open(DidOpenTextDocumentParams {
                 text_document: TextDocumentItem {
                     uri: Uri::from_str(&uri).unwrap(),
-                    language_id: "twang".to_string(),
+                    language_id: "loft".to_string(),
                     version: 1,
                     text: source.to_string(),
                 },
@@ -7890,7 +7997,7 @@ fn well_formatted() -> void {
         let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
         let server = service.inner();
 
-        let uri = "file:///test.twang".to_string();
+        let uri = "file:///test.loft".to_string();
 
         // Code with incorrect function call arity
         let source = r#"fn add(a: num, b: num) -> num {
@@ -7907,7 +8014,7 @@ fn main() -> void {
             .did_open(DidOpenTextDocumentParams {
                 text_document: TextDocumentItem {
                     uri: Uri::from_str(&uri).unwrap(),
-                    language_id: "twang".to_string(),
+                    language_id: "loft".to_string(),
                     version: 1,
                     text: source.to_string(),
                 },
@@ -7927,7 +8034,7 @@ fn main() -> void {
         let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
         let server = service.inner();
 
-        let uri = "file:///test.twang".to_string();
+        let uri = "file:///test.loft".to_string();
 
         // Code with undefined identifier
         let source = r#"fn main() -> void {
@@ -7940,7 +8047,7 @@ fn main() -> void {
             .did_open(DidOpenTextDocumentParams {
                 text_document: TextDocumentItem {
                     uri: Uri::from_str(&uri).unwrap(),
-                    language_id: "twang".to_string(),
+                    language_id: "loft".to_string(),
                     version: 1,
                     text: source.to_string(),
                 },
@@ -7961,7 +8068,7 @@ fn main() -> void {
         let server = service.inner();
 
         // File 1: defines and exports a function
-        let uri1 = "file:///module.twang".to_string();
+        let uri1 = "file:///module.loft".to_string();
         let source1 = r#"teach fn helper() -> num {
     return 42;
 }"#;
@@ -7980,7 +8087,7 @@ fn main() -> void {
             .did_open(DidOpenTextDocumentParams {
                 text_document: TextDocumentItem {
                     uri: Uri::from_str(&uri1).unwrap(),
-                    language_id: "twang".to_string(),
+                    language_id: "loft".to_string(),
                     version: 1,
                     text: source1.to_string(),
                 },
@@ -7991,7 +8098,7 @@ fn main() -> void {
             .did_open(DidOpenTextDocumentParams {
                 text_document: TextDocumentItem {
                     uri: Uri::from_str(&uri2).unwrap(),
-                    language_id: "twang".to_string(),
+                    language_id: "loft".to_string(),
                     version: 1,
                     text: source2.to_string(),
                 },

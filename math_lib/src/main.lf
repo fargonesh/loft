@@ -1,9 +1,19 @@
 // Simple math library
 
+/**
+ * Adds two numbers together and returns the result.
+ * Both parameters must be of type num.
+ * Returns the sum of a and b.
+ */
 teach fn add(a: num, b: num) -> num {
     return a + b;
 }
 
+/**
+ * Multiplies two numbers together and returns the product.
+ * Both parameters must be of type num.
+ * Returns the product of a and b.
+ */
 teach fn multiply(a: num, b: num) -> num {
     return a * b;
 }

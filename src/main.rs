@@ -889,8 +889,10 @@ fn run_add(dep_name: &str, dep_path: Option<&str>, version_constraint: Option<&s
             dep_name.bright_white()
         );
 
-        let registry_url = std::env::var("LOFT_REGISTRY")
-            .unwrap_or_else(|_| "https://api.loft.fargone.sh".to_string());
+        let registry_url = normalize_registry_url(
+            std::env::var("LOFT_REGISTRY")
+                .unwrap_or_else(|_| "https://registry.loft.fargone.sh".to_string()),
+        );
 
         // Get package info
         let client = reqwest::blocking::Client::new();
@@ -1188,8 +1190,10 @@ fn run_update(specific_package: Option<&str>) {
         }
     };
 
-    let registry_url =
-        std::env::var("LOFT_REGISTRY").unwrap_or_else(|_| "http://127.0.0.1:3030".to_string());
+    let registry_url = normalize_registry_url(
+        std::env::var("LOFT_REGISTRY")
+            .unwrap_or_else(|_| "https://registry.loft.fargone.sh".to_string()),
+    );
     let client = reqwest::blocking::Client::new();
     let lflibs_dir = current_dir.join(".lflibs");
 
@@ -1598,6 +1602,19 @@ fn run_stdlib_doc(output_dir: &str) {
     }
 }
 
+/// Downgrade https → http for loopback addresses so local dev servers
+/// (which don't have TLS) work without extra flags.
+fn normalize_registry_url(url: String) -> String {
+    if url.starts_with("https://127.0.0.1")
+        || url.starts_with("https://localhost")
+        || url.starts_with("https://[::1]")
+    {
+        url.replacen("https://", "http://", 1)
+    } else {
+        url
+    }
+}
+
 fn run_login(token: Option<&str>) {
     use std::fs;
     use std::io::{self, Write};
@@ -1723,8 +1740,10 @@ fn run_publish() {
     let tarball_b64 = general_purpose::STANDARD.encode(tar_data);
 
     // 4. Send to registry
-    let registry_url =
-        std::env::var("LOFT_REGISTRY").unwrap_or_else(|_| "https://loft.fargone.sh".to_string());
+    let registry_url = normalize_registry_url(
+        std::env::var("LOFT_REGISTRY")
+            .unwrap_or_else(|_| "https://registry.loft.fargone.sh".to_string()),
+    );
     let client = reqwest::blocking::Client::new();
 
     #[derive(serde::Serialize)]
@@ -1754,6 +1773,23 @@ fn run_publish() {
         Ok(res) if res.status().is_success() => {
             println!("{} {}", "DONE".bright_green(), "Successfully published!".bright_green().bold());
         }
+        Ok(res) if res.status() == 409 => {
+            println!(
+                "{}: {}@{} already exists in the registry. Bump the version and try again.",
+                "Error".bright_red().bold(),
+                manifest.name.bright_white(),
+                manifest.version.bright_white()
+            );
+            std::process::exit(1);
+        }
+        Ok(res) if res.status() == 403 => {
+            println!(
+                "{}: You are not an owner of '{}'.",
+                "Error".bright_red().bold(),
+                manifest.name.bright_white()
+            );
+            std::process::exit(1);
+        }
         Ok(res) => {
             let status = res.status();
             let body = res.text().unwrap_or_default();
@@ -1763,6 +1799,7 @@ fn run_publish() {
                 status,
                 body
             );
+            std::process::exit(1);
         }
         Err(e) => {
             println!(
@@ -1770,6 +1807,7 @@ fn run_publish() {
                 "Error".bright_red().bold(),
                 e
             );
+            std::process::exit(1);
         }
     }
 }

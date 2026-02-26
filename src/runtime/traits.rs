@@ -88,6 +88,8 @@ impl Add for Value {
         match (self, other) {
             (Value::Number(l), Value::Number(r)) => Ok(Value::Number(*l + *r)),
             (Value::String(l), Value::String(r)) => Ok(Value::String(format!("{}{}", l, r))),
+            // Allow string + any by coercing the right-hand side to its string representation
+            (Value::String(l), _) => Ok(Value::String(format!("{}{}", l, other.to_string()))),
             _ => Err(RuntimeError::new(format!(
                 "Cannot add {:?} and {:?}",
                 self, other
@@ -397,7 +399,15 @@ impl ToString for Value {
                 variant_name,
                 values,
             } => {
-                if values.is_empty() {
+                // Option and Result are rendered without the enum prefix for idiomatic output
+                if enum_name == "Option" || enum_name == "Result" {
+                    if values.is_empty() {
+                        variant_name.clone()
+                    } else {
+                        let vals: Vec<String> = values.iter().map(|v| v.to_string()).collect();
+                        format!("{}({})", variant_name, vals.join(", "))
+                    }
+                } else if values.is_empty() {
                     format!("{}.{}", enum_name, variant_name)
                 } else {
                     let vals: Vec<String> = values.iter().map(|v| v.to_string()).collect();
