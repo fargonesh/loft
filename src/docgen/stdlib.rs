@@ -45,6 +45,8 @@ pub struct TypeDef {
     pub fields: HashMap<String, FieldDef>,
     #[serde(default)]
     pub methods: HashMap<String, MethodDef>,
+    #[serde(default)]
+    pub trait_impls: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -80,8 +82,12 @@ impl StdlibDocGenerator {
         fs::write(output_dir.join("index.html"), index_html)
             .map_err(|e| format!("Failed to write index.html: {}", e))?;
 
-        // Generate individual pages for each builtin
+        // Generate individual pages for each builtin.
+        // "array" is skipped here because it is covered by the Array primitive page below.
         for (name, builtin) in &self.stdlib.builtins {
+            if name == "array" {
+                continue;
+            }
             let builtin_html = self.generate_builtin_html(name, builtin);
             fs::write(output_dir.join(format!("{}.html", name)), builtin_html)
                 .map_err(|e| format!("Failed to write {}.html: {}", name, e))?;
@@ -90,16 +96,18 @@ impl StdlibDocGenerator {
         // Generate pages for string and array methods
         let string_html = self.generate_methods_html(
             "str",
+            "string.html",
             &self.stdlib.string_methods,
             "The basic string type, packed with handy methods for working with text.",
         );
         fs::write(output_dir.join("string.html"), string_html)
             .map_err(|e| format!("Failed to write string.html: {}", e))?;
 
-        let array_html = self.generate_methods_html(
-            "Array",
+        let array_module_methods = self.stdlib.builtins.get("array")
+            .map(|b| &b.methods);
+        let array_html = self.generate_array_html(
             &self.stdlib.array_methods,
-            "The Array type, including methods to help you manage your collections.",
+            array_module_methods,
         );
         fs::write(output_dir.join("array.html"), array_html)
             .map_err(|e| format!("Failed to write array.html: {}", e))?;
@@ -108,6 +116,7 @@ impl StdlibDocGenerator {
         let empty_methods = HashMap::new();
         let num_html = self.generate_methods_html(
             "num",
+            "num.html",
             &empty_methods,
             "The standard numeric type for all your math needs.",
         );
@@ -115,12 +124,13 @@ impl StdlibDocGenerator {
             .map_err(|e| format!("Failed to write num.html: {}", e))?;
 
         let bool_html =
-            self.generate_methods_html("bool", &empty_methods, "Simple true or false values.");
+            self.generate_methods_html("bool", "bool.html", &empty_methods, "Simple true or false values.");
         fs::write(output_dir.join("bool.html"), bool_html)
             .map_err(|e| format!("Failed to write bool.html: {}", e))?;
 
         let void_html = self.generate_methods_html(
             "void",
+            "void.html",
             &empty_methods,
             "The 'nothing' type, used when there's no value to return.",
         );
@@ -176,6 +186,9 @@ impl StdlibDocGenerator {
         html.push_str("            <h3>Builtins</h3>\n");
         html.push_str("            <ul>\n");
         for name in self.stdlib.builtins.keys() {
+            if name == "array" {
+                continue;
+            }
             html.push_str(&format!(
                 "                <li><a href=\"{}.html\">{}</a></li>\n",
                 name, name
@@ -231,6 +244,9 @@ impl StdlibDocGenerator {
         html.push_str("        <p>Handy modules for all your day-to-day coding needs:</p>\n");
         html.push_str("        <div class=\"item-grid\">\n");
         for (name, builtin) in &self.stdlib.builtins {
+            if name == "array" {
+                continue;
+            }
             html.push_str(&format!(
                 "            <div class=\"item-card\"><a href=\"{}.html\"><strong>{}</strong></a><br>{}</div>\n",
                 name, name, Self::escape_html(&builtin.documentation)
@@ -254,7 +270,22 @@ impl StdlibDocGenerator {
         html.push_str("    <link rel=\"stylesheet\" href=\"style.css\">\n");
         html.push_str("</head>\n<body>\n");
 
-        html.push_str(&self.generate_sidebar());
+        // Build sidebar subitems: constants then methods, both sorted
+        let active_href = format!("{}.html", name);
+        let mut subitems: Vec<(String, String)> = Vec::new();
+        if !builtin.constants.is_empty() {
+            let mut const_names: Vec<&str> = builtin.constants.keys().map(|k| k.as_str()).collect();
+            const_names.sort();
+            for c in const_names {
+                subitems.push((format!("#{}", c), format!("const {}", c)));
+            }
+        }
+        let mut method_names: Vec<&str> = builtin.methods.keys().map(|k| k.as_str()).collect();
+        method_names.sort();
+        for m in method_names {
+            subitems.push((format!("#{}", m), format!("fn {}", m)));
+        }
+        html.push_str(&self.generate_sidebar(Some(&active_href), &subitems));
 
         html.push_str("    <div class=\"content\">\n");
         html.push_str(
@@ -270,7 +301,7 @@ impl StdlibDocGenerator {
 
         // Constants
         if !builtin.constants.is_empty() {
-            html.push_str("        <h2>Constants</h2>\n");
+            html.push_str("        <h2 id=\"constants\">Constants</h2>\n");
             for (const_name, constant) in &builtin.constants {
                 html.push_str("        <div class=\"method-item\">\n");
                 html.push_str(&format!(
@@ -293,7 +324,7 @@ impl StdlibDocGenerator {
 
         // Methods
         if !builtin.methods.is_empty() {
-            html.push_str("        <h2>Methods</h2>\n");
+            html.push_str("        <h2 id=\"methods\">Methods</h2>\n");
             for (method_name, method) in &builtin.methods {
                 html.push_str("        <div class=\"method-item\">\n");
                 html.push_str(&format!(
@@ -324,12 +355,17 @@ impl StdlibDocGenerator {
         html
     }
 
-    fn generate_methods_html(
+    /// Generate the Array primitive page, merging instance methods with any module-level
+    /// functions from the `array` builtin (e.g. `array.zip`, `array.chain`).
+    fn generate_array_html(
         &self,
-        title: &str,
         methods: &HashMap<String, MethodDef>,
-        description: &str,
+        module_fns: Option<&HashMap<String, MethodDef>>,
     ) -> String {
+        let title = "Array";
+        let file_href = "array.html";
+        let description = "The Array type, including methods to help you manage your collections.";
+
         let mut html = String::new();
         html.push_str("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n");
         html.push_str("    <meta charset=\"UTF-8\">\n");
@@ -340,7 +376,24 @@ impl StdlibDocGenerator {
         html.push_str("    <link rel=\"stylesheet\" href=\"style.css\">\n");
         html.push_str("</head>\n<body>\n");
 
-        html.push_str(&self.generate_sidebar());
+        // Build sidebar subitems: instance methods, module functions, then trait impls
+        let mut subitems: Vec<(String, String)> = Vec::new();
+        let mut method_names: Vec<&str> = methods.keys().map(|k| k.as_str()).collect();
+        method_names.sort();
+        for m in method_names {
+            subitems.push((format!("#{}", m), format!("fn {}", m)));
+        }
+        if let Some(mfns) = module_fns {
+            let mut mod_names: Vec<&str> = mfns.keys().map(|k| k.as_str()).collect();
+            mod_names.sort();
+            for m in mod_names {
+                subitems.push((format!("#mod-{}", m), format!("array.{}", m)));
+            }
+        }
+        for t in &Self::get_trait_impls_for(title) {
+            subitems.push((format!("#impl-{}", t), format!("impl {}", t)));
+        }
+        html.push_str(&self.generate_sidebar(Some(file_href), &subitems));
 
         html.push_str("    <div class=\"content\">\n");
         html.push_str(
@@ -354,7 +407,133 @@ impl StdlibDocGenerator {
             Self::escape_html(description)
         ));
 
-        html.push_str("        <h2>Methods</h2>\n");
+        // Instance methods
+        html.push_str("        <h2 id=\"methods\">Methods</h2>\n");
+        let mut sorted_methods: Vec<(&String, &MethodDef)> = methods.iter().collect();
+        sorted_methods.sort_by_key(|(k, _)| k.as_str());
+        for (method_name, method) in &sorted_methods {
+            html.push_str("        <div class=\"method-item\">\n");
+            html.push_str(&format!(
+                "            <h3 id=\"{}\">{}</h3>\n",
+                method_name, method_name
+            ));
+            html.push_str(&format!(
+                "            <pre class=\"signature\"><code>value.{}({}) -> {}</code></pre>\n",
+                method_name,
+                self.format_params(&method.params),
+                self.link_type(&method.return_type)
+            ));
+            html.push_str(&format!(
+                "            <p><strong>Returns:</strong> <code>{}</code></p>\n",
+                self.link_type(&method.return_type)
+            ));
+            html.push_str(&format!(
+                "            <p>{}</p>\n",
+                Self::escape_html(&method.documentation)
+            ));
+            if let Some(example) = self.get_usage_example(title, method_name) {
+                html.push_str("            <h4>Example</h4>\n");
+                html.push_str(&format!(
+                    "            <pre class=\"example\"><code>{}</code></pre>\n",
+                    Self::escape_html(example)
+                ));
+            }
+            html.push_str("        </div>\n");
+        }
+
+        // Module-level functions (array.zip, array.chain, etc.)
+        if let Some(mfns) = module_fns {
+            if !mfns.is_empty() {
+                html.push_str("        <h2 id=\"module-functions\">Module Functions</h2>\n");
+                html.push_str("        <p>These functions are accessed via the <code>array</code> module rather than on an instance.</p>\n");
+                let mut sorted_mfns: Vec<(&String, &MethodDef)> = mfns.iter().collect();
+                sorted_mfns.sort_by_key(|(k, _)| k.as_str());
+                for (fn_name, method) in &sorted_mfns {
+                    html.push_str("        <div class=\"method-item\">\n");
+                    html.push_str(&format!(
+                        "            <h3 id=\"mod-{}\">{}</h3>\n",
+                        fn_name, fn_name
+                    ));
+                    html.push_str(&format!(
+                        "            <pre class=\"signature\"><code>array.{}({}) -> {}</code></pre>\n",
+                        fn_name,
+                        self.format_params(&method.params),
+                        self.link_type(&method.return_type)
+                    ));
+                    html.push_str(&format!(
+                        "            <p><strong>Returns:</strong> <code>{}</code></p>\n",
+                        self.link_type(&method.return_type)
+                    ));
+                    html.push_str(&format!(
+                        "            <p>{}</p>\n",
+                        Self::escape_html(&method.documentation)
+                    ));
+                    html.push_str("        </div>\n");
+                }
+            }
+        }
+
+        // Trait implementations
+        let trait_impls = Self::get_trait_impls_for(title);
+        if !trait_impls.is_empty() {
+            html.push_str("        <h2 id=\"trait-impls\">Trait Implementations</h2>\n");
+            for trait_name in &trait_impls {
+                html.push_str("        <div class=\"method-item trait-impl\">\n");
+                html.push_str(&format!(
+                    "            <h3 id=\"impl-{}\"><a href=\"trait-{}.html\">{}</a></h3>\n",
+                    trait_name, trait_name, trait_name
+                ));
+                html.push_str("        </div>\n");
+            }
+        }
+
+        html.push_str("    </div>\n");
+        html.push_str("</body>\n</html>\n");
+        html
+    }
+
+    fn generate_methods_html(
+        &self,
+        title: &str,
+        file_href: &str,
+        methods: &HashMap<String, MethodDef>,
+        description: &str,
+    ) -> String {
+        let mut html = String::new();
+        html.push_str("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n");
+        html.push_str("    <meta charset=\"UTF-8\">\n");
+        html.push_str(
+            "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n",
+        );
+        html.push_str(&format!("    <title>{} - loft stdlib</title>\n", title));
+        html.push_str("    <link rel=\"stylesheet\" href=\"style.css\">\n");
+        html.push_str("</head>\n<body>\n");
+
+        // Build sidebar subitems: methods sorted, then trait impls
+        let mut subitems: Vec<(String, String)> = Vec::new();
+        let mut method_names: Vec<&str> = methods.keys().map(|k| k.as_str()).collect();
+        method_names.sort();
+        for m in method_names {
+            subitems.push((format!("#{}", m), format!("fn {}", m)));
+        }
+        for t in &Self::get_trait_impls_for(title) {
+            subitems.push((format!("#impl-{}", t), format!("impl {}", t)));
+        }
+        html.push_str(&self.generate_sidebar(Some(file_href), &subitems));
+
+        html.push_str("    <div class=\"content\">\n");
+        html.push_str(
+            "        <div class=\"breadcrumb\"><a href=\"index.html\">stdlib</a> / <span>",
+        );
+        html.push_str(title);
+        html.push_str("</span></div>\n");
+        html.push_str(&format!("        <h1>{}</h1>\n", title));
+        html.push_str(&format!(
+            "        <p class=\"description\">{}</p>\n",
+            Self::escape_html(description)
+        ));
+
+        html.push_str("        <h2 id=\"methods\">Methods</h2>\n");
         for (method_name, method) in methods {
             html.push_str("        <div class=\"method-item\">\n");
             html.push_str(&format!(
@@ -388,6 +567,20 @@ impl StdlibDocGenerator {
             html.push_str("        </div>\n");
         }
 
+        // Trait implementations
+        let trait_impls = Self::get_trait_impls_for(title);
+        if !trait_impls.is_empty() {
+            html.push_str("        <h2 id=\"trait-impls\">Trait Implementations</h2>\n");
+            for trait_name in &trait_impls {
+                html.push_str("        <div class=\"method-item trait-impl\">\n");
+                html.push_str(&format!(
+                    "            <h3 id=\"impl-{}\"><a href=\"trait-{}.html\">{}</a></h3>\n",
+                    trait_name, trait_name, trait_name
+                ));
+                html.push_str("        </div>\n");
+            }
+        }
+
         html.push_str("    </div>\n");
         html.push_str("</body>\n</html>\n");
         html
@@ -404,7 +597,18 @@ impl StdlibDocGenerator {
         html.push_str("    <link rel=\"stylesheet\" href=\"style.css\">\n");
         html.push_str("</head>\n<body>\n");
 
-        html.push_str(&self.generate_sidebar());
+        // Build sidebar subitems: methods sorted, then trait impls from type_def
+        let active_href = format!("type-{}.html", name);
+        let mut subitems: Vec<(String, String)> = Vec::new();
+        let mut method_names: Vec<&str> = type_def.methods.keys().map(|k| k.as_str()).collect();
+        method_names.sort();
+        for m in method_names {
+            subitems.push((format!("#{}", m), format!("fn {}", m)));
+        }
+        for t in &type_def.trait_impls {
+            subitems.push((format!("#impl-{}", t), format!("impl {}", t)));
+        }
+        html.push_str(&self.generate_sidebar(Some(&active_href), &subitems));
 
         html.push_str("    <div class=\"content\">\n");
         html.push_str(
@@ -419,7 +623,7 @@ impl StdlibDocGenerator {
         ));
 
         if !type_def.fields.is_empty() {
-            html.push_str("        <h2>Fields</h2>\n");
+            html.push_str("        <h2 id=\"fields\">Fields</h2>\n");
             for (field_name, field) in &type_def.fields {
                 html.push_str("        <div class=\"method-item\">\n");
                 html.push_str(&format!(
@@ -440,7 +644,7 @@ impl StdlibDocGenerator {
         }
 
         if !type_def.methods.is_empty() {
-            html.push_str("        <h2>Methods</h2>\n");
+            html.push_str("        <h2 id=\"methods\">Methods</h2>\n");
             for (method_name, method) in &type_def.methods {
                 html.push_str("        <div class=\"method-item\">\n");
                 html.push_str(&format!(
@@ -466,6 +670,19 @@ impl StdlibDocGenerator {
             }
         }
 
+        // Trait implementations from TypeDef data
+        if !type_def.trait_impls.is_empty() {
+            html.push_str("        <h2 id=\"trait-impls\">Trait Implementations</h2>\n");
+            for trait_name in &type_def.trait_impls {
+                html.push_str("        <div class=\"method-item trait-impl\">\n");
+                html.push_str(&format!(
+                    "            <h3 id=\"impl-{}\"><a href=\"trait-{}.html\">{}</a></h3>\n",
+                    trait_name, trait_name, trait_name
+                ));
+                html.push_str("        </div>\n");
+            }
+        }
+
         html.push_str("    </div>\n");
         html.push_str("</body>\n</html>\n");
         html
@@ -482,7 +699,15 @@ impl StdlibDocGenerator {
         html.push_str("    <link rel=\"stylesheet\" href=\"style.css\">\n");
         html.push_str("</head>\n<body>\n");
 
-        html.push_str(&self.generate_sidebar());
+        // Build sidebar subitems: trait methods sorted
+        let active_href = format!("trait-{}.html", name);
+        let mut subitems: Vec<(String, String)> = Vec::new();
+        let mut method_names: Vec<&str> = trait_def.methods.keys().map(|k| k.as_str()).collect();
+        method_names.sort();
+        for m in method_names {
+            subitems.push((format!("#{}", m), format!("fn {}", m)));
+        }
+        html.push_str(&self.generate_sidebar(Some(&active_href), &subitems));
 
         html.push_str("    <div class=\"content\">\n");
         html.push_str(
@@ -496,7 +721,7 @@ impl StdlibDocGenerator {
             Self::escape_html(&trait_def.documentation)
         ));
 
-        html.push_str("        <h2>Required Methods</h2>\n");
+        html.push_str("        <h2 id=\"required-methods\">Required Methods</h2>\n");
         for (method_name, method) in &trait_def.methods {
             html.push_str("        <div class=\"method-item\">\n");
             html.push_str(&format!(
@@ -539,57 +764,106 @@ impl StdlibDocGenerator {
             .join(", ")
     }
 
-    fn generate_sidebar(&self) -> String {
+    fn generate_sidebar(&self, active_href: Option<&str>, active_subitems: &[(String, String)]) -> String {
         let mut html = String::new();
         html.push_str("    <div class=\"sidebar\">\n");
         html.push_str("        <h2><a href=\"index.html\">loft stdlib</a></h2>\n");
 
+        // Primitives
         html.push_str("        <div class=\"nav-section\">\n");
         html.push_str("            <h3>Primitives</h3>\n");
         html.push_str("            <ul>\n");
-        html.push_str("                <li><a href=\"string.html\">str</a></li>\n");
-        html.push_str("                <li><a href=\"array.html\">Array</a></li>\n");
-        html.push_str("                <li><a href=\"num.html\">num</a></li>\n");
-        html.push_str("                <li><a href=\"bool.html\">bool</a></li>\n");
-        html.push_str("                <li><a href=\"void.html\">void</a></li>\n");
-        html.push_str("            </ul>\n");
-        html.push_str("        </div>\n");
-
-        html.push_str("        <div class=\"nav-section\">\n");
-        html.push_str("            <h3>Builtins</h3>\n");
-        html.push_str("            <ul>\n");
-        for name in self.stdlib.builtins.keys() {
-            html.push_str(&format!(
-                "                <li><a href=\"{}.html\">{}</a></li>\n",
-                name, name
-            ));
+        let primitives: &[(&str, &str)] = &[
+            ("string.html", "str"),
+            ("array.html", "Array"),
+            ("num.html", "num"),
+            ("bool.html", "bool"),
+            ("void.html", "void"),
+        ];
+        for &(href, label) in primitives {
+            if active_href == Some(href) && !active_subitems.is_empty() {
+                html.push_str(&format!("                <li><a href=\"{}\">{}</a>\n", href, label));
+                html.push_str("                    <ul class=\"nav-subitems\">\n");
+                for (sub_href, sub_label) in active_subitems {
+                    html.push_str(&format!("                        <li><a href=\"{}\">{}</a></li>\n", sub_href, sub_label));
+                }
+                html.push_str("                    </ul>\n");
+                html.push_str("                </li>\n");
+            } else {
+                html.push_str(&format!("                <li><a href=\"{}\">{}</a></li>\n", href, label));
+            }
         }
         html.push_str("            </ul>\n");
         html.push_str("        </div>\n");
 
+        // Builtins
+        html.push_str("        <div class=\"nav-section\">\n");
+        html.push_str("            <h3>Builtins</h3>\n");
+        html.push_str("            <ul>\n");
+        let mut builtin_names: Vec<&str> = self.stdlib.builtins.keys().map(|k| k.as_str()).collect();
+        builtin_names.sort();
+        for name in &builtin_names {
+            let href = format!("{}.html", name);
+            if active_href == Some(href.as_str()) && !active_subitems.is_empty() {
+                html.push_str(&format!("                <li><a href=\"{}\">{}</a>\n", href, name));
+                html.push_str("                    <ul class=\"nav-subitems\">\n");
+                for (sub_href, sub_label) in active_subitems {
+                    html.push_str(&format!("                        <li><a href=\"{}\">{}</a></li>\n", sub_href, sub_label));
+                }
+                html.push_str("                    </ul>\n");
+                html.push_str("                </li>\n");
+            } else {
+                html.push_str(&format!("                <li><a href=\"{}.html\">{}</a></li>\n", name, name));
+            }
+        }
+        html.push_str("            </ul>\n");
+        html.push_str("        </div>\n");
+
+        // Types
         if !self.stdlib.types.is_empty() {
             html.push_str("        <div class=\"nav-section\">\n");
             html.push_str("            <h3>Types</h3>\n");
             html.push_str("            <ul>\n");
-            for name in self.stdlib.types.keys() {
-                html.push_str(&format!(
-                    "                <li><a href=\"type-{}.html\">{}</a></li>\n",
-                    name, name
-                ));
+            let mut type_names: Vec<&str> = self.stdlib.types.keys().map(|k| k.as_str()).collect();
+            type_names.sort();
+            for name in &type_names {
+                let href = format!("type-{}.html", name);
+                if active_href == Some(href.as_str()) && !active_subitems.is_empty() {
+                    html.push_str(&format!("                <li><a href=\"{}\">{}</a>\n", href, name));
+                    html.push_str("                    <ul class=\"nav-subitems\">\n");
+                    for (sub_href, sub_label) in active_subitems {
+                        html.push_str(&format!("                        <li><a href=\"{}\">{}</a></li>\n", sub_href, sub_label));
+                    }
+                    html.push_str("                    </ul>\n");
+                    html.push_str("                </li>\n");
+                } else {
+                    html.push_str(&format!("                <li><a href=\"type-{}.html\">{}</a></li>\n", name, name));
+                }
             }
             html.push_str("            </ul>\n");
             html.push_str("        </div>\n");
         }
 
+        // Traits
         if !self.stdlib.traits.is_empty() {
             html.push_str("        <div class=\"nav-section\">\n");
             html.push_str("            <h3>Traits</h3>\n");
             html.push_str("            <ul>\n");
-            for name in self.stdlib.traits.keys() {
-                html.push_str(&format!(
-                    "                <li><a href=\"trait-{}.html\">{}</a></li>\n",
-                    name, name
-                ));
+            let mut trait_names: Vec<&str> = self.stdlib.traits.keys().map(|k| k.as_str()).collect();
+            trait_names.sort();
+            for name in &trait_names {
+                let href = format!("trait-{}.html", name);
+                if active_href == Some(href.as_str()) && !active_subitems.is_empty() {
+                    html.push_str(&format!("                <li><a href=\"{}\">{}</a>\n", href, name));
+                    html.push_str("                    <ul class=\"nav-subitems\">\n");
+                    for (sub_href, sub_label) in active_subitems {
+                        html.push_str(&format!("                        <li><a href=\"{}\">{}</a></li>\n", sub_href, sub_label));
+                    }
+                    html.push_str("                    </ul>\n");
+                    html.push_str("                </li>\n");
+                } else {
+                    html.push_str(&format!("                <li><a href=\"trait-{}.html\">{}</a></li>\n", name, name));
+                }
             }
             html.push_str("            </ul>\n");
             html.push_str("        </div>\n");
@@ -597,6 +871,16 @@ impl StdlibDocGenerator {
 
         html.push_str("    </div>\n");
         html
+    }
+
+    fn get_trait_impls_for(type_name: &str) -> Vec<&'static str> {
+        match type_name {
+            "str" => vec!["Add", "Index", "Ord", "Printable", "ToString"],
+            "Array" => vec!["Index", "Printable", "ToString"],
+            "num" => vec!["Add", "Sub", "Mul", "Div", "BitAnd", "BitOr", "BitXor", "Shl", "Shr", "Ord", "Printable", "ToString"],
+            "bool" => vec!["Printable", "ToString"],
+            _ => vec![],
+        }
     }
 
     fn get_usage_example(&self, title: &str, method_name: &str) -> Option<&'static str> {
@@ -735,8 +1019,7 @@ impl StdlibDocGenerator {
     padding: 20px;
     position: sticky;
     top: 0;
-    height: 100vh;
-    overflow-y: auto;
+    align-self: flex-start;
 }
 
 .sidebar h2 {

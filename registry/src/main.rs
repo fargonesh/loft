@@ -371,35 +371,60 @@ async fn revoke_token(
 // --- Helper Functions ---
 
 fn authenticate(state: &AppState, headers: &HeaderMap) -> Result<u64, StatusCode> {
-    let auth_header = headers
-        .get("Authorization")
-        .ok_or(StatusCode::UNAUTHORIZED)?
-        .to_str()
-        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let auth_header = match headers.get("Authorization") {
+        Some(h) => h,
+        None => {
+            eprintln!("[auth] REJECTED: No Authorization header present");
+            return Err(StatusCode::UNAUTHORIZED);
+        }
+    };
+
+    let auth_header = match auth_header.to_str() {
+        Ok(s) => s,
+        Err(_) => {
+            eprintln!("[auth] REJECTED: Authorization header contained non-UTF8 bytes");
+            return Err(StatusCode::UNAUTHORIZED);
+        }
+    };
 
     if !auth_header.starts_with("Bearer ") {
+        eprintln!("[auth] REJECTED: Authorization header does not start with 'Bearer ' (got {:?})", &auth_header[..auth_header.len().min(20)]);
         return Err(StatusCode::UNAUTHORIZED);
     }
 
     let token = &auth_header[7..];
+    eprintln!("[auth] Attempting auth with token (first 8 chars): {:?}", &token[..token.len().min(8)]);
 
-    if let Ok(token_data) = decode::<Claims>(
+    match decode::<Claims>(
         token,
         &DecodingKey::from_secret(state.jwt_secret.as_bytes()),
         &Validation::default(),
     ) {
-        return token_data
-            .claims
-            .sub
-            .parse()
-            .map_err(|_| StatusCode::UNAUTHORIZED);
+        Ok(token_data) => {
+            match token_data.claims.sub.parse::<u64>() {
+                Ok(user_id) => {
+                    eprintln!("[auth] OK: Authenticated via JWT as user_id={}", user_id);
+                    return Ok(user_id);
+                }
+                Err(e) => {
+                    eprintln!("[auth] REJECTED: JWT 'sub' claim could not be parsed as u64: {}", e);
+                    return Err(StatusCode::UNAUTHORIZED);
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("[auth] JWT decode failed (will try API token): {}", e);
+        }
     }
 
     let tokens = state.tokens.read().unwrap();
+    eprintln!("[auth] Token store has {} entries", tokens.len());
     if let Some(api_token) = tokens.get(token) {
+        eprintln!("[auth] OK: Authenticated via API token '{}' as user_id={}", api_token.name, api_token.user_github_id);
         return Ok(api_token.user_github_id);
     }
 
+    eprintln!("[auth] REJECTED: Token not found in API token store (token store keys are UUIDs like the one provided)");
     Err(StatusCode::UNAUTHORIZED)
 }
 
@@ -487,31 +512,59 @@ async fn publish_package(
     headers: HeaderMap,
     Json(payload): Json<PublishRequest>,
 ) -> Result<Json<PackageInfo>, StatusCode> {
+    eprintln!("[publish] Received publish request for package '{}' version '{}'", payload.name, payload.version);
+
     let user_id = authenticate(&state, &headers)?;
+
     let username = {
         let users = state.users.read().unwrap();
-        users.get(&user_id).unwrap().username.clone()
+        match users.get(&user_id) {
+            Some(u) => {
+                eprintln!("[publish] Authenticated as user '{}' (id={})", u.username, user_id);
+                u.username.clone()
+            }
+            None => {
+                eprintln!("[publish] REJECTED: user_id={} authenticated but not found in user store", user_id);
+                return Err(StatusCode::UNAUTHORIZED);
+            }
+        }
     };
 
     if payload.name == "std" {
+        eprintln!("[publish] REJECTED: cannot publish package named 'std'");
         return Err(StatusCode::BAD_REQUEST);
     }
 
     {
         let packages = state.packages.read().unwrap();
         if let Some(versions) = packages.get(&payload.name) {
+            // Reject if this exact version already exists
+            if versions.iter().any(|p| p.metadata.version == payload.version) {
+                eprintln!("[publish] REJECTED 409: '{}@{}' already exists", payload.name, payload.version);
+                return Err(StatusCode::CONFLICT);
+            }
+
             if let Some(latest) = versions.last() {
-                if !latest.metadata.owners.contains(&username) {
+                let owners = &latest.metadata.owners;
+                eprintln!("[publish] Package '{}' already exists. Owners: {:?}. Requesting user: '{}'", payload.name, owners, username);
+                if !owners.contains(&username) {
+                    eprintln!("[publish] REJECTED 403: user '{}' is not in owners list {:?}", username, owners);
                     return Err(StatusCode::FORBIDDEN);
                 }
+                eprintln!("[publish] Ownership check passed for user '{}'", username);
             }
+        } else {
+            eprintln!("[publish] Package '{}' is new, no ownership check needed", payload.name);
         }
     }
 
     use base64::{engine::general_purpose, Engine as _};
     let tarball = general_purpose::STANDARD
         .decode(&payload.tarball)
-        .map_err(|_| StatusCode::BAD_REQUEST)?;
+        .map_err(|e| {
+            eprintln!("[publish] REJECTED 400: base64 decode of tarball failed: {}", e);
+            StatusCode::BAD_REQUEST
+        })?;
 
     let package = Package {
         metadata: PackageMetadata {
@@ -600,6 +653,8 @@ async fn publish_package(
     // Cleanup temp directory
     let _ = fs::remove_dir_all(&temp_extract_dir);
 
+    eprintln!("[publish] SUCCESS: '{}@{}' published by '{}'", payload.name, payload.version, username);
+
     Ok(Json(PackageInfo {
         name: package.metadata.name,
         version: package.metadata.version,
@@ -680,17 +735,27 @@ async fn main() {
     }
 
     let users_file = format!("{}/users.json", state.storage_dir);
-    if let Ok(content) = fs::read_to_string(&users_file) {
-        if let Ok(users) = serde_json::from_str::<HashMap<u64, User>>(&content) {
-            *state.users.write().unwrap() = users;
-        }
+    match fs::read_to_string(&users_file) {
+        Ok(content) => match serde_json::from_str::<HashMap<u64, User>>(&content) {
+            Ok(users) => {
+                println!("[startup] Loaded {} user(s) from {}", users.len(), users_file);
+                *state.users.write().unwrap() = users;
+            }
+            Err(e) => eprintln!("[startup] WARNING: Failed to deserialize {}: {}", users_file, e),
+        },
+        Err(e) => eprintln!("[startup] WARNING: Could not read {}: {}", users_file, e),
     }
 
     let tokens_file = format!("{}/tokens.json", state.storage_dir);
-    if let Ok(content) = fs::read_to_string(&tokens_file) {
-        if let Ok(tokens) = serde_json::from_str::<HashMap<String, ApiToken>>(&content) {
-            *state.tokens.write().unwrap() = tokens;
-        }
+    match fs::read_to_string(&tokens_file) {
+        Ok(content) => match serde_json::from_str::<HashMap<String, ApiToken>>(&content) {
+            Ok(tokens) => {
+                println!("[startup] Loaded {} API token(s) from {}", tokens.len(), tokens_file);
+                *state.tokens.write().unwrap() = tokens;
+            }
+            Err(e) => eprintln!("[startup] WARNING: Failed to deserialize {}: {}", tokens_file, e),
+        },
+        Err(e) => eprintln!("[startup] WARNING: Could not read {}: {}", tokens_file, e),
     }
 
     let app = Router::new()

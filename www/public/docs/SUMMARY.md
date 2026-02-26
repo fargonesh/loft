@@ -42,3 +42,4 @@
 - [Language Grammar](./appendix/grammar.md)
 - [Operator Reference](./appendix/operators.md)
 - [Keyword Reference](./appendix/keywords.md)
+- [Contributing](./appendix/contributing.md)

@@ -813,6 +813,75 @@
       "documentation": "HTTP headers collection",
       "fields": {},
       "methods": {}
+    },
+    "Option": {
+      "kind": "enum",
+      "documentation": "A native optional value. Use `Option.Some(value)` to wrap a value or `Option.None` when absent.",
+      "fields": {},
+      "methods": {
+        "is_some": {
+          "params": [],
+          "return_type": "bool",
+          "documentation": "Returns `true` if this is `Some(value)`."
+        },
+        "is_none": {
+          "params": [],
+          "return_type": "bool",
+          "documentation": "Returns `true` if this is `None`."
+        },
+        "unwrap": {
+          "params": [],
+          "return_type": "T",
+          "documentation": "Returns the inner value. Panics if `None`."
+        },
+        "unwrap_or": {
+          "params": ["default: T"],
+          "return_type": "T",
+          "documentation": "Returns the inner value or `default` if `None`."
+        },
+        "expect": {
+          "params": ["msg: str"],
+          "return_type": "T",
+          "documentation": "Returns the inner value or panics with `msg` if `None`."
+        }
+      }
+    },
+    "Result": {
+      "kind": "enum",
+      "documentation": "A native result type. Use `Result.Ok(value)` for success or `Result.Err(error)` for failure.",
+      "fields": {},
+      "methods": {
+        "is_ok": {
+          "params": [],
+          "return_type": "bool",
+          "documentation": "Returns `true` if this is `Ok(value)`."
+        },
+        "is_err": {
+          "params": [],
+          "return_type": "bool",
+          "documentation": "Returns `true` if this is `Err(error)`."
+        },
+        "unwrap": {
+          "params": [],
+          "return_type": "T",
+          "documentation": "Returns the inner value. Panics if `Err`."
+        },
+        "unwrap_or": {
+          "params": ["default: T"],
+          "return_type": "T",
+          "documentation": "Returns the inner value or `default` if `Err`."
+        },
+        "unwrap_err": {
+          "params": [],
+          "return_type": "E",
+          "documentation": "Returns the error value. Panics if `Ok`."
+        },
+        "expect": {
+          "params": ["msg: str"],
+          "return_type": "T",
+          "documentation": "Returns the inner value or panics with `msg` if `Err`."
+        }
+      }
     }
   },
   "traits": {

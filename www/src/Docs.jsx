@@ -1,78 +1,241 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { createHighlighter } from 'shiki';
 import Fuse from 'fuse.js';
-import { Heading, Text, Input, BrutalCard } from 'botanical-ui';
+import { Text, Heading } from 'botanical-ui';
 import BrutalButton from './BrutalButton';
 import Layout from './Layout';
 import loftGrammar from './loft.tmLanguage.json';
 
+// Parse the sidebar nav sections out of the fetched HTML string.
+// Returns [{ section: string, items: [{ label, href, subItems?: [{label, href}] }] }]
+function parseSidebarSections(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const sections = [];
+  doc.querySelectorAll('.nav-section').forEach(el => {
+    const h3 = el.querySelector('h3');
+    const section = h3 ? h3.textContent.trim() : '';
+    const topList = el.querySelector(':scope > ul');
+    const items = topList ? [...topList.querySelectorAll(':scope > li')].map(li => {
+      const a = li.querySelector(':scope > a');
+      const subList = li.querySelector('.nav-subitems');
+      const subItems = subList
+        ? [...subList.querySelectorAll('li > a')].map(subA => ({
+            label: subA.textContent.trim(),
+            href: subA.getAttribute('href') || '',
+          }))
+        : [];
+      return {
+        label: a ? a.textContent.trim() : '',
+        href: a ? (a.getAttribute('href') || '') : '',
+        subItems: subItems.length > 0 ? subItems : undefined,
+      };
+    }) : [];
+    if (items.length) sections.push({ section, items });
+  });
+  return sections;
+}
+
+// Extract just the .content div innerHTML (falls back to full body).
+function parseMainContent(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const content = doc.querySelector('.content');
+  return content ? content.innerHTML : (doc.body ? doc.body.innerHTML : html);
+}
+
+// Extract the href of the first <link rel="stylesheet"> in the HTML.
+function parseStylesheetHref(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const link = doc.querySelector('link[rel="stylesheet"]');
+  return link ? link.getAttribute('href') : null;
+}
+
+/**
+ * Minimal CSS scoper: prefixes every selector with `scope` so the doc styles
+ * only apply inside the content container and don't leak into the rest of the app.
+ * Skips body/*, .sidebar, and .content (the now-removed wrapper) selectors.
+ */
+function scopeCSS(css, scope) {
+  // Handle @media blocks recursively
+  let result = '';
+  // Tokenise the CSS into @media{...} blocks and plain rules
+  const mediaRe = /(@media[^{]+)\{([\s\S]*?)\}\s*\}/g;
+  let lastIndex = 0;
+  let match;
+  while ((match = mediaRe.exec(css)) !== null) {
+    // Everything before this media block
+    result += scopePlainRules(css.slice(lastIndex, match.index), scope);
+    result += `${match[1]} { ${scopePlainRules(match[2], scope)} }`;
+    lastIndex = match.index + match[0].length;
+  }
+  result += scopePlainRules(css.slice(lastIndex), scope);
+  return result;
+}
+
+function scopePlainRules(css, scope) {
+  return css.replace(/([^{}]+)\{([^{}]*)\}/g, (_, selector, rules) => {
+    if (selector.trim().startsWith('@')) return `${selector} { ${rules} }`;
+    const scoped = selector.split(',').flatMap(s => {
+      const t = s.trim();
+      if (!t || t === '*' || t === 'body' || t === 'html') return [];
+      if (t === '.sidebar' || t.startsWith('.sidebar ') || t === '.content' || /^\.content\b/.test(t)) return [];
+      return [`${scope} ${t}`];
+    }).join(', ');
+    return scoped ? `${scoped} { ${rules} }` : '';
+  });
+}
+
+// Replace pre.example and pre.signature code blocks with Shiki-highlighted HTML.
+async function highlightCodeBlocks(html, highlighter) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
+
+  for (const code of doc.querySelectorAll('pre.example code')) {
+    try {
+      // Dedent: strip common leading whitespace from all non-empty lines
+      const raw = code.textContent;
+      const lines = raw.split('\n');
+      const minIndent = Math.min(
+        ...lines.filter(l => l.trim().length > 0).map(l => l.match(/^(\s*)/)[1].length)
+      );
+      const dedented = lines.map(l => l.slice(minIndent)).join('\n').replace(/\n$/, '');
+
+      const highlighted = highlighter.codeToHtml(dedented, {
+        lang: 'loft',
+        theme: 'one-dark-pro',
+      });
+      const tmp = document.createElement('div');
+      tmp.innerHTML = highlighted;
+      const shikiEl = tmp.firstChild;
+      shikiEl.style.cssText = 'margin: 12px 0; border-radius: 6px; overflow: hidden; border: 1px solid #333;';
+      code.closest('pre').replaceWith(shikiEl);
+    } catch (_) { /* leave as-is on parse/highlight error */ }
+  }
+
+  // Highlight pre.signature code blocks (use textContent to strip any anchor HTML).
+  for (const code of doc.querySelectorAll('pre.signature code')) {
+    try {
+      const raw = code.textContent.trim();
+      if (!raw) continue;
+      const inlineHtml = highlighter.codeToHtml(raw, { lang: 'loft', theme: 'one-dark-pro' });
+      const tmp = document.createElement('div');
+      tmp.innerHTML = inlineHtml;
+      const shikiCode = tmp.querySelector('code');
+      if (shikiCode) {
+        // Replace the code element content and style the pre as a signature block
+        code.innerHTML = shikiCode.innerHTML;
+        const pre = code.closest('pre');
+        pre.style.cssText = 'background:#282c34;color:#abb2bf;padding:0.4em 0.75em;border-radius:4px;margin:6px 0;overflow-x:auto;font-family:monospace;font-size:0.9em;display:block;';
+      }
+    } catch (_) { /* leave as-is */ }
+  }
+
+  // Highlight inline <code> elements that are NOT inside a <pre>
+  // (e.g. "Returns: <code>any</code>" in stdlib method docs)
+  for (const code of doc.querySelectorAll('code')) {
+    if (code.closest('pre')) continue; // already handled or intentionally kept as HTML
+    try {
+      const raw = code.textContent.trim();
+      if (!raw) continue;
+      const inlineHtml = highlighter.codeToHtml(raw, { lang: 'loft', theme: 'one-dark-pro' });
+      const tmp = document.createElement('div');
+      tmp.innerHTML = inlineHtml;
+      const shikiCode = tmp.querySelector('code');
+      if (shikiCode) {
+        const el = document.createElement('code');
+        el.innerHTML = shikiCode.innerHTML;
+        el.style.cssText = 'background:#282c34;color:#abb2bf;padding:0.2em 0.4em;border-radius:4px;font-family:monospace;font-size:0.9em;';
+        code.replaceWith(el);
+      }
+    } catch (_) { /* leave as-is */ }
+  }
+
+  return doc.querySelector('div').innerHTML;
+}
+
+// Parse h2 sections and h3[id] subitems from the rendered content HTML.
+// Returns [{label, id, items: [{id, label}]}]
+function parseContentHeadings(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
+  const sections = [];
+  let current = null;
+  for (const el of doc.querySelectorAll('h2, h3[id]')) {
+    if (el.tagName === 'H2') {
+      const id = el.id || el.textContent.trim().toLowerCase().replace(/\s+/g, '-');
+      current = { label: el.textContent.trim(), id, items: [] };
+      sections.push(current);
+    } else if (el.tagName === 'H3' && el.id && current) {
+      current.items.push({ id: el.id, label: el.textContent.trim() });
+    }
+  }
+  return sections;
+}
+
 const Docs = () => {
-  const { "*": path } = useParams();
-  const [content, setContent] = useState('');
-  const [summary, setSummary] = useState([]);
+  const { package: packageName, '*': subpath } = useParams();
+  const navigate = useNavigate();
+  const [version, setVersion] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [rawHtml, setRawHtml] = useState('');
+  const [scopedCSS, setScopedCSS] = useState('');
+  const [highlighter, setHighlighter] = useState(null);
+  const [highlightedContent, setHighlightedContent] = useState('');
+  const contentRef = useRef(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [docIndex, setDocIndex] = useState([]);
-  const [highlighter, setHighlighter] = useState(null);
-  const navigate = useNavigate();
 
-  const docPath = path || 'introduction.md';
+  // Derived state from parsed HTML
+  const sidebarSections = useMemo(() => (rawHtml ? parseSidebarSections(rawHtml) : []), [rawHtml]);
+  const mainContent = useMemo(() => (rawHtml ? parseMainContent(rawHtml) : ''), [rawHtml]);
 
-  useEffect(() => {
-    createHighlighter({
-      themes: ['tomorrow-night'],
-      langs: [
-        {
-          ...loftGrammar,
-          name: 'loft',
-          aliases: ['loft']
-        },
-        'rust',
-        'bash',
-        'json'
-      ]
-    }).then(setHighlighter);
-  }, []);
+  // Flat search index built from sidebar nav items
+  const searchIndex = useMemo(() => {
+    const items = [];
+    sidebarSections.forEach(({ section, items: navItems }) => {
+      navItems.forEach(item => items.push({ ...item, section }));
+    });
+    return items;
+  }, [sidebarSections]);
 
-  // Fuzzy search index
-  const fuse = useMemo(() => new Fuse(docIndex, {
-    keys: ['title', 'content'],
-    threshold: 0.3,
+  const fuse = useMemo(() => new Fuse(searchIndex, {
+    keys: ['label', 'section'],
+    threshold: 0.35,
     includeMatches: true,
     minMatchCharLength: 2,
-  }), [docIndex]);
+  }), [searchIndex]);
 
-  useEffect(() => {
-    fetch('/docs/SUMMARY.md')
-      .then(res => res.text())
-      .then(text => {
-        const lines = text.split('\n');
-        const items = [];
-        let currentSection = '';
+  const searchResults = useMemo(() => {
+    if (!searchQuery) return [];
+    return fuse.search(searchQuery).slice(0, 8);
+  }, [searchQuery, fuse]);
 
-        lines.forEach(line => {
-          if (line.startsWith('# ')) {
-            currentSection = line.replace('# ', '').trim();
-          } else if (line.trim().startsWith('- [')) {
-            const match = line.match(/\[(.*?)\]\((.*?)\)/);
-            if (match) {
-              items.push({
-                title: match[1],
-                path: match[2].startsWith('./') ? match[2].substring(2) : match[2],
-                section: currentSection
-              });
-            }
-          }
-        });
-        setSummary(items);
-      });
-  }, []);
+  const highlightMatch = (text, matches, key) => {
+    const match = matches?.find(m => m.key === key);
+    if (!match || !match.indices || match.indices.length === 0) return text;
+    const parts = [];
+    let lastIndex = 0;
+    const sorted = [...match.indices].sort((a, b) => a[0] - b[0]);
+    sorted.forEach(([start, end], i) => {
+      parts.push(text.substring(lastIndex, start));
+      parts.push(<mark key={i} className="bg-bio-green/30 text-bio-green-dark font-bold rounded px-0.5">{text.substring(start, end + 1)}</mark>);
+      lastIndex = end + 1;
+    });
+    parts.push(text.substring(lastIndex));
+    return parts;
+  };
 
+  const contentHeadings = useMemo(() => {
+    const html = highlightedContent || mainContent;
+    return html ? parseContentHeadings(html) : [];
+  }, [highlightedContent, mainContent]);
+
+  // ⌘K / Ctrl+K keyboard shortcut to open search
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -87,104 +250,161 @@ const Docs = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Initialise Shiki once
   useEffect(() => {
-    setLoading(true);
-    fetch(`/docs/${docPath}`)
+    createHighlighter({
+      themes: ['one-dark-pro'],
+      langs: [
+        { ...loftGrammar, name: 'loft', aliases: ['lf'] },
+        'rust', 'bash', 'json',
+      ],
+    }).then(setHighlighter);
+  }, []);
+
+  // Apply syntax highlighting whenever content or highlighter changes
+  useEffect(() => {
+    if (!mainContent) return;
+    if (!highlighter) {
+      setHighlightedContent(mainContent);
+      return;
+    }
+    highlightCodeBlocks(mainContent, highlighter).then(setHighlightedContent);
+  }, [mainContent, highlighter]);
+
+  useEffect(() => {
+    if (packageName === 'std') {
+      setLoading(false);
+      return;
+    }
+
+    fetch(`/packages/${packageName}`)
       .then(res => {
-        if (!res.ok) throw new Error('Doc not found');
-        return res.text();
+        if (!res.ok) throw new Error('Package not found');
+        return res.json();
       })
-      .then(text => {
-        setContent(text);
+      .then(data => {
+        if (data.length > 0) {
+          // API returns versions in insertion order (oldest first)
+          const latest = data[data.length - 1];
+          setVersion(latest.version);
+        } else {
+          setError('No versions found');
+        }
         setLoading(false);
       })
       .catch(err => {
-        console.error(err);
-        setContent('# 404 Not Found\n\nThe requested documentation page could not be found.');
+        setError(err.message);
         setLoading(false);
       });
-  }, [docPath]);
+  }, [packageName]);
 
   useEffect(() => {
-    if (summary.length > 0) {
-      // Initially set simple index
-      setDocIndex(summary.map(s => ({ ...s, content: s.title })));
-      
-      // Load full content for fuzzy search
-      const loadFullContent = async () => {
-        const fullIndex = await Promise.all(
-          summary.map(async (item) => {
+    if ((packageName === 'std' || version) && !loading) {
+      const fileName = subpath
+        ? (subpath.endsWith('.html') ? subpath : subpath + '.html')
+        : 'index.html';
+      const docsUrl = packageName === 'std'
+        ? `/stdlib/${fileName}`
+        : `/pkg-docs/${packageName}/${version}/${fileName}`;
+
+      fetch(docsUrl)
+        .then(res => {
+          if (!res.ok) throw new Error('Documentation file not found');
+          return res.text();
+        })
+        .then(async html => {
+          setRawHtml(html);
+
+          // Fetch and scope the stylesheet so doc-specific classes render correctly
+          const cssHref = parseStylesheetHref(html);
+          if (cssHref) {
+            const base = docsUrl.substring(0, docsUrl.lastIndexOf('/') + 1);
+            const cssUrl = cssHref.startsWith('/') ? cssHref : base + cssHref;
             try {
-              const res = await fetch(`/docs/${item.path}`);
-              const text = await res.text();
-              // Strip markdown if possible for better search results, but keeping it simple for now
-              return { ...item, content: text };
-            } catch (e) {
-              return { ...item, content: item.title };
+              const cssRes = await fetch(cssUrl);
+              if (cssRes.ok) {
+                const cssText = await cssRes.text();
+                setScopedCSS(scopeCSS(cssText, '.pkg-doc-content'));
+              }
+            } catch (_) {
+              // CSS is optional — gracefully ignore
             }
-          })
-        );
-        setDocIndex(fullIndex);
-      };
-      
-      loadFullContent();
+          }
+        })
+        .catch(err => setError(err.message));
     }
-  }, [summary]);
+  }, [packageName, version, subpath, loading]);
 
-  const searchResults = useMemo(() => {
-    if (!searchQuery) return [];
-    return fuse.search(searchQuery).slice(0, 8);
-  }, [searchQuery, fuse]);
+  // Intercept clicks on relative links and route them through React Router
+  useEffect(() => {
+    const handleClick = (e) => {
+      const target = e.target.closest('a');
+      if (!target) return;
+      const href = target.getAttribute('href');
+      if (!href) return;
 
-  const highlightMatch = (text, indices) => {
-    if (!indices || indices.length === 0) return text;
-    const parts = [];
-    let lastIndex = 0;
-    const sorted = [...indices].sort((a, b) => a[0] - b[0]);
-    sorted.forEach(([start, end], i) => {
-      parts.push(text.substring(lastIndex, start));
-      parts.push(<mark key={i} className="bg-bio-green/30 text-bio-green-dark font-bold rounded px-0.5">{text.substring(start, end + 1)}</mark>);
-      lastIndex = end + 1;
-    });
-    parts.push(text.substring(lastIndex));
-    return parts;
-  };
-
-  const getSnippet = (content, matches) => {
-    const contentMatch = matches.find(m => m.key === 'content');
-    if (!contentMatch) return { text: content.substring(0, 100) + (content.length > 100 ? '...' : ''), indices: [] };
-    
-    // Find the first match in content (not title)
-    const firstMatch = contentMatch.indices[0];
-    const start = Math.max(0, firstMatch[0] - 50);
-    const end = Math.min(content.length, firstMatch[1] + 100);
-    
-    let snippet = content.substring(start, end).replace(/\n/g, ' ');
-    const offset = start > 0 ? 3 : 0;
-    
-    const adjustedIndices = contentMatch.indices
-      .filter(([s, e]) => s >= start && e <= end)
-      .map(([s, e]) => [s - start + offset, e - start + offset]);
-      
-    return {
-      text: (start > 0 ? '...' : '') + snippet + (end < content.length ? '...' : ''),
-      indices: adjustedIndices
+      if (href.startsWith('/d/') || (!href.startsWith('http') && !href.startsWith('/') && !href.startsWith('#'))) {
+        e.preventDefault();
+        if (href.startsWith('/d/')) {
+          navigate(href.replace(/\.html$/, ''));
+        } else {
+          const currentSubpathParts = (subpath || 'index.html').split('/');
+          currentSubpathParts.pop();
+          const base = currentSubpathParts.join('/');
+          const absoluteHref = base ? `${base}/${href}` : href;
+          navigate(`/d/${packageName}/${absoluteHref.replace(/\.html$/, '')}`);
+        }
+      }
     };
-  };
+
+    const container = contentRef.current;
+    if (container) {
+      container.addEventListener('click', handleClick);
+      return () => container.removeEventListener('click', handleClick);
+    }
+  }, [mainContent, navigate, packageName, subpath]);
+
+  if (loading) return (
+    <Layout>
+      <div className="flex justify-center py-20">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-bio-green"></div>
+      </div>
+    </Layout>
+  );
+
+  if (error) return (
+    <Layout>
+      <div className="p-8 text-center border-2 border-dashed border-red-200 bg-red-50 rounded-lg m-8">
+        <Heading level={2} className="text-red-600 mb-2">Error Loading Docs</Heading>
+        <Text className="text-red-500 mb-6">{error}</Text>
+        <div className="flex justify-center gap-4">
+          <Link to="/">
+            <BrutalButton variant="ghost">Go Back Home</BrutalButton>
+          </Link>
+          <BrutalButton onClick={() => window.location.reload()}>Retry</BrutalButton>
+        </div>
+      </div>
+    </Layout>
+  );
+
+  const currentFile = subpath
+    ? (subpath.endsWith('.html') ? subpath : subpath + '.html')
+    : 'index.html';
 
   return (
     <Layout fullWidth>
       <div className="flex flex-col md:flex-row min-h-[calc(100vh-64px)]">
+
         {/* Search Modal */}
         {searchOpen && (
           <div className="fixed inset-0 bg-bio-black/50 z-100 flex items-start justify-center pt-20 backdrop-blur-sm" onClick={() => setSearchOpen(false)}>
             <div className="bg-bio-cream w-full max-w-xl rounded-xl shadow-2xl overflow-hidden border border-bio-black/10" onClick={e => e.stopPropagation()}>
               <div className="p-4 border-b border-bio-black/5">
-                <input 
+                <input
                   autoFocus
-                  placeholder="Search documentation..." 
+                  placeholder="Search docs..."
                   value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
+                  onChange={e => { setSearchQuery(e.target.value); setSelectedIndex(0); }}
                   className="w-full text-lg border-none focus:ring-0 bg-transparent outline-none"
                 />
               </div>
@@ -192,28 +412,27 @@ const Docs = () => {
                 {searchResults.length > 0 ? (
                   searchResults.map((result, i) => {
                     const item = result.item;
-                    const titleMatch = result.matches.find(m => m.key === 'title');
-                    const snippet = getSnippet(item.content, result.matches);
-
                     return (
-                      <Link 
-                        key={item.path} 
-                        to={`/book/${item.path}`}
-                        onClick={() => setSearchOpen(false)}
-                        className={`block p-4 rounded-lg hover:bg-bio-green/10 transition-colors border-2 mb-2 ${i === selectedIndex ? 'bg-bio-green/5 border-bio-green' : 'border-transparent'}`}
+                      <button
+                        key={item.href + i}
+                        onClick={() => {
+                          setSearchOpen(false);
+                          setSearchQuery('');
+                          const base = (subpath || 'index.html').split('/').slice(0, -1).join('/');
+                          const resolved = base ? `${base}/${item.href}` : item.href;
+                          navigate(`/d/${packageName}/${resolved.replace(/\.html$/, '')}`);
+                        }}
+                        className={`block w-full text-left p-4 rounded-lg hover:bg-bio-green/10 transition-colors border-2 mb-2 ${i === selectedIndex ? 'bg-bio-green/5 border-bio-green' : 'border-transparent'}`}
                       >
                         <div className="flex justify-between items-start mb-1">
                           <div className="font-bold text-bio-black text-lg">
-                            {titleMatch ? highlightMatch(item.title, titleMatch.indices) : item.title}
+                            {highlightMatch(item.label, result.matches, 'label')}
                           </div>
                           <div className="text-[10px] bg-bio-black/5 text-bio-black/40 px-2 py-0.5 rounded font-mono uppercase tracking-tighter">
                             {item.section || 'General'}
                           </div>
                         </div>
-                        <div className="text-sm text-gray-600 line-clamp-2 font-mono bg-white/50 p-2 rounded border border-bio-black/5">
-                          {highlightMatch(snippet.text, snippet.indices)}
-                        </div>
-                      </Link>
+                      </button>
                     );
                   })
                 ) : searchQuery ? (
@@ -227,10 +446,26 @@ const Docs = () => {
         )}
 
         {/* Sidebar */}
-        <aside className="w-full md:w-64 bg-bio-offwhite border-r border-bio-black/5 p-6 md:h-[calc(100vh-64px)] md:sticky md:top-16 overflow-y-auto">
+        <aside className="min-h-screen relative w-full md:w-64 bg-bio-offwhite border-r border-bio-black/5 p-6 md:sticky md:top-16 self-start">
+          {/* Package header */}
           <div className="mb-8">
-            <BrutalButton 
-              variant="outline" 
+            <Link to={`/d/${packageName}`} className="hover:text-bio-green transition-colors block">
+              <Heading level={4} serif className="m-0">{packageName}</Heading>
+            </Link>
+            <div className="flex items-center gap-2 mt-2">
+              {version && (
+                <Text variant="mono" className="text-xs bg-bio-green/10 text-bio-green px-2 py-0.5 rounded">
+                  v{version}
+                </Text>
+              )}
+              <Text variant="caption" className="opacity-40 italic text-xs">documentation</Text>
+            </div>
+          </div>
+
+          {/* Search button */}
+          <div className="mb-8">
+            <BrutalButton
+              variant="outline"
               className="w-full justify-between text-sm shadow-sm"
               onClick={() => setSearchOpen(true)}
             >
@@ -238,123 +473,141 @@ const Docs = () => {
               <span className="text-xs border border-bio-black/10 px-1.5 py-0.5 rounded bg-bio-black/5">⌘K</span>
             </BrutalButton>
           </div>
-          
+
+          {/* Nav sections extracted from the HTML docs */}
           <div className="space-y-8">
-            {Array.from(new Set(summary.map(s => s.section))).map(section => (
+            {sidebarSections.map(({ section, items }) => (
               <div key={section}>
                 <Text variant="mono" className="text-[11px] uppercase tracking-widest font-bold text-bio-black/40 mb-3 block">
                   {section || 'General'}
                 </Text>
                 <ul className="space-y-1 border-l border-bio-black/5 ml-1 pl-3">
-                  {summary.filter(s => s.section === section).map(item => (
-                    <li key={item.path}>
-                      <Link 
-                        to={`/book/${item.path}`}
-                        className={`text-sm block py-1.5 transition-colors ${docPath === item.path ? 'font-bold text-bio-green -ml-3.5 pl-3.5 border-l-2 border-bio-green' : 'text-bio-black/70 hover:text-bio-black'}`}
+                  {items.map(item => (
+                    <li key={item.href}>
+                      <button
+                        onClick={() => {
+                          if (item.href.startsWith('#')) {
+                            const el = contentRef.current?.querySelector(item.href);
+                            el?.scrollIntoView({ behavior: 'smooth' });
+                          } else {
+                            const base = (subpath || 'index.html').split('/').slice(0, -1).join('/');
+                            const resolved = base ? `${base}/${item.href}` : item.href;
+                            navigate(`/d/${packageName}/${resolved.replace(/\.html$/, '')}`);
+                          }
+                        }}
+                        className={`text-sm block py-1.5 transition-colors w-full text-left ${currentFile === item.href || currentFile.endsWith('/' + item.href) ? 'font-bold text-bio-green -ml-3.5 pl-3.5 border-l-2 border-bio-green' : 'text-bio-black/70 hover:text-bio-black'}`}
                       >
-                        {item.title}
-                      </Link>
+                        {item.label}
+                      </button>
+                      {item.subItems && item.subItems.length > 0 && (
+                        <ul className="mt-0.5 mb-1 space-y-0.5 ml-1 border-l border-bio-black/5 pl-2.5">
+                          {item.subItems.map(sub => (
+                            <li key={sub.href}>
+                              <button
+                                onClick={() => {
+                                  if (sub.href.startsWith('#')) {
+                                    const el = contentRef.current?.querySelector(sub.href);
+                                    el?.scrollIntoView({ behavior: 'smooth' });
+                                  } else {
+                                    const base = (subpath || 'index.html').split('/').slice(0, -1).join('/');
+                                    const resolved = base ? `${base}/${sub.href}` : sub.href;
+                                    navigate(`/d/${packageName}/${resolved.replace(/\.html$/, '')}`);
+                                  }
+                                }}
+                                className="text-xs block py-0.5 font-mono text-bio-black/50 hover:text-bio-green transition-colors w-full text-left"
+                              >
+                                {sub.label}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </li>
                   ))}
                 </ul>
               </div>
             ))}
           </div>
+
+          {/* On this page — h2/h3 anchor subitems for the current doc page */}
+          {currentFile !== 'index.html' && contentHeadings.length > 0 && (
+            <div className="mt-8 pt-6 border-t border-bio-black/5">
+              <Text variant="mono" className="text-[11px] uppercase tracking-widest font-bold text-bio-black/40 mb-3 block">
+                On this page
+              </Text>
+              <div className="space-y-4">
+                {contentHeadings.map(section => (
+                  <div key={section.id}>
+                    <button
+                      onClick={() => {
+                        const el = contentRef.current?.querySelector('#' + CSS.escape(section.id));
+                        el?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="text-xs font-bold text-bio-black/50 uppercase tracking-wide block w-full text-left hover:text-bio-black transition-colors"
+                    >
+                      {section.label}
+                    </button>
+                    {section.items.length > 0 && (
+                      <ul className="mt-1 space-y-0.5 ml-1 border-l border-bio-black/5 pl-3">
+                        {section.items.map(item => (
+                          <li key={item.id}>
+                            <button
+                              onClick={() => {
+                                const el = contentRef.current?.querySelector('#' + CSS.escape(item.id));
+                                el?.scrollIntoView({ behavior: 'smooth' });
+                              }}
+                              className="text-sm py-1 text-bio-black/60 hover:text-bio-green transition-colors font-mono w-full text-left"
+                            >
+                              {item.label}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Bottom links */}
+          <div className="mt-8 pt-6 border-t border-bio-black/5 space-y-2">
+            {packageName !== 'std' && (
+              <Link to={`/p/${packageName}`} className="text-sm font-bold text-bio-black hover:text-bio-green transition-colors flex items-center gap-1.5">
+                Package Info <span className="text-xs">↗</span>
+              </Link>
+            )}
+            <Link to="/" className="text-sm text-bio-black/60 hover:text-bio-black transition-colors block">
+              ← Registry
+            </Link>
+          </div>
         </aside>
 
         {/* Main Content */}
         <main className="flex-1 p-8 md:p-16 bg-white overflow-y-auto">
           <div className="max-w-3xl mx-auto">
-            {loading ? (
+            {!mainContent ? (
               <div className="flex justify-center py-20">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-bio-green"></div>
               </div>
             ) : (
-              <article className="prose prose-bio max-w-none prose-headings:font-serif prose-headings:font-bold prose-h1:text-4xl prose-h2:text-2xl prose-a:text-bio-green prose-code:text-bio-green-dark prose-pre:bg-bio-black prose-pre:shadow-lg prose-pre:border-2 prose-pre:border-bio-black">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    h1: ({node, ...props}) => <Heading level={1} serif className="mb-8 pb-4 border-b border-gray-100" {...props} />, 
-                    h2: ({node, ...props}) => <Heading level={2} className="mt-12 mb-6" {...props} />, 
-                    h3: ({node, ...props}) => <Heading level={3} className="mt-8 mb-4" {...props} />, 
-                    p: ({node, ...props}) => <Text variant="body" className="mb-6 leading-relaxed text-lg text-gray-700" {...props} />, 
-                    code: ({node, className, children, ...props}) => {
-                      const match = /language-(\w+)/.exec(className || '');
-                      const lang = match ? match[1] : null;
-                      const isBlock = lang || (node.position.start.line !== node.position.end.line);
-                      
-                      if (isBlock && highlighter) {
-                        try {
-                          const html = highlighter.codeToHtml(String(children).replace(/\n$/, ''), {
-                            lang: lang || 'text',
-                            theme: 'tomorrow-night'
-                          });
-                          return <div className="my-8 rounded-lg overflow-hidden shadow-lg border border-gray-800" dangerouslySetInnerHTML={{ __html: html }} />;
-                        } catch (e) {
-                          console.error('Shiki error:', e);
-                        }
-                      }
-
-                      return isBlock ? (
-                        <pre className="bg-gray-900 text-gray-100 p-6 rounded-lg font-mono text-sm overflow-x-auto my-8 shadow-lg">
-                          <code className={className} {...props}>{children}</code>
-                        </pre>
-                      ) : (
-                        <code className="bg-gray-100 px-1.5 py-0.5 rounded font-mono text-[0.9em] text-pink-600 font-medium" {...props}>{children}</code>
-                      );
-                    },
-                    ul: ({node, ...props}) => <ul className="list-disc pl-6 mb-6 space-y-2 text-gray-700" {...props} />, 
-                    li: ({node, ...props}) => <li className="text-lg" {...props} />, 
-                    a: ({node, ...props}) => {
-                        const isExternal = props.href.startsWith('http') || props.href.startsWith('//');
-                        if (!isExternal) {
-                            let target = props.href;
-                            if (target.startsWith('./')) {
-                                target = target.replace('./', '');
-                            }
-                            
-                            // Resolve relative path
-                            const currentDir = docPath.includes('/') 
-                                ? docPath.substring(0, docPath.lastIndexOf('/') + 1) 
-                                : '';
-                            
-                            const fullPath = target.startsWith('/') 
-                                ? target.substring(1) 
-                                : currentDir + target;
-
-                            return (
-                                <Link 
-                                    to={`/docs/${fullPath}`} 
-                                    className="text-bio-green hover:underline font-medium decoration-2 underline-offset-2"
-                                >
-                                    {props.children}
-                                </Link>
-                            );
-                        }
-                        return (
-                            <a 
-                                href={props.href}
-                                target="_blank" 
-                                rel="noreferrer" 
-                                className="text-bio-green hover:underline font-medium decoration-2 underline-offset-2"
-                            >
-                                {props.children}
-                            </a>
-                        );
-                    }
-                  }}
-                >
-                  {content}
-                </ReactMarkdown>
-              </article>
+              <>
+                {scopedCSS && <style>{scopedCSS}</style>}
+                <article
+                  ref={contentRef}
+                  className="pkg-doc-content prose prose-bio max-w-none prose-headings:font-serif prose-headings:font-bold prose-h1:text-4xl prose-h2:text-2xl prose-a:text-bio-green prose-code:text-bio-green-dark prose-pre:bg-bio-black prose-pre:shadow-lg prose-pre:border-2 prose-pre:border-bio-black"
+                  dangerouslySetInnerHTML={{ __html: highlightedContent || mainContent }}
+                />
+              </>
             )}
-            
+
             <div className="mt-24 pt-8 border-t border-gray-100 flex justify-between items-center">
               <BrutalButton variant="ghost" size="sm" onClick={() => navigate('/')}>← Back to Home</BrutalButton>
               <Text variant="caption" className="text-gray-400 font-mono text-xs">LOFT LANGUAGE v0.1.0</Text>
             </div>
           </div>
         </main>
+
       </div>
     </Layout>
   );

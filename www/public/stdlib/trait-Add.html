@@ -5,15 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add - loft stdlib</title>
     <link rel="stylesheet" href="style.css">
-    <script src="search_index.js"></script>
-    <script src="search.js"></script>
 </head>
 <body>
     <div class="sidebar">
         <h2><a href="index.html">loft stdlib</a></h2>
-        <div class="search-container">
-            <input type="text" id="doc-search" placeholder="Search docs...">
-        </div>
         <div class="nav-section">
             <h3>Primitives</h3>
             <ul>
@@ -27,36 +22,49 @@
         <div class="nav-section">
             <h3>Builtins</h3>
             <ul>
-                <li><a href="object.html">object</a></li>
-                <li><a href="term.html">term</a></li>
-                <li><a href="json.html">json</a></li>
+                <li><a href="array.html">array</a></li>
                 <li><a href="encoding.html">encoding</a></li>
-                <li><a href="web.html">web</a></li>
-                <li><a href="math.html">math</a></li>
-                <li><a href="time.html">time</a></li>
                 <li><a href="fs.html">fs</a></li>
+                <li><a href="json.html">json</a></li>
+                <li><a href="math.html">math</a></li>
+                <li><a href="object.html">object</a></li>
                 <li><a href="random.html">random</a></li>
+                <li><a href="string.html">string</a></li>
+                <li><a href="term.html">term</a></li>
+                <li><a href="time.html">time</a></li>
+                <li><a href="web.html">web</a></li>
             </ul>
         </div>
         <div class="nav-section">
             <h3>Types</h3>
             <ul>
-                <li><a href="type-Response.html">Response</a></li>
-                <li><a href="type-RequestBuilder.html">RequestBuilder</a></li>
                 <li><a href="type-Buffer.html">Buffer</a></li>
                 <li><a href="type-Headers.html">Headers</a></li>
-                <li><a href="type-Array.html">Array</a></li>
+                <li><a href="type-Option.html">Option</a></li>
+                <li><a href="type-RequestBuilder.html">RequestBuilder</a></li>
+                <li><a href="type-Response.html">Response</a></li>
+                <li><a href="type-Result.html">Result</a></li>
             </ul>
         </div>
         <div class="nav-section">
             <h3>Traits</h3>
             <ul>
-                <li><a href="trait-Printable.html">Printable</a></li>
-                <li><a href="trait-Sub.html">Sub</a></li>
+                <li><a href="trait-Add.html">Add</a>
+                    <ul class="nav-subitems">
+                        <li><a href="#add">fn add</a></li>
+                    </ul>
+                </li>
+                <li><a href="trait-BitAnd.html">BitAnd</a></li>
+                <li><a href="trait-BitOr.html">BitOr</a></li>
+                <li><a href="trait-BitXor.html">BitXor</a></li>
                 <li><a href="trait-Div.html">Div</a></li>
-                <li><a href="trait-Mul.html">Mul</a></li>
-                <li><a href="trait-Add.html">Add</a></li>
                 <li><a href="trait-Index.html">Index</a></li>
+                <li><a href="trait-Mul.html">Mul</a></li>
+                <li><a href="trait-Ord.html">Ord</a></li>
+                <li><a href="trait-Printable.html">Printable</a></li>
+                <li><a href="trait-Shl.html">Shl</a></li>
+                <li><a href="trait-Shr.html">Shr</a></li>
+                <li><a href="trait-Sub.html">Sub</a></li>
                 <li><a href="trait-ToString.html">ToString</a></li>
             </ul>
         </div>
@@ -65,7 +73,7 @@
         <div class="breadcrumb"><a href="index.html">stdlib</a> / <span>Add</span></div>
         <h1>Trait: Add</h1>
         <p class="description">Trait for addition operation (+)</p>
-        <h2>Required Methods</h2>
+        <h2 id="required-methods">Required Methods</h2>
         <div class="method-item">
             <h3 id="add">add</h3>
             <pre class="signature"><code>fn add(self, other: any) -> any</code></pre>

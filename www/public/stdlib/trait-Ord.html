@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ord - loft stdlib</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="sidebar">
+        <h2><a href="index.html">loft stdlib</a></h2>
+        <div class="nav-section">
+            <h3>Primitives</h3>
+            <ul>
+                <li><a href="string.html">str</a></li>
+                <li><a href="array.html">Array</a></li>
+                <li><a href="num.html">num</a></li>
+                <li><a href="bool.html">bool</a></li>
+                <li><a href="void.html">void</a></li>
+            </ul>
+        </div>
+        <div class="nav-section">
+            <h3>Builtins</h3>
+            <ul>
+                <li><a href="array.html">array</a></li>
+                <li><a href="encoding.html">encoding</a></li>
+                <li><a href="fs.html">fs</a></li>
+                <li><a href="json.html">json</a></li>
+                <li><a href="math.html">math</a></li>
+                <li><a href="object.html">object</a></li>
+                <li><a href="random.html">random</a></li>
+                <li><a href="string.html">string</a></li>
+                <li><a href="term.html">term</a></li>
+                <li><a href="time.html">time</a></li>
+                <li><a href="web.html">web</a></li>
+            </ul>
+        </div>
+        <div class="nav-section">
+            <h3>Types</h3>
+            <ul>
+                <li><a href="type-Buffer.html">Buffer</a></li>
+                <li><a href="type-Headers.html">Headers</a></li>
+                <li><a href="type-Option.html">Option</a></li>
+                <li><a href="type-RequestBuilder.html">RequestBuilder</a></li>
+                <li><a href="type-Response.html">Response</a></li>
+                <li><a href="type-Result.html">Result</a></li>
+            </ul>
+        </div>
+        <div class="nav-section">
+            <h3>Traits</h3>
+            <ul>
+                <li><a href="trait-Add.html">Add</a></li>
+                <li><a href="trait-BitAnd.html">BitAnd</a></li>
+                <li><a href="trait-BitOr.html">BitOr</a></li>
+                <li><a href="trait-BitXor.html">BitXor</a></li>
+                <li><a href="trait-Div.html">Div</a></li>
+                <li><a href="trait-Index.html">Index</a></li>
+                <li><a href="trait-Mul.html">Mul</a></li>
+                <li><a href="trait-Ord.html">Ord</a>
+                    <ul class="nav-subitems">
+                        <li><a href="#eq">fn eq</a></li>
+                        <li><a href="#ge">fn ge</a></li>
+                        <li><a href="#gt">fn gt</a></li>
+                        <li><a href="#le">fn le</a></li>
+                        <li><a href="#lt">fn lt</a></li>
+                        <li><a href="#ne">fn ne</a></li>
+                    </ul>
+                </li>
+                <li><a href="trait-Printable.html">Printable</a></li>
+                <li><a href="trait-Shl.html">Shl</a></li>
+                <li><a href="trait-Shr.html">Shr</a></li>
+                <li><a href="trait-Sub.html">Sub</a></li>
+                <li><a href="trait-ToString.html">ToString</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="content">
+        <div class="breadcrumb"><a href="index.html">stdlib</a> / <span>Ord</span></div>
+        <h1>Trait: Ord</h1>
+        <p class="description">Trait for comparison operations (&gt;, &gt;=, &lt;, &lt;=, ==, !=)</p>
+        <h2 id="required-methods">Required Methods</h2>
+        <div class="method-item">
+            <h3 id="eq">eq</h3>
+            <pre class="signature"><code>fn eq(self, other: any) -> <a href="bool.html">bool</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="bool.html">bool</a></code></p>
+            <p>Check if this value is equal to another</p>
+        </div>
+        <div class="method-item">
+            <h3 id="ge">ge</h3>
+            <pre class="signature"><code>fn ge(self, other: any) -> <a href="bool.html">bool</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="bool.html">bool</a></code></p>
+            <p>Check if this value is greater than or equal to another</p>
+        </div>
+        <div class="method-item">
+            <h3 id="gt">gt</h3>
+            <pre class="signature"><code>fn gt(self, other: any) -> <a href="bool.html">bool</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="bool.html">bool</a></code></p>
+            <p>Check if this value is greater than another</p>
+        </div>
+        <div class="method-item">
+            <h3 id="le">le</h3>
+            <pre class="signature"><code>fn le(self, other: any) -> <a href="bool.html">bool</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="bool.html">bool</a></code></p>
+            <p>Check if this value is less than or equal to another</p>
+        </div>
+        <div class="method-item">
+            <h3 id="ne">ne</h3>
+            <pre class="signature"><code>fn ne(self, other: any) -> <a href="bool.html">bool</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="bool.html">bool</a></code></p>
+            <p>Check if this value is not equal to another</p>
+        </div>
+        <div class="method-item">
+            <h3 id="lt">lt</h3>
+            <pre class="signature"><code>fn lt(self, other: any) -> <a href="bool.html">bool</a></code></pre>
+            <p><strong>Returns:</strong> <code><a href="bool.html">bool</a></code></p>
+            <p>Check if this value is less than another</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -377,6 +377,217 @@ impl Environment {
     }
 }
 
+// ── Native methods for built-in Option<T> and Result<T, E> ────────────────────
+
+fn opt_is_some(this: &Value, _: &[Value]) -> RuntimeResult<Value> {
+    if let Value::EnumVariant { variant_name, .. } = this {
+        Ok(Value::Boolean(variant_name == "Some"))
+    } else {
+        Err(RuntimeError::new("is_some() called on non-Option value"))
+    }
+}
+
+fn opt_is_none(this: &Value, _: &[Value]) -> RuntimeResult<Value> {
+    if let Value::EnumVariant { variant_name, .. } = this {
+        Ok(Value::Boolean(variant_name == "None"))
+    } else {
+        Err(RuntimeError::new("is_none() called on non-Option value"))
+    }
+}
+
+fn res_is_ok(this: &Value, _: &[Value]) -> RuntimeResult<Value> {
+    if let Value::EnumVariant { variant_name, .. } = this {
+        Ok(Value::Boolean(variant_name == "Ok"))
+    } else {
+        Err(RuntimeError::new("is_ok() called on non-Result value"))
+    }
+}
+
+fn res_is_err(this: &Value, _: &[Value]) -> RuntimeResult<Value> {
+    if let Value::EnumVariant { variant_name, .. } = this {
+        Ok(Value::Boolean(variant_name == "Err"))
+    } else {
+        Err(RuntimeError::new("is_err() called on non-Result value"))
+    }
+}
+
+fn opt_res_unwrap(this: &Value, _: &[Value]) -> RuntimeResult<Value> {
+    if let Value::EnumVariant {
+        variant_name,
+        values,
+        ..
+    } = this
+    {
+        match variant_name.as_str() {
+            "Some" | "Ok" => {
+                if values.len() == 1 {
+                    Ok(values[0].clone())
+                } else if values.is_empty() {
+                    Ok(Value::Unit)
+                } else {
+                    Ok(Value::Array(values.clone()))
+                }
+            }
+            "None" => Err(RuntimeError::new(
+                "Called unwrap() on Option::None",
+            )),
+            "Err" => {
+                let msg = if values.len() == 1 {
+                    values[0].to_string()
+                } else {
+                    "Err".to_string()
+                };
+                Err(RuntimeError::new(format!(
+                    "Called unwrap() on Err: {}",
+                    msg
+                )))
+            }
+            v => Err(RuntimeError::new(format!(
+                "unwrap() called on unexpected variant {}",
+                v
+            ))),
+        }
+    } else {
+        Err(RuntimeError::new(
+            "unwrap() called on non-Option/Result value",
+        ))
+    }
+}
+
+fn opt_res_unwrap_or(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    if args.is_empty() {
+        return Err(RuntimeError::new(
+            "unwrap_or() requires a default value argument",
+        ));
+    }
+    if let Value::EnumVariant {
+        variant_name,
+        values,
+        ..
+    } = this
+    {
+        match variant_name.as_str() {
+            "Some" | "Ok" => {
+                if values.len() == 1 {
+                    Ok(values[0].clone())
+                } else if values.is_empty() {
+                    Ok(Value::Unit)
+                } else {
+                    Ok(Value::Array(values.clone()))
+                }
+            }
+            "None" | "Err" => Ok(args[0].clone()),
+            v => Err(RuntimeError::new(format!(
+                "unwrap_or() called on unexpected variant {}",
+                v
+            ))),
+        }
+    } else {
+        Err(RuntimeError::new(
+            "unwrap_or() called on non-Option/Result value",
+        ))
+    }
+}
+
+fn res_unwrap_err(this: &Value, _: &[Value]) -> RuntimeResult<Value> {
+    if let Value::EnumVariant {
+        variant_name,
+        values,
+        ..
+    } = this
+    {
+        match variant_name.as_str() {
+            "Err" => {
+                if values.len() == 1 {
+                    Ok(values[0].clone())
+                } else if values.is_empty() {
+                    Ok(Value::Unit)
+                } else {
+                    Ok(Value::Array(values.clone()))
+                }
+            }
+            v => Err(RuntimeError::new(format!(
+                "unwrap_err() called on non-Err variant {}",
+                v
+            ))),
+        }
+    } else {
+        Err(RuntimeError::new(
+            "unwrap_err() called on non-Result value",
+        ))
+    }
+}
+
+fn opt_res_expect(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+    let msg = if let Some(Value::String(s)) = args.first() {
+        s.clone()
+    } else {
+        "expect() failed".to_string()
+    };
+    if let Value::EnumVariant {
+        variant_name,
+        values,
+        ..
+    } = this
+    {
+        match variant_name.as_str() {
+            "Some" | "Ok" => {
+                if values.len() == 1 {
+                    Ok(values[0].clone())
+                } else if values.is_empty() {
+                    Ok(Value::Unit)
+                } else {
+                    Ok(Value::Array(values.clone()))
+                }
+            }
+            "None" | "Err" => Err(RuntimeError::new(msg)),
+            v => Err(RuntimeError::new(format!(
+                "expect() called on unexpected variant {}",
+                v
+            ))),
+        }
+    } else {
+        Err(RuntimeError::new(
+            "expect() called on non-Option/Result value",
+        ))
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+
+fn init_builtin_enums() -> HashMap<String, Vec<(String, Option<Vec<Type>>)>> {
+    let mut enums: HashMap<String, Vec<(String, Option<Vec<Type>>)>> = HashMap::new();
+
+    // Option<T>: Some(T) | None
+    enums.insert(
+        "Option".to_string(),
+        vec![
+            (
+                "Some".to_string(),
+                Some(vec![Type::Named("T".to_string())]),
+            ),
+            ("None".to_string(), None),
+        ],
+    );
+
+    // Result<T, E>: Ok(T) | Err(E)
+    enums.insert(
+        "Result".to_string(),
+        vec![
+            (
+                "Ok".to_string(),
+                Some(vec![Type::Named("T".to_string())]),
+            ),
+            (
+                "Err".to_string(),
+                Some(vec![Type::Named("E".to_string())]),
+            ),
+        ],
+    );
+
+    enums
+}
+
 pub struct Interpreter {
     pub env: Environment,
     source_path: Option<String>,
@@ -406,6 +617,8 @@ pub struct Interpreter {
     exports: HashMap<String, Value>,
     // Enabled features for gating
     enabled_features: std::collections::HashSet<String>,
+    // Control flow: set when a `return` statement is executed
+    returning: Option<Value>,
 }
 
 impl Interpreter {
@@ -423,10 +636,11 @@ impl Interpreter {
             source_code: None,
             traits: init_stdlib_traits(),
             impl_methods: HashMap::new(),
-            enums: HashMap::new(),
+            enums: init_builtin_enums(),
             module_cache: HashMap::new(),
             exports: HashMap::new(),
             enabled_features: std::collections::HashSet::new(),
+            returning: None,
         }
     }
 
@@ -444,10 +658,11 @@ impl Interpreter {
             source_code: Some(source_code.into()),
             traits: init_stdlib_traits(),
             impl_methods: HashMap::new(),
-            enums: HashMap::new(),
+            enums: init_builtin_enums(),
             module_cache: HashMap::new(),
             exports: HashMap::new(),
             enabled_features: std::collections::HashSet::new(),
+            returning: None,
         }
     }
 
@@ -560,6 +775,9 @@ impl Interpreter {
             Stmt::While { condition, body } => {
                 while self.eval_expr(condition.clone())?.is_truthy() {
                     self.eval_stmt(*body.clone())?;
+                    if self.returning.is_some() {
+                        break;
+                    }
                 }
                 Ok(Value::Unit)
             }
@@ -569,7 +787,7 @@ impl Interpreter {
                 } else {
                     Value::Unit
                 };
-                // In a full implementation, we'd use a special control flow mechanism
+                self.returning = Some(val.clone());
                 Ok(val)
             }
             Stmt::Expr(expr) => self.eval_expr(expr),
@@ -578,6 +796,9 @@ impl Interpreter {
                 let mut last_value = Value::Unit;
                 for stmt in stmts {
                     last_value = self.eval_stmt(stmt)?;
+                    if self.returning.is_some() {
+                        break;
+                    }
                 }
                 self.env.pop_scope();
                 Ok(last_value)
@@ -833,6 +1054,8 @@ impl Interpreter {
 
                         // Execute function body
                         let result = self.eval_stmt(*body)?;
+                        // Clear the return signal — we've exited the function
+                        let result = self.returning.take().unwrap_or(result);
 
                         self.env.pop_scope();
 
@@ -878,6 +1101,7 @@ impl Interpreter {
 
                         // Execute method body
                         let result = self.eval_stmt(*body)?;
+                        let result = self.returning.take().unwrap_or(result);
 
                         self.env.pop_scope();
 
@@ -1069,6 +1293,40 @@ impl Interpreter {
                             Err(self.error(format!("Export '{}' not found in module", field)))
                         }
                     }
+                    Value::EnumVariant {
+                        ref enum_name,
+                        ref variant_name,
+                        ref values,
+                    } if enum_name == "Option" || enum_name == "Result" => {
+                        // Dispatch native methods on Option<T> and Result<T, E>
+                        let method: Option<BuiltinMethod> = match field.as_str() {
+                            "is_some" if enum_name == "Option" => Some(opt_is_some),
+                            "is_none" if enum_name == "Option" => Some(opt_is_none),
+                            "is_ok" if enum_name == "Result" => Some(res_is_ok),
+                            "is_err" if enum_name == "Result" => Some(res_is_err),
+                            "unwrap" => Some(opt_res_unwrap),
+                            "unwrap_or" => Some(opt_res_unwrap_or),
+                            "unwrap_err" if enum_name == "Result" => Some(res_unwrap_err),
+                            "expect" => Some(opt_res_expect),
+                            _ => None,
+                        };
+                        if let Some(m) = method {
+                            Ok(Value::BoundMethod {
+                                object: Box::new(Value::EnumVariant {
+                                    enum_name: enum_name.clone(),
+                                    variant_name: variant_name.clone(),
+                                    values: values.clone(),
+                                }),
+                                method_name: field.clone(),
+                                method: m,
+                            })
+                        } else {
+                            Err(self.error(format!(
+                                "Method '{}' not found on {}::{}",
+                                field, enum_name, variant_name
+                            )))
+                        }
+                    }
                     _ => Err(self.error(format!(
                         "Cannot access field on value of type {:?}",
                         obj_val
@@ -1228,9 +1486,9 @@ impl Interpreter {
                     values,
                 } = &value
                 {
-                    // Check if this is an Err/Error variant
-                    if variant_name.to_lowercase().contains("err") {
-                        // This is an error - propagate it by returning the error variant
+                    // Check if this is an Err/Error/None variant
+                    if variant_name.to_lowercase().contains("err") || variant_name == "None" {
+                        // This is an error or absent value - propagate it by returning the variant
                         return Ok(value.clone());
                     }
 
@@ -1282,69 +1540,60 @@ impl Interpreter {
     }
 
     fn eval_binop(&mut self, op: &str, left: Value, right: Value) -> RuntimeResult<Value> {
-        // Check for user-defined trait implementations
-        if let Value::Struct {
-            name: ref type_name,
-            ..
-        } = left
-        {
-            let method_name = match op {
-                "+" => "add",
-                "-" => "sub",
-                "*" => "mul",
-                "/" => "div",
-                "&" => "bit_and",
-                "|" => "bit_or",
-                "^" => "bit_xor",
-                "<<" => "shl",
-                ">>" => "shr",
-                ">" => "gt",
-                ">=" => "ge",
-                "<" => "lt",
-                "<=" => "le",
-                "==" => "eq",
-                "!=" => "ne",
-                _ => "",
-            };
+        let method_name = match op {
+            "+" => "add",
+            "-" => "sub",
+            "*" => "mul",
+            "/" => "div",
+            "&" => "bit_and",
+            "|" => "bit_or",
+            "^" => "bit_xor",
+            "<<" => "shl",
+            ">>" => "shr",
+            ">" => "gt",
+            ">=" => "ge",
+            "<" => "lt",
+            "<=" => "le",
+            "==" => "eq",
+            "!=" => "ne",
+            _ => "",
+        };
 
-            if !method_name.is_empty() {
-                // We need to clone type_name to avoid borrowing issues with self.impl_methods
-                let type_name_clone = type_name.clone();
-                if let Some(methods) = self.impl_methods.get(&type_name_clone) {
-                    if let Some((params, _return_type, body, _trait_name)) =
-                        methods.get(method_name)
-                    {
-                        // Found implementation
-
-                        // Check arg count (should be 2: self, other)
-                        if params.len() != 2 {
-                            return Err(self.error(format!(
-                                 "Trait method '{}' should have 2 parameters (self, other), found {}",
-                                 method_name, params.len()
-                             )));
-                        }
-
-                        self.env.push_scope();
-
-                        // Bind self
-                        self.env.set("self".to_string(), left.clone());
-
-                        // Bind other (second param)
-                        let other_param_name = &params[1].0;
-                        self.env.set(other_param_name.clone(), right.clone());
-
-                        // Execute body
-                        let result = self.eval_stmt(*body.clone())?;
-
-                        self.env.pop_scope();
-
-                        return Ok(result);
+        // Check for user-defined trait implementations for any type (not just structs)
+        if !method_name.is_empty() {
+            let type_name = self.type_of(&left);
+            if let Some(methods) = self.impl_methods.get(&type_name) {
+                if let Some((params, _return_type, body, _trait_name)) =
+                    methods.get(method_name)
+                {
+                    // Check arg count (should be 2: self, other)
+                    if params.len() != 2 {
+                        return Err(self.error(format!(
+                            "Trait method '{}' should have 2 parameters (self, other), found {}",
+                            method_name, params.len()
+                        )));
                     }
+
+                    let other_param_name = params[1].0.clone();
+                    let body = body.clone();
+
+                    self.env.push_scope();
+
+                    // Bind self and other
+                    self.env.set("self".to_string(), left.clone());
+                    self.env.set(other_param_name, right.clone());
+
+                    // Execute body
+                    let result = self.eval_stmt(*body)?;
+
+                    self.env.pop_scope();
+
+                    return Ok(result);
                 }
             }
         }
 
-        // Use the trait-based system instead of matches
+        // Fall back to built-in trait implementations
         match call_binop_trait(op, &left, &right) {
             Ok(v) => Ok(v),
             Err(e) => {

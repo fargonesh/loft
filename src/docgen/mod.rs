@@ -43,6 +43,8 @@ pub struct DocGenerator {
     pub items: Vec<DocItem>,
     pub source_files: HashMap<PathBuf, String>,
     pub impl_relations: Vec<(String, String)>,
+    /// Maps type_name -> list of method names defined in impl blocks for that type.
+    pub impl_methods: HashMap<String, Vec<String>>,
 }
 
 impl DocGenerator {
@@ -51,10 +53,11 @@ impl DocGenerator {
             items: Vec::new(),
             source_files: HashMap::new(),
             impl_relations: Vec::new(),
+            impl_methods: HashMap::new(),
         }
     }
 
-    /// Parse a Twang file and extract documentation items
+    /// Parse a Loft file and extract documentation items
     pub fn parse_file<P: AsRef<Path>>(&mut self, path: P) -> Result<(), String> {
         let path = path.as_ref();
         let content = fs::read_to_string(path)
@@ -205,6 +208,15 @@ impl DocGenerator {
                     if let Some(trait_name) = trait_name {
                         self.impl_relations
                             .push((trait_name.clone(), type_name.clone()));
+                    }
+                    // Track method names per type for sidebar sub-items
+                    for method in methods {
+                        if let Stmt::FunctionDecl { name, .. } = method {
+                            self.impl_methods
+                                .entry(type_name.clone())
+                                .or_insert_with(Vec::new)
+                                .push(name.clone());
+                        }
                     }
                     // Recursively process methods in impl blocks
                     self.extract_items(methods, source);
@@ -492,10 +504,41 @@ impl DocGenerator {
             html.push_str("            <h3>Structs</h3>\n");
             html.push_str("            <ul>\n");
             for item in &structs {
-                html.push_str(&format!(
-                    "                <li><a href=\"#{}\">{}</a></li>\n",
-                    item.name, item.name
-                ));
+                let impl_methods = self.impl_methods.get(&item.name);
+                let impl_traits: &[String] = if let DocItemKind::Struct { implemented_traits, .. } = &item.kind {
+                    implemented_traits.as_slice()
+                } else {
+                    &[]
+                };
+                let has_subitems = impl_methods.map_or(false, |m| !m.is_empty()) || !impl_traits.is_empty();
+                if has_subitems {
+                    html.push_str(&format!(
+                        "                <li><a href=\"#{}\">{}</a>\n",
+                        item.name, item.name
+                    ));
+                    html.push_str("                    <ul class=\"nav-subitems\">\n");
+                    if let Some(methods) = impl_methods {
+                        for method_name in methods {
+                            html.push_str(&format!(
+                                "                        <li><a href=\"#{}\">fn {}</a></li>\n",
+                                method_name, method_name
+                            ));
+                        }
+                    }
+                    for trait_name in impl_traits {
+                        html.push_str(&format!(
+                            "                        <li><a href=\"#{}\">impl {}</a></li>\n",
+                            trait_name, trait_name
+                        ));
+                    }
+                    html.push_str("                    </ul>\n");
+                    html.push_str("                </li>\n");
+                } else {
+                    html.push_str(&format!(
+                        "                <li><a href=\"#{}\">{}</a></li>\n",
+                        item.name, item.name
+                    ));
+                }
             }
             html.push_str("            </ul>\n");
             html.push_str("        </div>\n");
@@ -638,16 +681,15 @@ impl DocGenerator {
                 implemented_traits,
             } => {
                 if !implemented_traits.is_empty() {
-                    html.push_str("            <h4>Implemented Traits</h4>\n");
-                    html.push_str("            <ul class=\"traits\">\n");
+                    html.push_str("            <div class=\"trait-impls\"><span class=\"trait-impls-label\">Implements:</span>");
                     for trait_name in implemented_traits {
                         html.push_str(&format!(
-                            "                <li><a href=\"#{}\">{}</a></li>\n",
+                            " <a href=\"#{}\" class=\"trait-pill\">{}</a>",
                             trait_name,
                             Self::escape_html(trait_name)
                         ));
                     }
-                    html.push_str("            </ul>\n");
+                    html.push_str("</div>\n");
                 }
 
                 if !fields.is_empty() {
@@ -979,6 +1021,42 @@ strong {
     font-size: 12px;
     text-transform: uppercase;
     margin-top: 10px;
+}
+
+.trait-impls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+    margin-bottom: 4px;
+}
+
+.trait-impls-label {
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 500;
+    margin-right: 2px;
+}
+
+.trait-pill {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background-color: var(--color-bio-offwhite);
+    border: 1px solid var(--color-border);
+    color: var(--color-bio-green-light);
+    text-decoration: none;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.trait-pill:hover {
+    background-color: #e8f5e0;
+    border-color: var(--color-bio-green);
+    color: var(--color-bio-green);
+    text-decoration: none;
 }
 
 @media (max-width: 768px) {

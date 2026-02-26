@@ -48,6 +48,10 @@
     registry.exec = "cd registry && cargo run";
   };
 
+  scripts.loft.exec = ''
+    cargo run --bin loft -- $1
+  '';
+
   enterShell = ''
     git --version
   '';
