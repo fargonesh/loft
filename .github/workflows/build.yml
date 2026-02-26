@@ -162,10 +162,6 @@ jobs:
         shell: bash
         run: |
           cd artifacts
-          if [ -d "book" ]; then
-            zip -r loft-docs.zip book/*
-            rm -rf book
-          fi
           for d in */; do
             d=${d%/}
             if [ -f "$d/loft.exe" ]; then
