@@ -175,6 +175,174 @@ function parseContentHeadings(html) {
   return sections;
 }
 
+// Parse the sidebar nav sections out of the fetched HTML string.
+// Returns [{ section: string, items: [{ label, href, subItems?: [{label, href}] }] }]
+function parseSidebarSections(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const sections = [];
+  doc.querySelectorAll('.nav-section').forEach(el => {
+    const h3 = el.querySelector('h3');
+    const section = h3 ? h3.textContent.trim() : '';
+    const topList = el.querySelector(':scope > ul');
+    const items = topList ? [...topList.querySelectorAll(':scope > li')].map(li => {
+      const a = li.querySelector(':scope > a');
+      const subList = li.querySelector('.nav-subitems');
+      const subItems = subList
+        ? [...subList.querySelectorAll('li > a')].map(subA => ({
+            label: subA.textContent.trim(),
+            href: subA.getAttribute('href') || '',
+          }))
+        : [];
+      return {
+        label: a ? a.textContent.trim() : '',
+        href: a ? (a.getAttribute('href') || '') : '',
+        subItems: subItems.length > 0 ? subItems : undefined,
+      };
+    }) : [];
+    if (items.length) sections.push({ section, items });
+  });
+  return sections;
+}
+
+// Extract just the .content div innerHTML (falls back to full body).
+function parseMainContent(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const content = doc.querySelector('.content');
+  return content ? content.innerHTML : (doc.body ? doc.body.innerHTML : html);
+}
+
+// Extract the href of the first <link rel="stylesheet"> in the HTML.
+function parseStylesheetHref(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const link = doc.querySelector('link[rel="stylesheet"]');
+  return link ? link.getAttribute('href') : null;
+}
+
+/**
+ * Minimal CSS scoper: prefixes every selector with `scope` so the doc styles
+ * only apply inside the content container and don't leak into the rest of the app.
+ * Skips body/*, .sidebar, and .content (the now-removed wrapper) selectors.
+ */
+function scopeCSS(css, scope) {
+  // Handle @media blocks recursively
+  let result = '';
+  // Tokenise the CSS into @media{...} blocks and plain rules
+  const mediaRe = /(@media[^{]+)\{([\s\S]*?)\}\s*\}/g;
+  let lastIndex = 0;
+  let match;
+  while ((match = mediaRe.exec(css)) !== null) {
+    // Everything before this media block
+    result += scopePlainRules(css.slice(lastIndex, match.index), scope);
+    result += `${match[1]} { ${scopePlainRules(match[2], scope)} }`;
+    lastIndex = match.index + match[0].length;
+  }
+  result += scopePlainRules(css.slice(lastIndex), scope);
+  return result;
+}
+
+function scopePlainRules(css, scope) {
+  return css.replace(/([^{}]+)\{([^{}]*)\}/g, (_, selector, rules) => {
+    if (selector.trim().startsWith('@')) return `${selector} { ${rules} }`;
+    const scoped = selector.split(',').flatMap(s => {
+      const t = s.trim();
+      if (!t || t === '*' || t === 'body' || t === 'html') return [];
+      if (t === '.sidebar' || t.startsWith('.sidebar ') || t === '.content' || /^\.content\b/.test(t)) return [];
+      return [`${scope} ${t}`];
+    }).join(', ');
+    return scoped ? `${scoped} { ${rules} }` : '';
+  });
+}
+
+// Replace pre.example and pre.signature code blocks with Shiki-highlighted HTML.
+async function highlightCodeBlocks(html, highlighter) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
+
+  for (const code of doc.querySelectorAll('pre.example code')) {
+    try {
+      // Dedent: strip common leading whitespace from all non-empty lines
+      const raw = code.textContent;
+      const lines = raw.split('\n');
+      const minIndent = Math.min(
+        ...lines.filter(l => l.trim().length > 0).map(l => l.match(/^(\s*)/)[1].length)
+      );
+      const dedented = lines.map(l => l.slice(minIndent)).join('\n').replace(/\n$/, '');
+
+      const highlighted = highlighter.codeToHtml(dedented, {
+        lang: 'loft',
+        theme: 'one-dark-pro',
+      });
+      const tmp = document.createElement('div');
+      tmp.innerHTML = highlighted;
+      const shikiEl = tmp.firstChild;
+      shikiEl.style.cssText = 'margin: 12px 0; border-radius: 6px; overflow: hidden; border: 1px solid #333;';
+      code.closest('pre').replaceWith(shikiEl);
+    } catch (_) { /* leave as-is on parse/highlight error */ }
+  }
+
+  // Highlight pre.signature code blocks (use textContent to strip any anchor HTML).
+  for (const code of doc.querySelectorAll('pre.signature code')) {
+    try {
+      const raw = code.textContent.trim();
+      if (!raw) continue;
+      const inlineHtml = highlighter.codeToHtml(raw, { lang: 'loft', theme: 'one-dark-pro' });
+      const tmp = document.createElement('div');
+      tmp.innerHTML = inlineHtml;
+      const shikiCode = tmp.querySelector('code');
+      if (shikiCode) {
+        // Replace the code element content and style the pre as a signature block
+        code.innerHTML = shikiCode.innerHTML;
+        const pre = code.closest('pre');
+        pre.style.cssText = 'background:#282c34;color:#abb2bf;padding:0.4em 0.75em;border-radius:4px;margin:6px 0;overflow-x:auto;font-family:monospace;font-size:0.9em;display:block;';
+      }
+    } catch (_) { /* leave as-is */ }
+  }
+
+  // Highlight inline <code> elements that are NOT inside a <pre>
+  // (e.g. "Returns: <code>any</code>" in stdlib method docs)
+  for (const code of doc.querySelectorAll('code')) {
+    if (code.closest('pre')) continue; // already handled or intentionally kept as HTML
+    try {
+      const raw = code.textContent.trim();
+      if (!raw) continue;
+      const inlineHtml = highlighter.codeToHtml(raw, { lang: 'loft', theme: 'one-dark-pro' });
+      const tmp = document.createElement('div');
+      tmp.innerHTML = inlineHtml;
+      const shikiCode = tmp.querySelector('code');
+      if (shikiCode) {
+        const el = document.createElement('code');
+        el.innerHTML = shikiCode.innerHTML;
+        el.style.cssText = 'background:#282c34;color:#abb2bf;padding:0.2em 0.4em;border-radius:4px;font-family:monospace;font-size:0.9em;';
+        code.replaceWith(el);
+      }
+    } catch (_) { /* leave as-is */ }
+  }
+
+  return doc.querySelector('div').innerHTML;
+}
+
+// Parse h2 sections and h3[id] subitems from the rendered content HTML.
+// Returns [{label, id, items: [{id, label}]}]
+function parseContentHeadings(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
+  const sections = [];
+  let current = null;
+  for (const el of doc.querySelectorAll('h2, h3[id]')) {
+    if (el.tagName === 'H2') {
+      const id = el.id || el.textContent.trim().toLowerCase().replace(/\s+/g, '-');
+      current = { label: el.textContent.trim(), id, items: [] };
+      sections.push(current);
+    } else if (el.tagName === 'H3' && el.id && current) {
+      current.items.push({ id: el.id, label: el.textContent.trim() });
+    }
+  }
+  return sections;
+}
+
 const Docs = () => {
   const { package: packageName, '*': subpath } = useParams();
   const navigate = useNavigate();
