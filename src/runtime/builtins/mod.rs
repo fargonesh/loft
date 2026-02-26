@@ -1,7 +1,9 @@
 pub mod array;
 pub mod collections;
 pub mod encoding;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod ffi;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod io;
 pub mod json;
 pub mod math;
@@ -11,6 +13,7 @@ pub mod string;
 pub mod term;
 pub mod time;
 pub mod traits;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod web;
 
 use crate::runtime::builtin_registry::BuiltinRegistration;

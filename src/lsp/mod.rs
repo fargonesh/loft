@@ -3525,11 +3525,11 @@ impl LanguageServer for LoftLanguageServer {
                                     });
                                 }
 
-                                // Also check .twlibs for installed packages (relative to manifest directory)
+                                // Also check .lflibs for installed packages (relative to manifest directory)
                                 if let Some(manifest_dir) = manifest_path.parent() {
-                                    let twlibs_path = manifest_dir.join(".twlibs");
-                                    if twlibs_path.exists() {
-                                        if let Ok(entries) = std::fs::read_dir(&twlibs_path) {
+                                    let lflibs_path = manifest_dir.join(".lflibs");
+                                    if lflibs_path.exists() {
+                                        if let Ok(entries) = std::fs::read_dir(&lflibs_path) {
                                             for entry in entries.flatten() {
                                                 if let Some(dir_name) = entry.file_name().to_str() {
                                                     // Parse package name from directory (format: name@version)

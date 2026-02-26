@@ -1,8 +1,13 @@
-// Welcome to your new loft project!
+learn "math_lib";
 
-term.println("Hello, world!");
+term.println("Testing math_lib...");
 
-// Try some basic operations
-let x = 42;
-let y = x * 2;
-term.println("The answer is:", y);
+let a = 10;
+let b = 5;
+
+let sum = math_lib.add(a, b);
+let prod = math_lib.multiply(a, b);
+
+term.println("a + b =", sum);
+term.println("a * b =", prod);
+

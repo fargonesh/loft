@@ -37,7 +37,6 @@ The book covers:
 - **Builtin System**: Terminal, math, time, file system, string/array methods
 - **Module System**: Project structure, imports/exports, package manager
 - **Architecture**: Parser, runtime, LSP server, builtin design
-- **Tools**: VSCode extension, Language Server Protocol
 - **Contributing**: How to contribute to loft
 
 ## Structure

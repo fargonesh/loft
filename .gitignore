@@ -3,10 +3,13 @@ loft_builtin_macros/target
 **/node_modules
 *.vsix
 .devenv/
-.twlibs/
+.lflibs/
 registry-storage/
 stdlib-docs/
 www/dist
+www/public/docs
+!www/public/docs/.gitkeep
 result
 .env
 *.log
+src/wasm/target

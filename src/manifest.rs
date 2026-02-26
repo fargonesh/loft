@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fs;
-use std::path::Path;
+
+#[cfg(not(target_arch = "wasm32"))]
+use std::{fs, path::Path};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Manifest {
@@ -14,6 +15,7 @@ pub struct Manifest {
 
 impl Manifest {
     /// Load a manifest from a file path
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, ManifestError> {
         let content =
             fs::read_to_string(path.as_ref()).map_err(|e| ManifestError::IoError(e.to_string()))?;
@@ -25,6 +27,7 @@ impl Manifest {
     }
 
     /// Find and load manifest.json in the current directory or parent directories
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn find_and_load<P: AsRef<Path>>(start_dir: P) -> Result<Self, ManifestError> {
         let mut current = start_dir.as_ref().to_path_buf();
 
@@ -41,6 +44,7 @@ impl Manifest {
     }
 
     /// Resolve an import path to a file path
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn resolve_import(&self, import_path: &[String]) -> Result<String, ManifestError> {
         if import_path.is_empty() {
             return Err(ManifestError::InvalidPath("Empty import path".to_string()));
@@ -53,12 +57,12 @@ impl Manifest {
             return Ok(self.entrypoint.clone());
         }
 
-        // Check .twlibs folder first (installed dependencies)
+        // Check .lflibs folder first (installed dependencies)
         if let Ok(current_dir) = std::env::current_dir() {
-            let twlibs_path = current_dir.join(".twlibs");
-            if twlibs_path.exists() {
+            let lflibs_path = current_dir.join(".lflibs");
+            if lflibs_path.exists() {
                 // Look for versioned directory (e.g., package-name@1.0.0)
-                if let Ok(entries) = fs::read_dir(&twlibs_path) {
+                if let Ok(entries) = fs::read_dir(&lflibs_path) {
                     for entry in entries.flatten() {
                         let path = entry.path();
                         if let Some(dir_name) = path.file_name().and_then(|n| n.to_str()) {

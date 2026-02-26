@@ -6,14 +6,20 @@ pub mod permissions;
 pub mod traits;
 pub mod value;
 
+pub use builtin::*;
+pub use builtin_registry::*;
+pub use builtins::*;
+pub use permission_context::*;
+pub use permissions::*;
+pub use traits::*;
+pub use value::*;
+
 use crate::parser::{Expr, InputStream, Parser, Stmt, TraitMethod, Type};
-use builtins::init_builtins;
 use miette::{Diagnostic, LabeledSpan, NamedSource};
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::path::PathBuf;
-use traits::{call_binop_trait, call_index_trait, ToString};
-use value::Value;
+// Removed 'use value::Value;' as it conflicts with 'pub use value::*;'
 
 fn init_stdlib_traits() -> HashMap<String, Vec<TraitMethod>> {
     let mut traits = HashMap::new();
@@ -305,6 +311,7 @@ impl Diagnostic for RuntimeError {
     }
 }
 
+#[derive(Debug, Clone)] // Assuming Environment is Clone or I can add it
 pub struct Environment {
     scopes: Vec<HashMap<String, Value>>,
 }
@@ -371,7 +378,7 @@ impl Environment {
 }
 
 pub struct Interpreter {
-    env: Environment,
+    pub env: Environment,
     source_path: Option<String>,
     source_code: Option<String>,
     // Track trait declarations: trait_name -> methods
@@ -1603,11 +1610,33 @@ impl Interpreter {
         }
 
         // Otherwise, treat as package import
-        // For now, look in current directory or stdlib
+        // Look in .lflibs or use manifest resolution
         let module_name = &path[0];
 
-        // Check if it's a builtin module (already loaded)
-        // For simplicity, just look for file in current directory
+        // Try manifest resolution first
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(current_path) = &self.source_path {
+            let current_file = PathBuf::from(current_path);
+            
+            // Try to find manifest.json in current directory or parents
+            if let Ok(manifest) = crate::manifest::Manifest::find_and_load(
+                current_file.parent().unwrap_or_else(|| std::path::Path::new("."))
+            ) {
+                match manifest.resolve_import(path) {
+                    Ok(resolved_path) => {
+                        let module_path = PathBuf::from(resolved_path);
+                        if module_path.exists() {
+                            return Ok(module_path);
+                        }
+                    }
+                    Err(_) => {
+                        // Continue to fallback resolution
+                    }
+                }
+            }
+        }
+
+        // Fallback: look for file in current directory
         let mut module_path = PathBuf::from(module_name);
         module_path.set_extension("lf");
 
@@ -1640,32 +1669,6 @@ impl Interpreter {
             Value::EnumVariant { enum_name, .. } => enum_name.clone(),
             Value::EnumConstructor { enum_name, .. } => format!("{}_constructor", enum_name),
             Value::Module { name, .. } => format!("module_{}", name),
-        }
-    }
-
-    /// Check if a value matches an expected type name
-    fn check_type(&self, value: &Value, expected_type: &str) -> bool {
-        let actual_type = self.type_of(value);
-
-        // "any" matches anything
-        if expected_type == "any" {
-            return true;
-        }
-
-        // Check for exact match
-        if actual_type == expected_type {
-            return true;
-        }
-
-        // Special cases
-        match (expected_type, value) {
-            // Array types
-            ("array", Value::Array(_)) => true,
-            // Function types
-            ("function", Value::Function { .. }) => true,
-            ("function", Value::Closure { .. }) => true,
-            ("function", Value::BuiltinFn(_)) => true,
-            _ => false,
         }
     }
 

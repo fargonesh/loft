@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BrutalCard, Button, Heading, Text, Input } from 'botanical-ui';
+import { BrutalCard, Heading, Text, Input } from 'botanical-ui';
+import BrutalButton from './BrutalButton';
 import Layout from './Layout';
 
 const Dashboard = () => {
@@ -86,8 +87,8 @@ const Dashboard = () => {
     <Layout>
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <Heading level={1} className="mb-2">Dashboard</Heading>
-          <Text className="text-gray-600">Manage your account and API tokens.</Text>
+          <Heading level={1} className="mb-2">Your Dashboard</Heading>
+          <Text className="text-gray-600">Take a look at your account and manage your API tokens here.</Text>
         </div>
 
         <div className="grid gap-8">
@@ -123,7 +124,7 @@ const Dashboard = () => {
                   onChange={(e) => setNewTokenName(e.target.value)}
                   className="flex-1 py-2"
                 />
-                <Button onClick={createToken} className='text-white'>Create Token</Button>
+                <BrutalButton onClick={createToken}>Create Token</BrutalButton>
               </div>
 
               {createdToken && (
@@ -149,7 +150,7 @@ const Dashboard = () => {
                         <Text className="font-medium text-bio-black">{token.name}</Text>
                         <Text className="text-xs text-gray-500">Created on {new Date(token.created_at).toLocaleDateString()}</Text>
                       </div>
-                      <Button onClick={() => revokeToken(token.id)} className="text-red-600 hover:bg-red-50 border-red-200">Revoke</Button>
+                      <BrutalButton onClick={() => revokeToken(token.id)} variant="danger" size="sm">Revoke</BrutalButton>
                     </div>
                   ))
                 ) : (

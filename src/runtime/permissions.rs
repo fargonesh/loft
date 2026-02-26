@@ -115,14 +115,20 @@ impl PermissionManager {
 
     /// Check if running in interactive mode (has a TTY)
     fn is_interactive() -> bool {
-        atty::is(atty::Stream::Stdin) && atty::is(atty::Stream::Stdout)
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            atty::is(atty::Stream::Stdin) && atty::is(atty::Stream::Stdout)
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            false
+        }
     }
 
     /// Get the path to the permission cache file in a safe location
     fn get_cache_path() -> Option<PathBuf> {
-        // Use XDG_DATA_HOME on Unix, LOCALAPPDATA on Windows
         #[cfg(target_family = "unix")]
-        {
+        if cfg!(unix) {
             let base_dir = std::env::var("XDG_DATA_HOME")
                 .ok()
                 .map(PathBuf::from)
@@ -131,14 +137,16 @@ impl PermissionManager {
                         .ok()
                         .map(|home| PathBuf::from(home).join(".local/share"))
                 })?;
-            Some(base_dir.join("loft").join("permissions.json"))
+            return Some(base_dir.join("loft").join("permissions.json"));
         }
 
         #[cfg(target_family = "windows")]
-        {
+        if cfg!(windows) {
             let base_dir = std::env::var("LOCALAPPDATA").ok().map(PathBuf::from)?;
-            Some(base_dir.join("loft").join("permissions.json"))
+            return Some(base_dir.join("loft").join("permissions.json"));
         }
+
+        None
     }
 
     /// Check if a path is within the protected permissions directory
@@ -274,7 +282,7 @@ impl PermissionManager {
         use owo_colors::OwoColorize;
 
         println!();
-        println!("{}", "⚠️  Permission Request".bright_yellow().bold());
+        println!("{}", "!! Permission Request".bright_yellow().bold());
         println!("{}", "─────────────────────".bright_yellow());
 
         // Show what permission is being requested

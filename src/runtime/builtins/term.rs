@@ -35,21 +35,29 @@ fn term_clear(_this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 /// Read a line from the terminal
 #[loft_builtin(term.read_line)]
 fn term_read_line(_this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
-    use std::io::{self, BufRead};
-    let stdin = io::stdin();
-    let mut handle = stdin.lock();
-    let mut line = String::new();
-    handle
-        .read_line(&mut line)
-        .map_err(|e| RuntimeError::new(format!("Failed to read line: {}", e)))?;
-    // Remove trailing newline
-    if line.ends_with('\n') {
-        line.pop();
-        if line.ends_with('\r') {
-            line.pop();
-        }
+    #[cfg(target_arch = "wasm32")]
+    {
+        return Err(RuntimeError::new("Input not supported in WASM environment".to_string()));
     }
-    Ok(Value::String(line))
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        use std::io::{self, BufRead};
+        let stdin = io::stdin();
+        let mut handle = stdin.lock();
+        let mut line = String::new();
+        handle
+            .read_line(&mut line)
+            .map_err(|e| RuntimeError::new(format!("Failed to read line: {}", e)))?;
+        // Remove trailing newline
+        if line.ends_with('\n') {
+            line.pop();
+            if line.ends_with('\r') {
+                line.pop();
+            }
+        }
+        Ok(Value::String(line))
+    }
 }
 
 /// Get the terminal size (width, height)

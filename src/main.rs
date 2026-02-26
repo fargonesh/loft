@@ -1,3 +1,4 @@
+#[cfg(not(target_arch = "wasm32"))]
 use clap::{Parser as ClapParser, Subcommand};
 use loft::parser::{InputStream, Parser};
 use loft::runtime::{
@@ -5,6 +6,7 @@ use loft::runtime::{
 };
 use miette::GraphicalReportHandler;
 use owo_colors::{OwoColorize, Rgb};
+#[cfg(not(target_arch = "wasm32"))]
 use rustyline::error::ReadlineError;
 
 const LUMINOUS: Rgb = Rgb(0, 255, 65);
@@ -12,6 +14,7 @@ const ACID: Rgb = Rgb(173, 255, 47);
 const FOREST: Rgb = Rgb(0, 143, 17);
 const OBSIDIAN: Rgb = Rgb(0, 68, 0);
 
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(ClapParser)]
 #[command(name = "loft")]
 #[command(about = "A loft language interpreter")]
@@ -52,6 +55,7 @@ struct Cli {
     features: Vec<String>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Subcommand)]
 enum Commands {
     /// [ REPL ] Enter the interactive Loft shell
@@ -114,6 +118,7 @@ enum Commands {
     Publish,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn should_append_semicolon(input: &str) -> bool {
     let trimmed = input.trim();
     !vec![
@@ -127,6 +132,10 @@ fn should_append_semicolon(input: &str) -> bool {
         && !trimmed.is_empty()
 }
 
+#[cfg(target_arch = "wasm32")]
+fn main() {}
+
+#[cfg(not(target_arch = "wasm32"))]
 fn main() {
     let cli = Cli::parse();
 
@@ -178,6 +187,7 @@ fn main() {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn run_inline_code(code: &str, features: Vec<String>) {
     let code_string = code.to_string();
     let stream = InputStream::new("command-line", &code_string);
@@ -206,21 +216,31 @@ fn run_inline_code(code: &str, features: Vec<String>) {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 use std::borrow::Cow;
+#[cfg(not(target_arch = "wasm32"))]
 use rustyline::highlight::Highlighter;
+#[cfg(not(target_arch = "wasm32"))]
 use rustyline::hint::HistoryHinter;
+#[cfg(not(target_arch = "wasm32"))]
 use rustyline::validate::{Validator, ValidationResult, ValidationContext};
+#[cfg(not(target_arch = "wasm32"))]
 use rustyline::completion::Completer;
+#[cfg(not(target_arch = "wasm32"))]
 use rustyline::hint::Hinter;
+#[cfg(not(target_arch = "wasm32"))]
 use rustyline::Helper;
 use chrono::Local;
 
+#[cfg(not(target_arch = "wasm32"))]
 struct LoftHelper {
     hinter: HistoryHinter,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Helper for LoftHelper {}
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Completer for LoftHelper {
     type Candidate = String;
 
@@ -234,6 +254,7 @@ impl Completer for LoftHelper {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Hinter for LoftHelper {
     type Hint = String;
 
@@ -244,6 +265,7 @@ impl Hinter for LoftHelper {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Validator for LoftHelper {
     fn validate(&self, ctx: &mut ValidationContext) -> rustyline::Result<ValidationResult> {
         let input = ctx.input();
@@ -258,6 +280,7 @@ impl Validator for LoftHelper {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Highlighter for LoftHelper {
     fn highlight<'l>(&self, line: &'l str, _pos: usize) -> Cow<'l, str> {
         let mut highlighted = line.to_string();
@@ -273,6 +296,7 @@ impl Highlighter for LoftHelper {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn run_repl(features: Vec<String>) {
     // Clear screen
     print!("\x1B[2J\x1B[1;1H");
@@ -324,7 +348,7 @@ fn run_repl(features: Vec<String>) {
                 // Handle special commands
                 match trimmed {
                     "exit" | "quit" => {
-                        println!("{} {}", "👋".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2), "Goodbye!".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2).bold());
+                        println!("{} {}", "=>".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2), "Goodbye!".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2).bold());
                         break;
                     }
                     "help" => {
@@ -387,7 +411,7 @@ fn run_repl(features: Vec<String>) {
                 break;
             }
             Err(err) => {
-                println!("{} {}: {:?}", "❌".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2), "Error reading input".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2).bold(), err);
+                println!("{} {}: {:?}", "!".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2), "Error reading input".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2).bold(), err);
                 break;
             }
         }
@@ -438,7 +462,7 @@ fn run_demo() {
 
     println!(
         "{} {}",
-        "✨".bright_cyan(),
+        "*".bright_cyan(),
         "loft Programming Language - Interpreter Demo"
             .bright_cyan()
             .bold()
@@ -453,13 +477,13 @@ fn run_demo() {
     for (name, code) in examples {
         println!(
             "{} {}: {}",
-            "📝".bright_yellow(),
+            "(ex)".bright_yellow(),
             "Example".bright_yellow().bold(),
             name.bright_white().bold()
         );
         println!(
             "{} {}: {}",
-            "💻".bright_blue(),
+            "input".bright_blue(),
             "Code".bright_blue().bold(),
             code.replace('\n', "; ").bright_white()
         );
@@ -475,7 +499,7 @@ fn run_demo() {
                     Ok(result) => {
                         println!(
                             "{} {}: {}",
-                            "✨".bright_green(),
+                            "=>".bright_green(),
                             "Result".bright_green().bold(),
                             format!("{:?}", result).bright_white()
                         );
@@ -498,7 +522,7 @@ fn run_file(path: &str, features: Vec<String>) {
 
     println!(
         "{} {}: {}",
-        "🚀".bright_cyan(),
+        ">".bright_cyan(),
         "Running file".bright_cyan().bold(),
         path.bright_white()
     );
@@ -517,7 +541,7 @@ fn run_file(path: &str, features: Vec<String>) {
                         Ok(result) => {
                             if result != Value::Unit {
                                 println!();
-                                println!("{} {}: {:?}", "✨".bright_green(), "Final result".bright_green().bold(), result);
+                                println!("{} {}: {:?}", "=>".bright_green(), "Final result".bright_green().bold(), result);
                             }
                         }
                         Err(e) => {
@@ -534,7 +558,7 @@ fn run_file(path: &str, features: Vec<String>) {
             }
         }
         Err(e) => {
-            println!("{} {}: {}", "❌".bright_red(), "Error reading file".bright_red().bold(), e);
+            println!("{} {}: {}", "!".bright_red(), "Error reading file".bright_red().bold(), e);
             std::process::exit(1);
         }
     }
@@ -552,7 +576,7 @@ fn run_from_manifest(features: Vec<String>) {
             if !entrypoint_path.exists() {
                 println!(
                     "{} {}: Entrypoint file '{}' not found",
-                    "❌".bright_red(),
+                    "!".bright_red(),
                     "Error".bright_red().bold(),
                     manifest.entrypoint
                 );
@@ -561,7 +585,7 @@ fn run_from_manifest(features: Vec<String>) {
 
             println!(
                 "{} {}: {} ({})",
-                "🚀".bright_cyan(),
+                ">".bright_cyan(),
                 "Running project".bright_cyan().bold(),
                 manifest.name.bright_white(),
                 manifest.entrypoint.bright_white()
@@ -576,7 +600,7 @@ fn run_from_manifest(features: Vec<String>) {
                 loft::manifest::ManifestError::NotFound => {
                     println!(
                         "{} {}: No manifest.json found in current directory or parent directories",
-                        "❌".bright_red(),
+                        "!".bright_red(),
                         "Error".bright_red().bold()
                     );
                     println!(
@@ -587,7 +611,7 @@ fn run_from_manifest(features: Vec<String>) {
                 _ => {
                     println!(
                         "{} {}: Failed to load manifest.json: {}",
-                        "❌".bright_red(),
+                        "!".bright_red(),
                         "Error".bright_red().bold(),
                         e
                     );
@@ -607,7 +631,7 @@ fn run_new(name: &str) {
         let current_dir = std::env::current_dir().unwrap_or_else(|e| {
             println!(
                 "{} {}: Failed to get current directory: {}",
-                "❌".bright_red(),
+                "!".bright_red(),
                 "Error".bright_red().bold(),
                 e
             );
@@ -629,7 +653,7 @@ fn run_new(name: &str) {
         if project_dir.exists() {
             println!(
                 "{} {}: Directory '{}' already exists",
-                "❌".bright_red(),
+                "!".bright_red(),
                 "Error".bright_red().bold(),
                 name
             );
@@ -641,7 +665,7 @@ fn run_new(name: &str) {
 
     println!(
         "{} {} project '{}'...",
-        "✨".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2),
+        "*".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2),
         "Creating".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2).bold(),
         project_name.truecolor(ACID.0, ACID.1, ACID.2)
     );
@@ -651,7 +675,7 @@ fn run_new(name: &str) {
         "██████████".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2),
         "█████".truecolor(ACID.0, ACID.1, ACID.2),
         "▓▓▒▒".truecolor(FOREST.0, FOREST.1, FOREST.2),
-        "░░░░░░░".truecolor(OBSIDIAN.0, OBSIDIAN.1, ACID.2) // Typo fix: OBSIDIAN should be used or ACID.2... Wait, let's use OBSIDIAN.2
+        "░░░░░░░".truecolor(OBSIDIAN.0, OBSIDIAN.1, OBSIDIAN.2)
     );
     println!("[{}] 100% | Scaffolding complete", progress_bar);
 
@@ -660,7 +684,7 @@ fn run_new(name: &str) {
         if let Err(e) = fs::create_dir(&project_dir) {
             println!(
                 "{} {}: Failed to create directory: {}",
-                "❌".bright_red(),
+                "!".bright_red(),
                 "Error".bright_red().bold(),
                 e
             );
@@ -673,7 +697,7 @@ fn run_new(name: &str) {
     if manifest_path.exists() {
         println!(
             "{} {}: manifest.json already exists in this directory",
-            "❌".bright_red(),
+            "!".bright_red(),
             "Error".bright_red().bold()
         );
         std::process::exit(1);
@@ -684,7 +708,7 @@ fn run_new(name: &str) {
         if let Err(e) = fs::create_dir(&src_dir) {
             println!(
                 "{} {}: Failed to create src directory: {}",
-                "❌".bright_red(),
+                "!".bright_red(),
                 "Error".bright_red().bold(),
                 e
             );
@@ -704,11 +728,11 @@ fn run_new(name: &str) {
         &manifest_path,
         serde_json::to_string_pretty(&manifest).unwrap(),
     ) {
-        Ok(_) => println!("  {} {} {}", "📄".bright_green(), "Created".bright_green(), "manifest.json"),
+        Ok(_) => println!("  {} {} {}", "+".bright_green(), "Created".bright_green(), "manifest.json"),
         Err(e) => {
             println!(
                 "{} {}: Failed to write manifest.json: {}",
-                "❌".bright_red(),
+                "!".bright_red(),
                 "Error".bright_red().bold(),
                 e
             );
@@ -730,11 +754,11 @@ term.println("The answer is:", y);
     let main_path = src_dir.join("main.lf");
     if !main_path.exists() {
         match fs::write(&main_path, main_content) {
-            Ok(_) => println!("  {} {} {}", "📄".bright_green(), "Created".bright_green(), "src/main.lf"),
+            Ok(_) => println!("  {} {} {}", "+".bright_green(), "Created".bright_green(), "src/main.lf"),
             Err(e) => {
                 println!(
                     "{} {}: Failed to write src/main.lf: {}",
-                    "❌".bright_red(),
+                    "!".bright_red(),
                     "Error".bright_red().bold(),
                     e
                 );
@@ -742,11 +766,11 @@ term.println("The answer is:", y);
             }
         }
     } else {
-        println!("  {} {} (already exists)", "⏭️".bright_yellow(), "Skipped".bright_yellow());
+        println!("  {} {} (already exists)", "~".bright_yellow(), "Skipped".bright_yellow());
     }
 
     println!();
-    println!("{} {}", "🎉".bright_green(), "Project created successfully!".bright_green().bold());
+    println!("{} {}", "DONE".bright_green(), "Project created successfully!".bright_green().bold());
     println!();
     if name == "." {
         println!("To get started:");
@@ -761,6 +785,7 @@ term.println("The answer is:", y);
 fn run_add(dep_name: &str, dep_path: Option<&str>, version_constraint: Option<&str>) {
     use loft::manifest::Manifest;
     use std::fs;
+    use std::io::{self, Write};
     use std::path::Path;
 
     // Find manifest.json in current directory or parents
@@ -770,7 +795,7 @@ fn run_add(dep_name: &str, dep_path: Option<&str>, version_constraint: Option<&s
     if !manifest_path.exists() {
         println!(
             "{} {}: No manifest.json found in current directory",
-            "❌".bright_red(),
+            "!".bright_red(),
             "Error".bright_red().bold()
         );
         println!(
@@ -840,7 +865,7 @@ fn run_add(dep_name: &str, dep_path: Option<&str>, version_constraint: Option<&s
             Ok(_) => {
                 println!(
                     "{} {} dependency '{}' with path '{}'",
-                    "📦".bright_green(),
+                    "[pkg]".bright_green(),
                     "Added".bright_green().bold(),
                     dep_name.bright_white(),
                     dependency_path.bright_white()
@@ -977,12 +1002,12 @@ fn run_add(dep_name: &str, dep_path: Option<&str>, version_constraint: Option<&s
 
         println!(
             "  {} {} version {} (constraint: {})",
-            "🎯".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2),
+            "->".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2),
             "Found".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2),
             version.truecolor(ACID.0, ACID.1, ACID.2),
             constraint_str.truecolor(ACID.0, ACID.1, ACID.2)
         );
-        println!("{} {} package...", "⬇️".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2), "Downloading".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2).bold());
+        println!("{} {} package...", "->".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2), "Downloading".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2).bold());
         
         // Progress bar using tiered system
         let bar = format!(
@@ -992,7 +1017,8 @@ fn run_add(dep_name: &str, dep_path: Option<&str>, version_constraint: Option<&s
             "▓▓▒▒".truecolor(FOREST.0, FOREST.1, FOREST.2),
             "░░░░░░░".truecolor(OBSIDIAN.0, OBSIDIAN.1, OBSIDIAN.2)
         );
-        println!("[{}] 65% | Connecting to Registry", bar);
+        print!("[{}] 65% | Connecting to Registry...", bar);
+        io::stdout().flush().ok();
 
         // Download tarball
         let download_url = format!(
@@ -1002,6 +1028,7 @@ fn run_add(dep_name: &str, dep_path: Option<&str>, version_constraint: Option<&s
         let tarball_response = match client.get(&download_url).send() {
             Ok(resp) => resp,
             Err(e) => {
+                println!();
                 println!(
                     "{}: Failed to download package: {}",
                     "Error".bright_red().bold(),
@@ -1012,6 +1039,7 @@ fn run_add(dep_name: &str, dep_path: Option<&str>, version_constraint: Option<&s
         };
 
         if !tarball_response.status().is_success() {
+            println!();
             println!(
                 "{}: Failed to download package tarball",
                 "Error".bright_red().bold()
@@ -1020,8 +1048,21 @@ fn run_add(dep_name: &str, dep_path: Option<&str>, version_constraint: Option<&s
         }
 
         let tarball_data = match tarball_response.bytes() {
-            Ok(data) => data,
+            Ok(data) => {
+                let full_bar = format!(
+                    "{}{}{}",
+                    "██████████".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2),
+                    "██████████".truecolor(ACID.0, ACID.1, ACID.2),
+                    "██████".truecolor(FOREST.0, FOREST.1, FOREST.2),
+                );
+                println!(
+                    "\r[{}] 100% | Downloaded package successfully         ",
+                    full_bar
+                );
+                data
+            }
             Err(e) => {
+                println!();
                 println!(
                     "{}: Failed to read package data: {}",
                     "Error".bright_red().bold(),
@@ -1031,11 +1072,11 @@ fn run_add(dep_name: &str, dep_path: Option<&str>, version_constraint: Option<&s
             }
         };
 
-        // Create .twlibs directory
-        let twlibs_dir = current_dir.join(".twlibs");
-        fs::create_dir_all(&twlibs_dir).unwrap_or_else(|e| {
+        // Create .lflibs directory
+        let lflibs_dir = current_dir.join(".lflibs");
+        fs::create_dir_all(&lflibs_dir).unwrap_or_else(|e| {
             println!(
-                "{}: Failed to create .twlibs directory: {}",
+                "{}: Failed to create .lflibs directory: {}",
                 "Error".bright_red().bold(),
                 e
             );
@@ -1043,7 +1084,7 @@ fn run_add(dep_name: &str, dep_path: Option<&str>, version_constraint: Option<&s
         });
 
         // Use versioned directory name
-        let package_dir = twlibs_dir.join(format!("{}@{}", dep_name, version));
+        let package_dir = lflibs_dir.join(format!("{}@{}", dep_name, version));
         if package_dir.exists() {
             fs::remove_dir_all(&package_dir).ok();
         }
@@ -1057,7 +1098,7 @@ fn run_add(dep_name: &str, dep_path: Option<&str>, version_constraint: Option<&s
         });
 
         // Extract tarball
-        println!("{} {} package...", "🔧".bright_cyan(), "Installing".bright_cyan().bold());
+        println!("{} {} package...", ">>".bright_cyan(), "Installing".bright_cyan().bold());
 
         let tar_gz = flate2::read::GzDecoder::new(&tarball_data[..]);
         let mut archive = tar::Archive::new(tar_gz);
@@ -1092,7 +1133,7 @@ fn run_add(dep_name: &str, dep_path: Option<&str>, version_constraint: Option<&s
                 println!();
                 println!(
                     "{} {} {} v{} ({})",
-                    "✅".bright_green(),
+                    "OK".bright_green(),
                     "Installed".bright_green().bold(),
                     dep_name.bright_white(),
                     version.bright_white(),
@@ -1124,7 +1165,7 @@ fn run_update(specific_package: Option<&str>) {
     if !manifest_path.exists() {
         println!(
             "{} {}: No manifest.json found in current directory",
-            "❌".bright_red(),
+            "!".bright_red(),
             "Error".bright_red().bold()
         );
         println!(
@@ -1150,7 +1191,7 @@ fn run_update(specific_package: Option<&str>) {
     let registry_url =
         std::env::var("LOFT_REGISTRY").unwrap_or_else(|_| "http://127.0.0.1:3030".to_string());
     let client = reqwest::blocking::Client::new();
-    let twlibs_dir = current_dir.join(".twlibs");
+    let lflibs_dir = current_dir.join(".lflibs");
 
     // Filter dependencies to update
     let deps_to_update: Vec<(String, String)> = manifest
@@ -1170,14 +1211,14 @@ fn run_update(specific_package: Option<&str>) {
         if let Some(pkg) = specific_package {
             println!(
                 "{} {}: Package '{}' not found or is a local dependency",
-                "❌".bright_red(),
+                "!".bright_red(),
                 "Error".bright_red().bold(),
                 pkg
             );
         } else {
             println!(
                 "{} {}: No registry dependencies to update",
-                "ℹ️".bright_cyan(),
+                "i".bright_cyan(),
                 "Info".bright_cyan().bold()
             );
         }
@@ -1279,11 +1320,11 @@ fn run_update(specific_package: Option<&str>) {
         };
 
         // Check if this version is already installed
-        let package_dir = twlibs_dir.join(format!("{}@{}", dep_name, selected_version));
+        let package_dir = lflibs_dir.join(format!("{}@{}", dep_name, selected_version));
         if package_dir.exists() {
             println!(
                 "  {} {} v{} (already up to date)",
-                "✓".bright_green(),
+                "v".bright_green(),
                 dep_name.bright_white(),
                 selected_version.bright_white()
             );
@@ -1293,7 +1334,7 @@ fn run_update(specific_package: Option<&str>) {
         // Download and install the new version
         println!(
             "  {} {} v{} (constraint: {})",
-            "↻".bright_cyan(),
+            "+".bright_cyan(),
             dep_name.bright_white(),
             selected_version.bright_white(),
             constraint_str.dimmed()
@@ -1336,10 +1377,10 @@ fn run_update(specific_package: Option<&str>) {
         };
 
         // Create package directory
-        fs::create_dir_all(&twlibs_dir).ok();
+        fs::create_dir_all(&lflibs_dir).ok();
 
         // Remove old versions of this package
-        if let Ok(entries) = fs::read_dir(&twlibs_dir) {
+        if let Ok(entries) = fs::read_dir(&lflibs_dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
                 if let Some(dir_name) = path.file_name().and_then(|n| n.to_str()) {
@@ -1375,7 +1416,7 @@ fn run_update(specific_package: Option<&str>) {
 
         println!(
             "    {} Updated to v{}",
-            "✓".bright_green(),
+            "v".bright_green(),
             selected_version.bright_white()
         );
         updated_count += 1;
@@ -1385,14 +1426,14 @@ fn run_update(specific_package: Option<&str>) {
     if updated_count > 0 {
         println!(
             "{} {} {} package(s)",
-            "✨".bright_green(),
+            "*".bright_green(),
             "Updated".bright_green().bold(),
             updated_count
         );
     } else {
         println!(
             "{} {}: All packages are up to date",
-            "ℹ️".bright_cyan(),
+            "i".bright_cyan(),
             "Info".bright_cyan().bold()
         );
     }
@@ -1403,7 +1444,7 @@ fn run_doc(output_dir: &str) {
     use loft::manifest::Manifest;
     use std::path::Path;
 
-    println!("{} {}", "📚".bright_cyan(), "Generating documentation...".bright_cyan().bold());
+    println!("{} {}", "DOC".bright_cyan(), "Generating documentation...".bright_cyan().bold());
     println!();
 
     // Load manifest
@@ -1472,7 +1513,7 @@ fn run_doc(output_dir: &str) {
             println!();
             println!(
                 "{} {}",
-                "✨".bright_green(),
+                "*".bright_green(),
                 "Documentation generated successfully!"
                     .bright_green()
                     .bold()
@@ -1505,7 +1546,7 @@ fn run_stdlib_doc(output_dir: &str) {
 
     println!(
         "{} {}",
-        "📚".bright_cyan(),
+        "DOC".bright_cyan(),
         "Generating standard library documentation..."
             .bright_cyan()
             .bold()
@@ -1530,7 +1571,7 @@ fn run_stdlib_doc(output_dir: &str) {
             println!();
             println!(
                 "{} {}",
-                "✨".bright_green(),
+                "*".bright_green(),
                 "Standard library documentation generated successfully!"
                     .bright_green()
                     .bold()
@@ -1650,7 +1691,7 @@ fn run_publish() {
     };
 
     println!(
-        "📦 Publishing {}@{}...",
+        "pkg Publishing {}@{}...",
         manifest.name.truecolor(ACID.0, ACID.1, ACID.2),
         manifest.version.truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2)
     );
@@ -1662,12 +1703,12 @@ fn run_publish() {
         let enc = GzEncoder::new(&mut tar_data, Compression::default());
         let mut tar = Builder::new(enc);
 
-        // Add all files in current directory (excluding .twlibs and target)
+        // Add all files in current directory (excluding .lflibs and target)
         let current_dir = std::env::current_dir().unwrap();
         for entry in fs::read_dir(current_dir).unwrap().flatten() {
             let path = entry.path();
             let name = path.file_name().unwrap().to_str().unwrap();
-            if name == ".twlibs" || name == "target" || name == ".git" {
+            if name == ".lflibs" || name == "target" || name == ".git" {
                 continue;
             }
             if path.is_dir() {
@@ -1711,7 +1752,7 @@ fn run_publish() {
 
     match response {
         Ok(res) if res.status().is_success() => {
-            println!("{} {}", "🎉".bright_green(), "Successfully published!".bright_green().bold());
+            println!("{} {}", "DONE".bright_green(), "Successfully published!".bright_green().bold());
         }
         Ok(res) => {
             let status = res.status();
@@ -1846,17 +1887,17 @@ fn run_format(path: Option<&str>, check: bool) {
         // Compare and write if changed
         if formatted_content.trim() == original_content.trim() {
             if !check {
-                println!("  {} {}", "✓".dimmed(), display_path.dimmed());
+                println!("  {} {}", "v".dimmed(), display_path.dimmed());
             }
             unchanged_count += 1;
         } else {
             if check {
-                println!("  {} {}", "✗".bright_red(), display_path.bright_white());
+                println!("  {} {}", "!".bright_red(), display_path.bright_white());
                 formatted_count += 1;
             } else {
                 match fs::write(file_path, formatted_content) {
                     Ok(_) => {
-                        println!("  {} {}", "✓".bright_green(), display_path.bright_white());
+                        println!("  {} {}", "v".bright_green(), display_path.bright_white());
                         formatted_count += 1;
                     }
                     Err(e) => {
@@ -1890,11 +1931,11 @@ fn run_format(path: Option<&str>, check: bool) {
             );
         }
     } else {
-        println!("{} {}", "✨".bright_cyan(), "Formatting complete!".bright_cyan().bold());
+        println!("{} {}", "*".bright_cyan(), "Formatting complete!".bright_cyan().bold());
         if formatted_count > 0 {
             println!(
                 "  {} {} file(s) formatted",
-                "✓".bright_green(),
+                "v".bright_green(),
                 formatted_count
             );
         }
@@ -1906,7 +1947,7 @@ fn run_format(path: Option<&str>, check: bool) {
             );
         }
         if error_count > 0 {
-            println!("  {} {} file(s) had errors", "✗".bright_red(), error_count);
+            println!("  {} {} file(s) had errors", "!".bright_red(), error_count);
             std::process::exit(1);
         }
     }
@@ -1973,7 +2014,7 @@ fn run_docs(topic: Option<String>) {
                         if !name.starts_with('.')
                             && name != "target"
                             && name != "node_modules"
-                            && name != ".twlibs"
+                            && name != ".lflibs"
                         {
                             collect_files(&path, files);
                         }
@@ -2003,9 +2044,9 @@ fn run_docs(topic: Option<String>) {
 
         // 3. Try dependencies
         let current_dir = std::env::current_dir().unwrap_or_else(|_| Path::new(".").to_path_buf());
-        let twlibs_path = current_dir.join(".twlibs");
-        if twlibs_path.exists() {
-            if let Ok(entries) = fs::read_dir(&twlibs_path) {
+        let lflibs_path = current_dir.join(".lflibs");
+        if lflibs_path.exists() {
+            if let Ok(entries) = fs::read_dir(&lflibs_path) {
                 for entry in entries.flatten() {
                     let path = entry.path();
                     let dep_manifest_path = path.join("manifest.json");

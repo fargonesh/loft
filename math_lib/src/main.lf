@@ -1,0 +1,11 @@
+// Simple math library
+
+teach fn add(a: num, b: num) -> num {
+    return a + b;
+}
+
+teach fn multiply(a: num, b: num) -> num {
+    return a * b;
+}
+
+term.println("Math library loaded!");

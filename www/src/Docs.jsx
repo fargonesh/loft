@@ -4,7 +4,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { createHighlighter } from 'shiki';
 import Fuse from 'fuse.js';
-import { Button, Heading, Text, Input, BrutalCard } from 'botanical-ui';
+import { Heading, Text, Input, BrutalCard } from 'botanical-ui';
+import BrutalButton from './BrutalButton';
 import Layout from './Layout';
 import loftGrammar from './loft.tmLanguage.json';
 
@@ -42,6 +43,8 @@ const Docs = () => {
   const fuse = useMemo(() => new Fuse(docIndex, {
     keys: ['title', 'content'],
     threshold: 0.3,
+    includeMatches: true,
+    minMatchCharLength: 2,
   }), [docIndex]);
 
   useEffect(() => {
@@ -60,7 +63,7 @@ const Docs = () => {
             if (match) {
               items.push({
                 title: match[1],
-                path: match[2],
+                path: match[2].startsWith('./') ? match[2].substring(2) : match[2],
                 section: currentSection
               });
             }
@@ -68,6 +71,20 @@ const Docs = () => {
         });
         setSummary(items);
       });
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+      if (e.key === 'Escape') {
+        setSearchOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   useEffect(() => {
@@ -90,21 +107,77 @@ const Docs = () => {
 
   useEffect(() => {
     if (summary.length > 0) {
-      setDocIndex(summary.map(s => ({ ...s, content: s.title }))); // Simple index
+      // Initially set simple index
+      setDocIndex(summary.map(s => ({ ...s, content: s.title })));
+      
+      // Load full content for fuzzy search
+      const loadFullContent = async () => {
+        const fullIndex = await Promise.all(
+          summary.map(async (item) => {
+            try {
+              const res = await fetch(`/docs/${item.path}`);
+              const text = await res.text();
+              // Strip markdown if possible for better search results, but keeping it simple for now
+              return { ...item, content: text };
+            } catch (e) {
+              return { ...item, content: item.title };
+            }
+          })
+        );
+        setDocIndex(fullIndex);
+      };
+      
+      loadFullContent();
     }
   }, [summary]);
 
   const searchResults = useMemo(() => {
     if (!searchQuery) return [];
-    return fuse.search(searchQuery).map(r => r.item).slice(0, 5);
+    return fuse.search(searchQuery).slice(0, 8);
   }, [searchQuery, fuse]);
+
+  const highlightMatch = (text, indices) => {
+    if (!indices || indices.length === 0) return text;
+    const parts = [];
+    let lastIndex = 0;
+    const sorted = [...indices].sort((a, b) => a[0] - b[0]);
+    sorted.forEach(([start, end], i) => {
+      parts.push(text.substring(lastIndex, start));
+      parts.push(<mark key={i} className="bg-bio-green/30 text-bio-green-dark font-bold rounded px-0.5">{text.substring(start, end + 1)}</mark>);
+      lastIndex = end + 1;
+    });
+    parts.push(text.substring(lastIndex));
+    return parts;
+  };
+
+  const getSnippet = (content, matches) => {
+    const contentMatch = matches.find(m => m.key === 'content');
+    if (!contentMatch) return { text: content.substring(0, 100) + (content.length > 100 ? '...' : ''), indices: [] };
+    
+    // Find the first match in content (not title)
+    const firstMatch = contentMatch.indices[0];
+    const start = Math.max(0, firstMatch[0] - 50);
+    const end = Math.min(content.length, firstMatch[1] + 100);
+    
+    let snippet = content.substring(start, end).replace(/\n/g, ' ');
+    const offset = start > 0 ? 3 : 0;
+    
+    const adjustedIndices = contentMatch.indices
+      .filter(([s, e]) => s >= start && e <= end)
+      .map(([s, e]) => [s - start + offset, e - start + offset]);
+      
+    return {
+      text: (start > 0 ? '...' : '') + snippet + (end < content.length ? '...' : ''),
+      indices: adjustedIndices
+    };
+  };
 
   return (
     <Layout fullWidth>
       <div className="flex flex-col md:flex-row min-h-[calc(100vh-64px)]">
         {/* Search Modal */}
         {searchOpen && (
-          <div className="fixed inset-0 bg-bio-black/50 z-[100] flex items-start justify-center pt-20 backdrop-blur-sm" onClick={() => setSearchOpen(false)}>
+          <div className="fixed inset-0 bg-bio-black/50 z-100 flex items-start justify-center pt-20 backdrop-blur-sm" onClick={() => setSearchOpen(false)}>
             <div className="bg-bio-cream w-full max-w-xl rounded-xl shadow-2xl overflow-hidden border border-bio-black/10" onClick={e => e.stopPropagation()}>
               <div className="p-4 border-b border-bio-black/5">
                 <input 
@@ -117,17 +190,32 @@ const Docs = () => {
               </div>
               <div className="max-h-[60vh] overflow-y-auto p-2">
                 {searchResults.length > 0 ? (
-                  searchResults.map((result, i) => (
-                    <Link 
-                      key={result.path} 
-                      to={`/docs/${result.path}`}
-                      onClick={() => setSearchOpen(false)}
-                      className={`block p-3 rounded-lg hover:bg-bio-green/10 transition-colors ${i === selectedIndex ? 'bg-bio-green/5' : ''}`}
-                    >
-                      <div className="font-bold text-bio-black">{result.title}</div>
-                      <div className="text-xs text-bio-black/50 uppercase tracking-wider">{result.section}</div>
-                    </Link>
-                  ))
+                  searchResults.map((result, i) => {
+                    const item = result.item;
+                    const titleMatch = result.matches.find(m => m.key === 'title');
+                    const snippet = getSnippet(item.content, result.matches);
+
+                    return (
+                      <Link 
+                        key={item.path} 
+                        to={`/book/${item.path}`}
+                        onClick={() => setSearchOpen(false)}
+                        className={`block p-4 rounded-lg hover:bg-bio-green/10 transition-colors border-2 mb-2 ${i === selectedIndex ? 'bg-bio-green/5 border-bio-green' : 'border-transparent'}`}
+                      >
+                        <div className="flex justify-between items-start mb-1">
+                          <div className="font-bold text-bio-black text-lg">
+                            {titleMatch ? highlightMatch(item.title, titleMatch.indices) : item.title}
+                          </div>
+                          <div className="text-[10px] bg-bio-black/5 text-bio-black/40 px-2 py-0.5 rounded font-mono uppercase tracking-tighter">
+                            {item.section || 'General'}
+                          </div>
+                        </div>
+                        <div className="text-sm text-gray-600 line-clamp-2 font-mono bg-white/50 p-2 rounded border border-bio-black/5">
+                          {highlightMatch(snippet.text, snippet.indices)}
+                        </div>
+                      </Link>
+                    );
+                  })
                 ) : searchQuery ? (
                   <div className="p-4 text-center text-bio-black/50">No results found.</div>
                 ) : (
@@ -141,14 +229,14 @@ const Docs = () => {
         {/* Sidebar */}
         <aside className="w-full md:w-64 bg-bio-offwhite border-r border-bio-black/5 p-6 md:h-[calc(100vh-64px)] md:sticky md:top-16 overflow-y-auto">
           <div className="mb-8">
-            <Button 
+            <BrutalButton 
               variant="outline" 
-              className="w-full justify-between text-sm !text-bio-black !bg-white hover:!bg-bio-offwhite border border-bio-black/10 shadow-sm"
+              className="w-full justify-between text-sm shadow-sm"
               onClick={() => setSearchOpen(true)}
             >
               <span>🔍 Search</span>
               <span className="text-xs border border-bio-black/10 px-1.5 py-0.5 rounded bg-bio-black/5">⌘K</span>
-            </Button>
+            </BrutalButton>
           </div>
           
           <div className="space-y-8">
@@ -262,7 +350,7 @@ const Docs = () => {
             )}
             
             <div className="mt-24 pt-8 border-t border-gray-100 flex justify-between items-center">
-              <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="text-gray-500 hover:text-bio-black">← Back to Home</Button>
+              <BrutalButton variant="ghost" size="sm" onClick={() => navigate('/')}>← Back to Home</BrutalButton>
               <Text variant="caption" className="text-gray-400 font-mono text-xs">LOFT LANGUAGE v0.1.0</Text>
             </div>
           </div>

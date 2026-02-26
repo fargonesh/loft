@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Button, Heading, Text, GridLineHorizontal } from 'botanical-ui';
+import { Heading, Text, GridLineHorizontal } from 'botanical-ui';
+import BrutalButton from './BrutalButton';
 
 const Layout = ({ children, fullWidth = false }) => {
   const navigate = useNavigate();
@@ -32,30 +33,31 @@ const Layout = ({ children, fullWidth = false }) => {
               <nav className="hidden md:flex gap-6">
                 <Link to="/book/introduction.md" className="text-sm font-medium hover:text-bio-green transition-colors">Docs</Link>
                 <Link to="/d/std" className="text-sm font-medium hover:text-bio-green transition-colors">Std Lib</Link>
+                <Link to="/playground" className="text-sm font-medium hover:text-bio-green transition-colors">Playground</Link>
               </nav>
             </div>
 
             <div className="flex items-center gap-4">
               {isLoggedIn ? (
                 <>
-                  <Button onClick={() => navigate('/dashboard')} variant="ghost"size="sm">
+                  <BrutalButton onClick={() => navigate('/dashboard')} variant="ghost" size="sm">
                     Dashboard
-                  </Button>
-                  <Button onClick={handleLogout} variant="ghost" size="sm">
+                  </BrutalButton>
+                  <BrutalButton onClick={handleLogout} variant="ghost" size="sm">
                     Logout
-                  </Button>
+                  </BrutalButton>
                 </>
               ) : (
-                <Button onClick={handleLogin}size="sm" className='text-white px-2'>
+                <BrutalButton onClick={handleLogin} size="sm">
                   Login with GitHub
-                </Button>
+                </BrutalButton>
               )}
             </div>
           </div>
         </div>
       </div>
 
-      <main className={`flex-grow w-full ${fullWidth ? '' : 'max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8'}`}>
+      <main className={`grow w-full ${fullWidth ? '' : 'max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8'}`}>
         {children}
       </main>
 
@@ -70,7 +72,7 @@ const Layout = ({ children, fullWidth = false }) => {
                 <span className="font-bold text-lg">loft</span>
               </div>
               <Text variant="caption" className="max-w-xs">
-                A modern, safe, and expressive programming language designed for building reliable software.
+                Making building reliable software feel better, one line at a time.
               </Text>
             </div>
             

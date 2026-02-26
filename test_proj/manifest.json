@@ -1,5 +1,7 @@
 {
-  "dependencies": {},
+  "dependencies": {
+    "math_lib": "^0.0.0"
+  },
   "entrypoint": "src/main.lf",
   "name": "test_proj",
   "version": "0.1.0"
