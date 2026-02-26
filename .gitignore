@@ -7,6 +7,8 @@ loft_builtin_macros/target
 registry-storage/
 stdlib-docs/
 www/dist
+www/public/docs
+!www/public/docs/.gitkeep
 result
 .env
 *.log
