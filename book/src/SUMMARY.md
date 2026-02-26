@@ -30,16 +30,6 @@
 - [Traits](./advanced/traits.md)
 - [Async Programming](./advanced/async.md)
 
-# Standard Library
-
-- [Overview](./stdlib/overview.md)
-- [Terminal I/O (term)](./stdlib/term.md)
-- [Arrays (array)](./stdlib/array.md)
-- [Strings (string)](./stdlib/string.md)
-- [Math (math)](./stdlib/math.md)
-- [File System (fs)](./stdlib/fs.md)
-- [Time (time)](./stdlib/time.md)
-
 # Tools and Development
 
 - [LSP and Editor Support](./tools/lsp.md)

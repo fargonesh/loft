@@ -432,22 +432,24 @@ impl DocGenerator {
 
     fn generate_index_html(&self, package_name: &str) -> String {
         let mut html = String::new();
-        html.push_str("<!DOCTYPE html>\n");
-        html.push_str("<html lang=\"en\">\n");
-        html.push_str("<head>\n");
+        html.push_str("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n");
         html.push_str("    <meta charset=\"UTF-8\">\n");
         html.push_str(
             "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n",
         );
         html.push_str(&format!(
-            "    <title>{} - Twang Documentation</title>\n",
+            "    <title>{} - loft Documentation</title>\n",
             package_name
         ));
         html.push_str("    <link rel=\"stylesheet\" href=\"style.css\">\n");
-        html.push_str("</head>\n");
-        html.push_str("<body>\n");
-        html.push_str(&format!("    <h1>{} Documentation</h1>\n", package_name));
-        html.push_str("    <div class=\"container\">\n");
+        html.push_str("</head>\n<body>\n");
+
+        // Sidebar
+        html.push_str("    <div class=\"sidebar\">\n");
+        html.push_str(&format!(
+            "        <h2><a href=\"index.html\">{}</a></h2>\n",
+            package_name
+        ));
 
         // Group items by kind
         let functions: Vec<_> = self
@@ -470,6 +472,57 @@ impl DocGenerator {
             .iter()
             .filter(|item| matches!(item.kind, DocItemKind::Constant { .. }))
             .collect();
+
+        if !functions.is_empty() {
+            html.push_str("        <div class=\"nav-section\">\n");
+            html.push_str("            <h3>Functions</h3>\n");
+            html.push_str("            <ul>\n");
+            for item in &functions {
+                html.push_str(&format!(
+                    "                <li><a href=\"#{}\">{}</a></li>\n",
+                    item.name, item.name
+                ));
+            }
+            html.push_str("            </ul>\n");
+            html.push_str("        </div>\n");
+        }
+
+        if !structs.is_empty() {
+            html.push_str("        <div class=\"nav-section\">\n");
+            html.push_str("            <h3>Structs</h3>\n");
+            html.push_str("            <ul>\n");
+            for item in &structs {
+                html.push_str(&format!(
+                    "                <li><a href=\"#{}\">{}</a></li>\n",
+                    item.name, item.name
+                ));
+            }
+            html.push_str("            </ul>\n");
+            html.push_str("        </div>\n");
+        }
+
+        if !traits.is_empty() {
+            html.push_str("        <div class=\"nav-section\">\n");
+            html.push_str("            <h3>Traits</h3>\n");
+            html.push_str("            <ul>\n");
+            for item in &traits {
+                html.push_str(&format!(
+                    "                <li><a href=\"#{}\">{}</a></li>\n",
+                    item.name, item.name
+                ));
+            }
+            html.push_str("            </ul>\n");
+            html.push_str("        </div>\n");
+        }
+
+        html.push_str("    </div>\n"); // end sidebar
+
+        html.push_str("    <div class=\"content\">\n");
+        html.push_str(&format!(
+            "        <div class=\"breadcrumb\"><a href=\"index.html\">packages</a> / <span>{}</span></div>\n",
+            package_name
+        ));
+        html.push_str(&format!("        <h1>{} Documentation</h1>\n", package_name));
 
         // Functions
         if !functions.is_empty() {
@@ -511,10 +564,18 @@ impl DocGenerator {
 
     fn generate_item_html(&self, item: &DocItem) -> String {
         let mut html = String::new();
-        html.push_str("        <div class=\"doc-item\">\n");
+        html.push_str("        <div class=\"method-item\">\n");
+
+        let is_exported = match &item.kind {
+            DocItemKind::Function { is_exported, .. } => *is_exported,
+            _ => false,
+        };
+
         html.push_str(&format!(
-            "            <h3 id=\"{}\">{}</h3>\n",
-            item.name, item.name
+            "            <h3 id=\"{}\">{}{}</h3>\n",
+            item.name,
+            item.name,
+            if is_exported { " (pub)" } else { "" }
         ));
 
         // Generate signature with links
@@ -523,7 +584,7 @@ impl DocGenerator {
                 params,
                 return_type,
                 is_async,
-                is_exported,
+                ..
             } => {
                 let params_html = params
                     .iter()
@@ -532,8 +593,7 @@ impl DocGenerator {
                     .join(", ");
 
                 format!(
-                    "{}{}fn {}({}) -> {}",
-                    if *is_exported { "teach " } else { "" },
+                    "{}fn {}({}) -> {}",
                     if *is_async { "async " } else { "" },
                     item.name,
                     params_html,
@@ -556,42 +616,22 @@ impl DocGenerator {
         }
 
         if let Some(doc) = &item.documentation {
-            html.push_str("            <div class=\"description\">\n");
             for line in doc.lines() {
-                html.push_str("                <p>");
+                html.push_str("            <p>");
                 html.push_str(&Self::escape_html(line));
                 html.push_str("</p>\n");
             }
-            html.push_str("            </div>\n");
         }
 
         // Add details based on kind
         match &item.kind {
             DocItemKind::Function {
-                params,
-                return_type,
-                is_exported,
-                ..
+                return_type, ..
             } => {
-                if !params.is_empty() {
-                    html.push_str("            <h4>Parameters</h4>\n");
-                    html.push_str("            <ul class=\"parameters\">\n");
-                    for (name, ty) in params {
-                        html.push_str(&format!(
-                            "                <li><code>{}</code>: <code>{}</code></li>\n",
-                            Self::escape_html(name),
-                            self.type_to_html_string(ty)
-                        ));
-                    }
-                    html.push_str("            </ul>\n");
-                }
                 html.push_str(&format!(
                     "            <p><strong>Returns:</strong> <code>{}</code></p>\n",
                     self.type_to_html_string(return_type)
                 ));
-                if *is_exported {
-                    html.push_str("            <p class=\"exported\">✓ Exported (teach)</p>\n");
-                }
             }
             DocItemKind::Struct {
                 fields,
@@ -665,6 +705,26 @@ impl DocGenerator {
         let mut html = Self::escape_html(type_str);
         let mut replacements = Vec::new();
 
+        // Primitives from stdlib
+        let primitives = [
+            ("str", "/d/std/string.html"),
+            ("num", "/d/std/num.html"),
+            ("bool", "/d/std/bool.html"),
+            ("void", "/d/std/void.html"),
+            ("Array", "/d/std/array.html"),
+        ];
+
+        for (i, (prim, link)) in primitives.iter().enumerate() {
+            let pattern = format!(r"\b{}\b", regex::escape(prim));
+            if let Ok(re) = regex::Regex::new(&pattern) {
+                if re.is_match(&html) {
+                    let placeholder = format!("__PRIM_{}__", i);
+                    html = re.replace_all(&html, placeholder.as_str()).to_string();
+                    replacements.push((placeholder, format!("<a href=\"{}\">{}</a>", link, prim)));
+                }
+            }
+        }
+
         // Sort items by name length descending to avoid partial replacements
         let mut item_names: Vec<String> = self.items.iter().map(|i| i.name.clone()).collect();
         item_names.sort_by(|a, b| b.len().cmp(&a.len()));
@@ -697,114 +757,239 @@ impl DocGenerator {
     }
 
     fn generate_css(&self) -> String {
-        r#"body {
+        r#":root {
+    --color-bio-cream: #fdfcf0;
+    --color-bio-black: #1a1a1a;
+    --color-bio-green: #64992f;
+    --color-bio-green-light: #4a7c43;
+    --color-bio-offwhite: #f5f5f5;
+    --color-bio-gold: #d4a017;
+    --color-border: #e5e7eb;
+}
+
+.docs-root * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.docs-root {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     line-height: 1.6;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-    background-color: #f5f5f5;
-    color: #333;
+    background-color: var(--color-bio-cream);
+    color: var(--color-bio-black);
+    display: flex;
+    min-height: 100vh;
 }
 
-h1 {
-    color: #2c3e50;
-    border-bottom: 3px solid #3498db;
-    padding-bottom: 10px;
-    margin-bottom: 30px;
-}
-
-h2 {
-    color: #34495e;
-    margin-top: 40px;
-    margin-bottom: 20px;
-    border-bottom: 2px solid #ecf0f1;
-    padding-bottom: 8px;
-}
-
-h3 {
-    color: #2980b9;
-    margin-top: 0;
-}
-
-h4 {
-    color: #7f8c8d;
-    margin-top: 15px;
-    margin-bottom: 10px;
-}
-
-.container {
-    background-color: white;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.doc-item {
-    margin-bottom: 40px;
-    padding: 20px;
-    border: 1px solid #ecf0f1;
-    border-radius: 6px;
-    background-color: #fafafa;
-}
-
-.signature {
-    background-color: #2c3e50;
-    color: #ecf0f1;
-    padding: 15px;
-    border-radius: 5px;
-    overflow-x: auto;
-    margin: 15px 0;
-}
-
-.signature code {
-    font-family: "Courier New", Courier, monospace;
-    font-size: 14px;
-}
-
-.description {
-    margin: 15px 0;
-    color: #555;
-}
-
-.description p {
-    margin: 8px 0;
-}
-
-.parameters, .fields, .methods {
-    list-style-type: none;
-    padding-left: 0;
-}
-
-.parameters li, .fields li, .methods li {
-    padding: 8px;
-    margin: 5px 0;
+.sidebar {
+    width: 260px;
     background-color: #fff;
-    border-left: 3px solid #3498db;
-    padding-left: 15px;
+    border-right: 1px solid var(--color-border);
+    padding: 20px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
 }
 
-code {
-    background-color: #ecf0f1;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-family: "Courier New", Courier, monospace;
-    font-size: 13px;
+.sidebar h2 {
+    font-size: 22px;
+    margin-bottom: 20px;
+    color: var(--color-bio-black);
 }
 
-.exported {
-    color: #27ae60;
-    font-weight: bold;
-    margin-top: 10px;
-}
-
-a {
-    color: #3498db;
+.sidebar h2 a {
+    color: var(--color-bio-black);
     text-decoration: none;
 }
 
-a:hover {
+.sidebar h2 a:hover {
+    color: var(--color-bio-green);
+}
+
+.nav-section {
+    margin-bottom: 24px;
+}
+
+.nav-section h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.nav-section ul {
+    list-style: none;
+}
+
+.nav-section li {
+    margin-bottom: 4px;
+}
+
+.nav-section a {
+    color: var(--color-bio-black);
+    text-decoration: none;
+    font-size: 14px;
+    display: block;
+    padding: 4px 0;
+}
+
+.nav-section a:hover {
+    color: var(--color-bio-green);
+}
+
+.content {
+    flex: 1;
+    padding: 40px 60px;
+    max-width: 1000px;
+}
+
+.breadcrumb {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 16px;
+}
+
+.breadcrumb a {
+    color: #6b7280;
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    color: var(--color-bio-green);
+}
+
+h1 {
+    font-size: 36px;
+    margin-bottom: 16px;
+    color: var(--color-bio-black);
+}
+
+h2 {
+    font-size: 24px;
+    margin-top: 40px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-bio-black);
+}
+
+h3 {
+    font-size: 18px;
+    margin-bottom: 12px;
+    color: var(--color-bio-black);
+}
+
+.description {
+    font-size: 18px;
+    color: #4b5563;
+    margin-bottom: 32px;
+}
+
+.item-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.item-card {
+    background-color: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 16px;
+    transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.item-card:hover {
+    border-color: var(--color-bio-green);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.item-card a {
+    color: var(--color-bio-green);
+    text-decoration: none;
+}
+
+.item-card a:hover {
     text-decoration: underline;
+}
+
+.method-item {
+    background-color: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+.signature {
+    background-color: var(--color-bio-offwhite);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 12px 0;
+    overflow-x: auto;
+}
+
+.signature code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 14px;
+    color: var(--color-bio-black);
+}
+
+.example {
+    background-color: var(--color-bio-offwhite);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 12px 0;
+    overflow-x: auto;
+}
+
+.example code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 13px;
+    color: var(--color-bio-black);
+    white-space: pre;
+}
+
+code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 13px;
+    background-color: var(--color-bio-offwhite);
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: var(--color-bio-green-light);
+}
+
+p {
+    margin-bottom: 12px;
+}
+
+strong {
+    font-weight: 600;
+}
+
+.exported {
+    color: var(--color-bio-green);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    margin-top: 10px;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        display: none;
+    }
+    
+    .content {
+        margin-left: 0;
+        padding: 20px;
+    }
 }
 "#.to_string()
     }

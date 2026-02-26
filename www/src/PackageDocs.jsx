@@ -1,13 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Button, Text, Heading } from 'botanical-ui';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import { Text, Heading } from 'botanical-ui';
+import BrutalButton from './BrutalButton';
 import Layout from './Layout';
 
 const PackageDocs = () => {
-  const { package: packageName } = useParams();
+  const { package: packageName, '*': subpath } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [version, setVersion] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [content, setContent] = useState('');
+  const contentRef = useRef(null);
 
   useEffect(() => {
     if (packageName === 'std') {
@@ -36,6 +41,67 @@ const PackageDocs = () => {
       });
   }, [packageName]);
 
+  useEffect(() => {
+    if ((packageName === 'std' || version) && !loading) {
+      const fileName = subpath || 'index.html';
+      const docsUrl = packageName === 'std' 
+        ? `/stdlib/${fileName}`
+        : `/pkg-docs/${packageName}/${version}/${fileName}`;
+
+      fetch(docsUrl)
+        .then(res => {
+          if (!res.ok) throw new Error('Documentation file not found');
+          return res.text();
+        })
+        .then(html => {
+          // Extract body content or just take results
+          const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+          let bodyContent = bodyMatch ? bodyMatch[1] : html;
+          
+          // Also extract style tags to ensure they work
+          const styleMatches = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)];
+          const styles = styleMatches.map(m => m[0]).join('\n');
+          
+          setContent(styles + bodyContent);
+        })
+        .catch(err => {
+          setError(err.message);
+        });
+    }
+  }, [packageName, version, subpath, loading]);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      const target = e.target.closest('a');
+      if (target && target.getAttribute('href')) {
+        const href = target.getAttribute('href');
+        
+        // Handle links within the documentation app
+        if (href.startsWith('/d/') || (!href.startsWith('http') && !href.startsWith('/') && !href.startsWith('#'))) {
+          e.preventDefault();
+          
+          if (href.startsWith('/d/')) {
+            // Internal app link already correctly formatted
+            navigate(href);
+          } else {
+            // Relative link - resolve based on current subpath
+            const currentSubpathParts = (subpath || 'index.html').split('/');
+            currentSubpathParts.pop(); // Remove current file name
+            const base = currentSubpathParts.join('/');
+            const absoluteHref = base ? `${base}/${href}` : href;
+            navigate(`/d/${packageName}/${absoluteHref}`);
+          }
+        }
+      }
+    };
+
+    const container = contentRef.current;
+    if (container) {
+      container.addEventListener('click', handleClick);
+      return () => container.removeEventListener('click', handleClick);
+    }
+  }, [content, navigate, packageName, subpath]);
+
   if (loading) return (
     <Layout>
       <div className="flex justify-center py-20">
@@ -46,38 +112,55 @@ const PackageDocs = () => {
 
   if (error) return (
     <Layout>
-      <div className="p-8 text-center">
-        <Text className="text-red-500 mb-4">Error: {error}</Text>
-        <Link to="/">
-          <Button variant="ghost">Go Back Home</Button>
-        </Link>
+      <div className="p-8 text-center border-2 border-dashed border-red-200 bg-red-50 rounded-lg m-8">
+        <Heading level={2} className="text-red-600 mb-2">Error Loading Docs</Heading>
+        <Text className="text-red-500 mb-6">{error}</Text>
+        <div className="flex justify-center gap-4">
+          <Link to="/">
+            <BrutalButton variant="ghost">Go Back Home</BrutalButton>
+          </Link>
+          <BrutalButton onClick={() => window.location.reload()}>Retry</BrutalButton>
+        </div>
       </div>
     </Layout>
   );
 
-  const docsUrl = packageName === 'std' 
-    ? '/stdlib/index.html'
-    : `/pkg-docs/${packageName}/${version}/index.html`;
-
   return (
     <Layout fullWidth>
-      <div className="flex flex-col h-[calc(100vh-64px)]">
-        <div className="bg-bio-cream border-b border-bio-black/10 p-4 flex justify-between items-center shadow-sm z-10">
-          <div className="flex items-baseline gap-3">
-            <Heading level={4} serif className="m-0">{packageName}</Heading>
-            <Text variant="caption" className="opacity-60">documentation</Text>
-            {version && <Text variant="mono" className="text-xs opacity-50 bg-bio-black/5 px-1.5 py-0.5 rounded">v{version}</Text>}
-          </div>
-          {packageName !== 'std' && (
-            <Link to={`/packages/${packageName}`} className="text-sm font-medium hover:text-bio-green transition-colors flex items-center gap-1">
-              View Package Details <span>→</span>
+      <div className="min-h-[calc(100vh-64px)] bg-bio-cream flex flex-col">
+        {/* Breadcrumb / Top Bar */}
+        <div className="bg-white border-b border-bio-black/10 px-6 py-3 flex justify-between items-center sticky top-0 z-20">
+          <div className="flex items-center gap-3">
+            <Link to={`/d/${packageName}`} className="hover:text-bio-green transition-colors">
+              <Heading level={4} serif className="m-0">{packageName}</Heading>
             </Link>
-          )}
+            <div className="h-4 w-px bg-gray-200"></div>
+            {version && (
+              <Text variant="mono" className="text-xs bg-bio-green/10 text-bio-green px-2 py-0.5 rounded">
+                v{version}
+              </Text>
+            )}
+            <Text variant="caption" className="opacity-40 italic">documentation</Text>
+          </div>
+          
+          <div className="flex items-center gap-6">
+            {packageName !== 'std' && (
+              <Link to={`/p/${packageName}`} className="text-sm font-bold text-bio-black hover:text-bio-green transition-colors flex items-center gap-1.5">
+                Package Info
+                <span className="text-xs">↗</span>
+              </Link>
+            )}
+            <Link to="/" className="text-sm font-bold text-bio-black hover:text-bio-green transition-colors">
+              Registry
+            </Link>
+          </div>
         </div>
-        <iframe 
-          src={docsUrl} 
-          className="w-full flex-1 border-none bg-white"
-          title={`${packageName} documentation`}
+
+        {/* Documentation Content */}
+        <div 
+          ref={contentRef}
+          className="flex-1 overflow-auto bg-white flex flex-row docs-root"
+          dangerouslySetInnerHTML={{ __html: content }}
         />
       </div>
     </Layout>

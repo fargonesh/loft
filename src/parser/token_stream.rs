@@ -117,7 +117,7 @@ impl TokenStream<'_> {
 
     pub fn read_ident(&mut self) -> Result<Token> {
         let mut first_char = true;
-        let id = self.read_while(|c| {
+        let mut id = self.read_while(|c| {
             if first_char {
                 first_char = false;
                 Self::is_ident_start(c)
@@ -126,7 +126,8 @@ impl TokenStream<'_> {
             }
         });
 
-        if Self::is_keyword(&id) {
+        id = id.trim().to_string(); // ensure clean string
+        if id == "fn" || Self::is_keyword(&id) {
             Ok(Token::Keyword(id))
         } else {
             Ok(Token::Ident(id))

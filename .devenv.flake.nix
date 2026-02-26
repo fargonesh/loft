@@ -2,22 +2,22 @@
   inputs =
     let
       vars = {
-  version = "1.11.1";
+  version = "1.11.2";
   system = "x86_64-linux";
-  devenv_root = "/nixos-config/services/loft";
-  project_input_ref = "path:/nixos-config/services/loft";
-  devenv_dotfile = "/nixos-config/services/loft/.devenv";
+  devenv_root = "/home/flora/Projects/loft";
+  project_input_ref = "path:/home/flora/Projects/loft";
+  devenv_dotfile = "/home/flora/Projects/loft/.devenv";
   devenv_dotfile_path = ./.devenv;
   devenv_tmpdir = "/run/user/1000";
-  devenv_runtime = "/run/user/1000/devenv-4e329cf";
+  devenv_runtime = "/run/user/1000/devenv-85aefbd";
   devenv_istesting = false;
   devenv_direnvrc_latest_version = 1;
   container_name = null;
   active_profiles = [
   ];
-  hostname = "imflopet";
+  hostname = "floramobile";
   username = "flora";
-  git_root = "/nixos-config/services/loft";
+  git_root = "/home/flora/Projects/loft";
   secretspec = null;
 };
     in
@@ -39,22 +39,22 @@
     { nixpkgs, ... }@inputs:
     let
       vars = {
-  version = "1.11.1";
+  version = "1.11.2";
   system = "x86_64-linux";
-  devenv_root = "/nixos-config/services/loft";
-  project_input_ref = "path:/nixos-config/services/loft";
-  devenv_dotfile = "/nixos-config/services/loft/.devenv";
+  devenv_root = "/home/flora/Projects/loft";
+  project_input_ref = "path:/home/flora/Projects/loft";
+  devenv_dotfile = "/home/flora/Projects/loft/.devenv";
   devenv_dotfile_path = ./.devenv;
   devenv_tmpdir = "/run/user/1000";
-  devenv_runtime = "/run/user/1000/devenv-4e329cf";
+  devenv_runtime = "/run/user/1000/devenv-85aefbd";
   devenv_istesting = false;
   devenv_direnvrc_latest_version = 1;
   container_name = null;
   active_profiles = [
   ];
-  hostname = "imflopet";
+  hostname = "floramobile";
   username = "flora";
-  git_root = "/nixos-config/services/loft";
+  git_root = "/home/flora/Projects/loft";
   secretspec = null;
 };
       devenv =

@@ -580,20 +580,20 @@ async fn publish_package(
     match doc_result {
         Ok(output) if output.status.success() => {
             println!(
-                "✓ Generated documentation for {}@{}",
+                "v Generated documentation for {}@{}",
                 payload.name, payload.version
             );
         }
         Ok(output) => {
             eprintln!(
-                "⚠ Documentation generation failed for {}@{}: {}",
+                "! Documentation generation failed for {}@{}: {}",
                 payload.name,
                 payload.version,
                 String::from_utf8_lossy(&output.stderr)
             );
         }
         Err(e) => {
-            eprintln!("⚠ Could not run doc generator: {}", e);
+            eprintln!("! Could not run doc generator: {}", e);
         }
     }
 
@@ -717,7 +717,7 @@ async fn main() {
         .with_state(state);
 
     let bind_addr = std::env::var("BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:5050".to_string());
-    println!("🚀 loft Package Registry running on http://{}", bind_addr);
+    println!("> loft Package Registry running on http://{}", bind_addr);
 
     let listener = tokio::net::TcpListener::bind(&bind_addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();

@@ -1,6 +1,9 @@
 pub mod input_stream;
 pub mod token_stream;
 
+#[cfg(test)]
+mod tests;
+
 use input_stream::{Error, Result};
 use rust_decimal::Decimal;
 use token_stream::{Token, TokenStream};
@@ -1776,10 +1779,12 @@ impl<'a> Parser<'a> {
                     match &token {
                         Token::Punct(p) if p == ")" && depth == 0 => {
                             // Check next token for =>
-                            if let Some(Token::Op(op1)) = self.next()? {
-                                tokens_to_restore.push(Token::Op(op1.clone()));
-                                if op1 == "=>" {
-                                    found_arrow = true;
+                            if let Some(token) = self.next()? {
+                                tokens_to_restore.push(token.clone());
+                                if let Token::Op(op) = token {
+                                    if op == "=>" {
+                                        found_arrow = true;
+                                    }
                                 }
                             }
                             break;
@@ -1899,12 +1904,13 @@ impl<'a> Parser<'a> {
             args.push(self.parse_expression()?);
 
             if let Some(token) = self.peek()? {
+                // println!("In parse_call: next token is {:?}", token);
                 if self.is_punct(&token, ",") {
                     self.next()?; // consume comma
                 } else if !self.is_punct(&token, ")") {
                     return Err(self
                         .tokens
-                        .croak("Expected ',' or ')' in function call".to_string(), None));
+                        .croak(format!("Expected ',' or ')' in function call, got {:?}", token), None));
                 }
             }
         }
@@ -1984,7 +1990,7 @@ impl<'a> TokenStream<'a> {
 }
 
 #[cfg(test)]
-mod tests {
+mod inline_tests {
     use super::*;
     use crate::parser::input_stream::InputStream;
 

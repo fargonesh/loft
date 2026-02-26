@@ -91,7 +91,7 @@ impl StdlibDocGenerator {
         let string_html = self.generate_methods_html(
             "str",
             &self.stdlib.string_methods,
-            "String primitive type with utility methods for text manipulation.",
+            "The basic string type, packed with handy methods for working with text.",
         );
         fs::write(output_dir.join("string.html"), string_html)
             .map_err(|e| format!("Failed to write string.html: {}", e))?;
@@ -99,23 +99,31 @@ impl StdlibDocGenerator {
         let array_html = self.generate_methods_html(
             "Array",
             &self.stdlib.array_methods,
-            "Array primitive type with utility methods for collection manipulation.",
+            "The Array type, including methods to help you manage your collections.",
         );
         fs::write(output_dir.join("array.html"), array_html)
             .map_err(|e| format!("Failed to write array.html: {}", e))?;
 
         // Generate pages for other primitives (empty methods for now)
         let empty_methods = HashMap::new();
-        let num_html = self.generate_methods_html("num", &empty_methods, "Numeric primitive type.");
+        let num_html = self.generate_methods_html(
+            "num",
+            &empty_methods,
+            "The standard numeric type for all your math needs.",
+        );
         fs::write(output_dir.join("num.html"), num_html)
             .map_err(|e| format!("Failed to write num.html: {}", e))?;
 
         let bool_html =
-            self.generate_methods_html("bool", &empty_methods, "Boolean primitive type.");
+            self.generate_methods_html("bool", &empty_methods, "Simple true or false values.");
         fs::write(output_dir.join("bool.html"), bool_html)
             .map_err(|e| format!("Failed to write bool.html: {}", e))?;
 
-        let void_html = self.generate_methods_html("void", &empty_methods, "Void primitive type.");
+        let void_html = self.generate_methods_html(
+            "void",
+            &empty_methods,
+            "The 'nothing' type, used when there's no value to return.",
+        );
         fs::write(output_dir.join("void.html"), void_html)
             .map_err(|e| format!("Failed to write void.html: {}", e))?;
 
@@ -207,20 +215,20 @@ impl StdlibDocGenerator {
         html.push_str("    </div>\n");
         html.push_str("    <div class=\"content\">\n");
         html.push_str("        <h1>loft Standard Library</h1>\n");
-        html.push_str("        <p class=\"intro\">Welcome to the loft standard library documentation. The standard library provides essential functionality for building loft applications.</p>\n");
+        html.push_str("        <p class=\"intro\">Welcome! Here's everything you need to know about the loft standard library, filled with all the handy tools you'll need to build your next project.</p>\n");
 
         html.push_str("        <h2>Primitives</h2>\n");
-        html.push_str("        <p>Core primitive types with built-in methods:</p>\n");
+        html.push_str("        <p>The basic building blocks of any loft program:</p>\n");
         html.push_str("        <div class=\"item-grid\">\n");
-        html.push_str("            <div class=\"item-card\"><a href=\"string.html\"><strong>str</strong></a><br>Text manipulation and utilities</div>\n");
-        html.push_str("            <div class=\"item-card\"><a href=\"array.html\"><strong>Array</strong></a><br>Collection operations and transformations</div>\n");
-        html.push_str("            <div class=\"item-card\"><a href=\"num.html\"><strong>num</strong></a><br>Numeric type (decimal)</div>\n");
-        html.push_str("            <div class=\"item-card\"><a href=\"bool.html\"><strong>bool</strong></a><br>Boolean type (true/false)</div>\n");
-        html.push_str("            <div class=\"item-card\"><a href=\"void.html\"><strong>void</strong></a><br>Unit type representing no value</div>\n");
+        html.push_str("            <div class=\"item-card\"><a href=\"string.html\"><strong>str</strong></a><br>Work with text, split strings, and format data.</div>\n");
+        html.push_str("            <div class=\"item-card\"><a href=\"array.html\"><strong>Array</strong></a><br>The go-to collection for lists of items.</div>\n");
+        html.push_str("            <div class=\"item-card\"><a href=\"num.html\"><strong>num</strong></a><br>Handle all your numbers and math.</div>\n");
+        html.push_str("            <div class=\"item-card\"><a href=\"bool.html\"><strong>bool</strong></a><br>True or false, simple as that.</div>\n");
+        html.push_str("            <div class=\"item-card\"><a href=\"void.html\"><strong>void</strong></a><br>Represents the absence of a value.</div>\n");
         html.push_str("        </div>\n");
 
         html.push_str("        <h2>Builtin Modules</h2>\n");
-        html.push_str("        <p>Standard builtin modules for common operations:</p>\n");
+        html.push_str("        <p>Handy modules for all your day-to-day coding needs:</p>\n");
         html.push_str("        <div class=\"item-grid\">\n");
         for (name, builtin) in &self.stdlib.builtins {
             html.push_str(&format!(
@@ -695,17 +703,27 @@ impl StdlibDocGenerator {
     }
 
     fn generate_css(&self) -> String {
-        r#"* {
+        r#":root {
+    --color-bio-cream: #fdfcf0;
+    --color-bio-black: #1a1a1a;
+    --color-bio-green: #64992f;
+    --color-bio-green-light: #4a7c43;
+    --color-bio-offwhite: #f5f5f5;
+    --color-bio-gold: #d4a017;
+    --color-border: #e5e7eb;
+}
+
+.docs-root * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-body {
+.docs-root {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     line-height: 1.6;
-    background-color: #fafafa;
-    color: #333;
+    background-color: var(--color-bio-cream);
+    color: var(--color-bio-black);
     display: flex;
     min-height: 100vh;
 }
@@ -713,9 +731,10 @@ body {
 .sidebar {
     width: 260px;
     background-color: #fff;
-    border-right: 1px solid #e1e4e8;
+    border-right: 1px solid var(--color-border);
     padding: 20px;
-    position: fixed;
+    position: sticky;
+    top: 0;
     height: 100vh;
     overflow-y: auto;
 }
@@ -723,16 +742,16 @@ body {
 .sidebar h2 {
     font-size: 22px;
     margin-bottom: 20px;
-    color: #24292e;
+    color: var(--color-bio-black);
 }
 
 .sidebar h2 a {
-    color: #24292e;
+    color: var(--color-bio-black);
     text-decoration: none;
 }
 
 .sidebar h2 a:hover {
-    color: #0366d6;
+    color: var(--color-bio-green);
 }
 
 .nav-section {
@@ -743,9 +762,8 @@ body {
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #6a737d;
+    color: #6b7280;
     margin-bottom: 8px;
-    font-weight: 600;
 }
 
 .nav-section ul {
@@ -757,64 +775,57 @@ body {
 }
 
 .nav-section a {
-    color: #586069;
+    color: var(--color-bio-black);
     text-decoration: none;
     font-size: 14px;
     display: block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    transition: background-color 0.2s, color 0.2s;
+    padding: 4px 0;
 }
 
 .nav-section a:hover {
-    background-color: #f6f8fa;
-    color: #0366d6;
+    color: var(--color-bio-green);
 }
 
 .content {
-    margin-left: 260px;
     flex: 1;
     padding: 40px 60px;
-    max-width: 1200px;
+    max-width: 1000px;
 }
 
 .breadcrumb {
     font-size: 14px;
-    color: #586069;
+    color: #6b7280;
     margin-bottom: 16px;
 }
 
 .breadcrumb a {
-    color: #0366d6;
+    color: #6b7280;
     text-decoration: none;
 }
 
 .breadcrumb a:hover {
-    text-decoration: underline;
+    color: var(--color-bio-green);
 }
 
 h1 {
     font-size: 36px;
-    font-weight: 600;
     margin-bottom: 16px;
-    color: #24292e;
-    border-bottom: 1px solid #e1e4e8;
-    padding-bottom: 16px;
+    color: var(--color-bio-black);
 }
 
 h2 {
     font-size: 24px;
-    font-weight: 600;
-    margin-top: 32px;
-    margin-bottom: 16px;
-    color: #24292e;
+    margin-top: 40px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-bio-black);
 }
 
 h3 {
     font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: #24292e;
+    margin-bottom: 12px;
+    color: var(--color-bio-black);
 }
 
 h4 {
@@ -834,9 +845,9 @@ h4 {
 }
 
 .description {
-    font-size: 16px;
-    color: #586069;
-    margin-bottom: 24px;
+    font-size: 18px;
+    color: #4b5563;
+    margin-bottom: 32px;
 }
 
 .item-grid {
@@ -848,19 +859,19 @@ h4 {
 
 .item-card {
     background-color: #fff;
-    border: 1px solid #e1e4e8;
+    border: 1px solid var(--color-border);
     border-radius: 6px;
     padding: 16px;
     transition: box-shadow 0.2s, border-color 0.2s;
 }
 
 .item-card:hover {
-    border-color: #0366d6;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+    border-color: var(--color-bio-green);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .item-card a {
-    color: #0366d6;
+    color: var(--color-bio-green);
     text-decoration: none;
 }
 
@@ -870,15 +881,15 @@ h4 {
 
 .method-item {
     background-color: #fff;
-    border: 1px solid #e1e4e8;
+    border: 1px solid var(--color-border);
     border-radius: 6px;
     padding: 20px;
     margin-bottom: 16px;
 }
 
 .signature {
-    background-color: #f6f8fa;
-    border: 1px solid #e1e4e8;
+    background-color: var(--color-bio-offwhite);
+    border: 1px solid var(--color-border);
     border-radius: 6px;
     padding: 12px 16px;
     margin: 12px 0;
@@ -888,12 +899,12 @@ h4 {
 .signature code {
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     font-size: 14px;
-    color: #24292e;
+    color: var(--color-bio-black);
 }
 
 .example {
-    background-color: #f6f8fa;
-    border: 1px solid #e1e4e8;
+    background-color: var(--color-bio-offwhite);
+    border: 1px solid var(--color-border);
     border-radius: 6px;
     padding: 12px 16px;
     margin: 12px 0;
@@ -903,16 +914,17 @@ h4 {
 .example code {
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     font-size: 13px;
-    color: #24292e;
+    color: var(--color-bio-black);
     white-space: pre;
 }
 
 code {
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     font-size: 13px;
-    background-color: #f6f8fa;
+    background-color: var(--color-bio-offwhite);
     padding: 2px 6px;
     border-radius: 3px;
+    color: var(--color-bio-green-light);
 }
 
 p {

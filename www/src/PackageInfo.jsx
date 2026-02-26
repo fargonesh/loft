@@ -4,9 +4,9 @@ import {
   BrutalCard, 
   Heading, 
   Text, 
-  Button,
   GridLineHorizontal
 } from 'botanical-ui';
+import BrutalButton from './BrutalButton';
 import Layout from './Layout';
 
 const PackageInfo = () => {
@@ -138,13 +138,13 @@ const PackageInfo = () => {
 
             <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
               <Heading level={4} className="mb-4 text-sm uppercase tracking-wider text-gray-500">Links</Heading>
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <Link to={`/d/${latest.name}`} className="block w-full">
-                  <Button className="w-full justify-center">Documentation</Button>
+                  <BrutalButton className="w-full">Documentation</BrutalButton>
                 </Link>
                 {latest.repository && (
                   <a href={latest.repository} target="_blank" rel="noreferrer" className="block w-full">
-                    <Button variant="outline" className="w-full justify-center">GitHub Repository</Button>
+                    <BrutalButton variant="outline" className="w-full">GitHub Repository</BrutalButton>
                   </a>
                 )}
               </div>

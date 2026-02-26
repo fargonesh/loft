@@ -1,27 +1,54 @@
 # loft
-An interpreted language built on top of rust, providing an easy, safe way to build modern applications.
+A cozy, interpreted language built on Rust. We're trying to make building modern apps actually feel good — safe, fast, and easy to read.
 
-### Notice
-This project is still under heavy development. Consider contributing :)
+### Quick Heads Up
+This project is still a work in progress! We'd love for you to jump in and help out. :)
 
-## Installation
+## Getting Started
+To get loft up and running on your machine:
 ```bash
 curl -fsSL https://loft.fargone.sh/install.sh | sh
 ```
 
-Alternatively, build from source:
+If you prefer building from source (you're cool like that):
 
 ```bash
-# Clone the repository
+# Grab the code
 git clone https://github.com/fargonesh/loft.git
 cd loft
 
-# Build the project
+# Let's go!
 cargo build --release
 ```
+
+## Making it Better
+
+We use a Nix flake for development. You can jump into a shell with everything pre-configured, or just spin up the dev servers.
+
+### Spin up the Dev Servers
+This starts the backend (package registry) and the frontend (web server) all at once:
+
+```bash
+nix run .#serve
+```
+
+### Jump into the Shell
+Get a fresh environment with all the tools you need:
+
+```bash
+nix develop
+```
+
+If you're a `devenv` fan:
+
+```bash
+# Start everything up
+devenv up
+```
+
 ## Examples
 
-Check out the `examples/` directory for comprehensive examples:
+Take a peek at the `examples/` folder to see what loft can do:
 
 - **`showcase.lf`** - Complete language feature showcase
 - **`enum_patterns.lf`** - Enums and pattern matching

@@ -12,6 +12,16 @@ export default defineConfig({
     wasm(),
     topLevelAwait()
   ],
+  server: {
+    proxy: {
+      '/packages': 'http://localhost:5050',
+      '/auth/github': 'http://localhost:5050',
+      '/auth/me': 'http://localhost:5050',
+      '/tokens': 'http://localhost:5050',
+      '/pkg-docs': 'http://localhost:5050',
+      '/api': 'http://localhost:5050',
+    }
+  },
   preview: {
     allowedHosts: ['loft.fargone.sh'],
   }

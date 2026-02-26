@@ -28,7 +28,7 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-echo "🚀 Loft VSCode Extension with LSP - Setup"
+echo "> Loft VSCode Extension with LSP - Setup"
 echo "==========================================="
 echo ""
 
@@ -186,20 +186,20 @@ fi
 
 if [ $? -eq 0 ]; then
     echo ""
-    print_success "🎉 loft VSCode Extension with LSP installed successfully!"
+    print_success "DONE loft VSCode Extension with LSP installed successfully!"
     echo ""
-    echo "📋 Installation Summary:"
+    echo "[#] Installation Summary:"
     echo "   Extension: $EXT_DIR"
     echo "   LSP Server: $(which loft-lsp 2>/dev/null || echo 'Not found in PATH')"
     echo "   Version: 0.2.0"
     echo ""
-    echo "🔧 Features Available:"
-    echo "   ✅ Syntax highlighting"
-    echo "   ✅ Auto-completion (keywords)"
-    echo "   ✅ Hover information"
-    echo "   ✅ Document synchronization"
+    echo "[!] Features Available:"
+    echo "   v Syntax highlighting"
+    echo "   v Auto-completion (keywords)"
+    echo "   v Hover information"
+    echo "   v Document synchronization"
     echo ""
-    echo "🚀 Next Steps:"
+    echo "> Next Steps:"
     if [ "$REMOTE_MODE" = true ]; then
         echo "   1. Reload the VSCode window (Ctrl+Shift+P -> 'Developer: Reload Window')"
         echo "   2. Open any .lf file in the remote workspace"
@@ -213,16 +213,6 @@ if [ $? -eq 0 ]; then
         echo "   3. Check 'loft LSP' in Output panel for server logs"
         echo "   4. Test auto-completion with Ctrl+Space"
     fi
-    echo ""
-    echo "📂 Test files available:"
-    echo "   - .vscode-extension/samples/sample.lf (if exists)"
-    echo "   - examples/*.lf"
-    echo ""
-    echo "📖 Documentation:"
-    echo "   - LSP Guide: .vscode-extension/LSP_GUIDE.md"
-    echo "   - Quick Start: .vscode-extension/QUICKSTART.md (if exists)"
-    echo "   - Full Guide: .vscode-extension/README.md"
-    echo ""
     print_status "For LSP troubleshooting, see LSP_GUIDE.md"
     echo ""
     
@@ -250,7 +240,7 @@ if [ $? -eq 0 ]; then
         fi
     fi
     
-    print_success "Installation complete! 🚀"
+    print_success "Installation complete! >"
 else
     print_error "Installation failed!"
     exit 1
