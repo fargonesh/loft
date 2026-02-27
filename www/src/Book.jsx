@@ -50,7 +50,7 @@ const Book = () => {
   }), [docIndex]);
 
   useEffect(() => {
-    fetch('/docs/SUMMARY.md')
+    fetch('/book/SUMMARY.md')
       .then(res => res.text())
       .then(text => {
         const lines = text.split('\n');
@@ -91,7 +91,7 @@ const Book = () => {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/docs/${docPath}`)
+    fetch(`/book/${docPath}`)
       .then(res => {
         if (!res.ok) throw new Error('Doc not found');
         return res.text();
@@ -117,7 +117,7 @@ const Book = () => {
         const fullIndex = await Promise.all(
           summary.map(async (item) => {
             try {
-              const res = await fetch(`/docs/${item.path}`);
+              const res = await fetch(`/book/${item.path}`);
               const text = await res.text();
               // Strip markdown if possible for better search results, but keeping it simple for now
               return { ...item, content: text };
