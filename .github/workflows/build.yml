@@ -212,12 +212,32 @@ jobs:
         with:
           command: test
           args: --all-features
+  clippy:
+    name: Run Clippy
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev pkg-config lld mold
+        shell: bash
 
       - name: Run clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: -- -D warnings
+
 
   check-generated-tests:
     name: Check generated tests are up to date
