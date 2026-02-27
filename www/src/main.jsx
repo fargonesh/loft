@@ -38,7 +38,7 @@ const Home = () => {
 
   const fetchDocsIndex = async () => {
     try {
-      const summaryRes = await fetch('/docs/SUMMARY.md');
+      const summaryRes = await fetch('/book/SUMMARY.md');
       const summaryText = await summaryRes.text();
       const items = [];
       const lines = summaryText.split('\n');
@@ -56,7 +56,7 @@ const Home = () => {
       const fullIndex = await Promise.all(
         items.map(async (item) => {
           try {
-            const res = await fetch(`/docs/${item.path}`);
+            const res = await fetch(`/book/${item.path}`);
             const text = await res.text();
             return { ...item, content: text };
           } catch (e) {
