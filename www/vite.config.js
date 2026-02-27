@@ -50,7 +50,7 @@ function loftExamplesPlugin() {
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
-    react(), 
+    react(),
     tailwindcss(),
     wasm(),
     topLevelAwait(),
@@ -68,7 +68,11 @@ export default defineConfig({
       '/tokens': 'http://localhost:5050',
       '/pkg-docs': 'http://localhost:5050',
       '/api': 'http://localhost:5050',
-    }
+    },
+    host: '127.0.0.1',
+    port: 9916,
+    allowedHosts: ['loft.fargone.sh', 'localhost', '127.0.0.1'],
+    strictPort: true,
   },
   preview: {
     allowedHosts: ['loft.fargone.sh'],
