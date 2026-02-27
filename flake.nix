@@ -94,8 +94,8 @@
              githubClientId = lib.mkOption { type = lib.types.str; default = ""; };
              githubClientSecret = lib.mkOption { type = lib.types.str; default = ""; };
              jwtSecret = lib.mkOption { type = lib.types.str; default = "dev-secret"; };
-             publicUrl = lib.mkOption { type = lib.types.str; default = "https://registry.loft.fargone.sh"; };
-             frontendUrl = lib.mkOption { type = lib.types.str; default = "https://loft.fargone.sh"; };
+             publicUrl = lib.mkOption { type = lib.types.str; default = "http://localhost:9916"; };
+             frontendUrl = lib.mkOption { type = lib.types.str; default = "http://localhost:9916"; };
              storageDir = lib.mkOption { type = lib.types.str; default = "/var/lib/loft/registry-storage"; };
              bindAddr = lib.mkOption { type = lib.types.str; default = "0.0.0.0:5050"; };
              frontendPort = lib.mkOption { type = lib.types.str; default = "127.0.0.1:9916"; };

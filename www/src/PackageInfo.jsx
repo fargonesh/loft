@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { 
-  BrutalCard, 
-  Heading, 
-  Text, 
+import {
+  BrutalCard,
+  Heading,
+  Text,
   GridLineHorizontal
 } from 'botanical-ui';
 import BrutalButton from './BrutalButton';
@@ -63,6 +63,7 @@ const PackageInfo = () => {
   );
 
   const latest = versions[0];
+  let authors = [...latest.owners, ...latest.authors].filter((v, i, a) => a.indexOf(v) == i);
 
   return (
     <Layout>
@@ -87,7 +88,7 @@ const PackageInfo = () => {
               <Heading level={3} className="mb-4 border-b border-gray-100 pb-2">Installation</Heading>
               <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm flex justify-between items-center group">
                 <span>loft add {latest.name}</span>
-                <button 
+                <button
                   className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-white"
                   onClick={() => navigator.clipboard.writeText(`loft add ${latest.name}`)}
                 >
@@ -107,19 +108,22 @@ const PackageInfo = () => {
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
               <Heading level={4} className="mb-4 text-sm uppercase tracking-wider text-gray-500">Metadata</Heading>
-              
+
               <div className="space-y-4">
                 <div>
                   <div className="text-xs text-gray-500 mb-1">License</div>
                   <div className="font-medium">{latest.license || 'None'}</div>
                 </div>
-                
+
                 <div>
                   <div className="text-xs text-gray-500 mb-1">Authors</div>
                   <div className="font-medium">
-                    {latest.authors && latest.authors.length > 0 
-                      ? latest.authors.join(', ') 
-                      : 'Unknown'}
+                    {authors.map((v, i, a) => (
+                      <>
+                        <a href={`https://github.com/${v}`}>{v}</a>
+                        {i !== a.length && ', '}
+                      </>
+                    ))}
                   </div>
                 </div>
 
