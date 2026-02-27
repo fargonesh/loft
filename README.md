@@ -26,6 +26,7 @@ cargo build --release
 We use a Nix flake for development. You can jump into a shell with everything pre-configured, or just spin up the dev servers.
 
 ### Spin up the Dev Servers
+Keep in mind you'll need to use `LOFT_REGISTRY=http://localhost:5050 loft ...`.
 This starts the backend (package registry) and the frontend (web server) all at once:
 
 ```bash
