@@ -891,7 +891,7 @@ fn run_add(dep_name: &str, dep_path: Option<&str>, version_constraint: Option<&s
 
         let registry_url = normalize_registry_url(
             std::env::var("LOFT_REGISTRY")
-                .unwrap_or_else(|_| "https://registry.loft.fargone.sh".to_string()),
+                .unwrap_or_else(|_| "https://loft.fargone.sh".to_string()),
         );
 
         // Get package info
@@ -1192,7 +1192,7 @@ fn run_update(specific_package: Option<&str>) {
 
     let registry_url = normalize_registry_url(
         std::env::var("LOFT_REGISTRY")
-            .unwrap_or_else(|_| "https://registry.loft.fargone.sh".to_string()),
+            .unwrap_or_else(|_| "https://loft.fargone.sh".to_string()),
     );
     let client = reqwest::blocking::Client::new();
     let lflibs_dir = current_dir.join(".lflibs");
@@ -1742,7 +1742,7 @@ fn run_publish() {
     // 4. Send to registry
     let registry_url = normalize_registry_url(
         std::env::var("LOFT_REGISTRY")
-            .unwrap_or_else(|_| "https://registry.loft.fargone.sh".to_string()),
+            .unwrap_or_else(|_| "https://loft.fargone.sh".to_string()),
     );
     let client = reqwest::blocking::Client::new();
 
