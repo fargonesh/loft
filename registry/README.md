@@ -32,6 +32,10 @@ export BIND_ADDR="0.0.0.0:8080"
 # Set custom storage directory (default: ./registry-storage)
 export STORAGE_DIR="/var/lib/loft-registry"
 
+## Persistent Storage
+
+The registry stores all packages and docs in `/var/lib/loft-registry` by default. Ensure this directory exists and is writable by the registry process. The Nix flake and devShell will create this directory automatically if missing.
+
 # Run the server
 cargo run --release
 ```

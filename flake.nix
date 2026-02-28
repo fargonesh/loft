@@ -186,9 +186,26 @@
           name = "loft-serve";
         };
 
-        devShells.default = inputs.devenv.lib.mkShell {
-          inherit inputs pkgs;
-          modules = [ ./devenv.nix ];
+        devShells.default = pkgs.mkShell {
+          buildInputs = with pkgs; [
+            rustToolchain
+            rust-analyzer
+            pkg-config
+            openssl
+            cargo-watch
+          ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+            pkgs.darwin.apple_sdk.frameworks.Security
+            pkgs.darwin.apple_sdk.frameworks.SystemConfiguration
+          ];
+
+          RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
+          # Ensure persistent storage directory exists for registry
+          shellHook = ''
+            if [ ! -d /var/lib/loft-registry ]; then
+              sudo mkdir -p /var/lib/loft-registry
+              sudo chown "$USER" /var/lib/loft-registry
+            fi
+          '';
         };
       }
     );

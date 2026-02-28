@@ -699,6 +699,64 @@ async fn main() {
 
     let state = AppState::new(storage_dir, client_id, client_secret, public_url);
 
+    // On startup, build missing docs for all published versions
+    if let Ok(entries) = fs::read_dir(&state.storage_dir) {
+        for entry in entries.flatten() {
+            if entry.path().is_dir() {
+                let package_name = entry.file_name().to_string_lossy().to_string();
+                if let Ok(version_entries) = fs::read_dir(entry.path()) {
+                    for version_entry in version_entries.flatten() {
+                        let path = version_entry.path();
+                        if path.extension().and_then(|s| s.to_str()) == Some("json") {
+                            if let Ok(metadata_content) = fs::read_to_string(&path) {
+                                if let Ok(metadata) = serde_json::from_str::<PackageMetadata>(&metadata_content) {
+                                    let version = metadata.version.clone();
+                                    let tarball_path = path.with_file_name(format!("{}.tar.gz", version));
+                                    let docs_dir = format!("{}/docs/{}/{}", storage_dir, package_name, version);
+                                    let docs_index = format!("{}/index.html", docs_dir);
+                                    if !std::path::Path::new(&docs_index).exists() {
+                                        // Extract tarball and build docs
+                                        let temp_extract_dir = format!("/tmp/loft-extract-{}-{}", package_name, version);
+                                        let _ = fs::remove_dir_all(&temp_extract_dir);
+                                        fs::create_dir_all(&temp_extract_dir).ok();
+                                        if let Ok(tarball) = fs::read(&tarball_path) {
+                                            use flate2::read::GzDecoder;
+                                            use std::io::Cursor;
+                                            use tar::Archive;
+                                            let cursor = Cursor::new(&tarball);
+                                            let gz = GzDecoder::new(cursor);
+                                            let mut archive = Archive::new(gz);
+                                            if archive.unpack(&temp_extract_dir).is_ok() {
+                                                fs::create_dir_all(&docs_dir).ok();
+                                                let doc_result = std::process::Command::new("loft")
+                                                    .arg("doc")
+                                                    .arg("-o")
+                                                    .arg(&docs_dir)
+                                                    .current_dir(&temp_extract_dir)
+                                                    .output();
+                                                match doc_result {
+                                                    Ok(output) if output.status.success() => {
+                                                        println!("✓ Startup: Generated docs for {}@{}", package_name, version);
+                                                    }
+                                                    Ok(output) => {
+                                                        eprintln!("⚠ Startup: Doc gen failed for {}@{}: {}", package_name, version, String::from_utf8_lossy(&output.stderr));
+                                                    }
+                                                    Err(e) => {
+                                                        eprintln!("⚠ Startup: Could not run doc generator: {}", e);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        let _ = fs::remove_dir_all(&temp_extract_dir);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     if let Ok(entries) = fs::read_dir(&state.storage_dir) {
         let mut packages = state.packages.write().unwrap();
 
@@ -758,6 +816,37 @@ async fn main() {
         Err(e) => eprintln!("[startup] WARNING: Could not read {}: {}", tokens_file, e),
     }
 
+
+    // Serve latest docs at /d/:name and versioned docs at /d/:name@:version
+    async fn serve_latest_docs(Path(name): Path<String>, State(state): State<AppState>) -> Result<axum::response::Response, StatusCode> {
+        let packages = state.packages.read().unwrap();
+        if let Some(versions) = packages.get(&name) {
+            if let Some(latest) = versions.last() {
+                let docs_dir = format!("{}/docs/{}/{}", state.storage_dir, name, latest.metadata.version);
+                let index_path = format!("{}/index.html", docs_dir);
+                if std::path::Path::new(&index_path).exists() {
+                    return Ok(axum::response::Response::builder()
+                        .header("Content-Type", "text/html")
+                        .body(axum::body::boxed(axum::body::Full::from(fs::read(index_path).unwrap())))
+                        .unwrap());
+                }
+            }
+        }
+        Err(StatusCode::NOT_FOUND)
+    }
+
+    async fn serve_versioned_docs(Path((name, version)): Path<(String, String)>, State(state): State<AppState>) -> Result<axum::response::Response, StatusCode> {
+        let docs_dir = format!("{}/docs/{}/{}", state.storage_dir, name, version);
+        let index_path = format!("{}/index.html", docs_dir);
+        if std::path::Path::new(&index_path).exists() {
+            return Ok(axum::response::Response::builder()
+                .header("Content-Type", "text/html")
+                .body(axum::body::boxed(axum::body::Full::from(fs::read(index_path).unwrap())))
+                .unwrap());
+        }
+        Err(StatusCode::NOT_FOUND)
+    }
+
     let app = Router::new()
         .route("/", get(get_registry_info))
         .route("/install.sh", get(get_install_sh))
@@ -771,6 +860,8 @@ async fn main() {
         .route("/api/docs/*path", get(get_doc_content))
         .route("/tokens", post(create_token).get(list_tokens))
         .route("/tokens/:id", delete(revoke_token))
+        .route("/d/:name", get(serve_latest_docs))
+        .route("/d/:name@:version", get(serve_versioned_docs))
         .nest_service("/docs", ServeDir::new("../book/book"))
         .nest_service("/stdlib", ServeDir::new("../stdlib-docs"))
         .nest_service(
