@@ -66,7 +66,7 @@ fn term_size(_this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     use std::process::Command;
 
     // Check permission to run tput command
-    check_run_permission("tput", Some("term.size()")).map_err(|e| RuntimeError::new(e))?;
+    check_run_permission("tput", Some("term.size()")).map_err(RuntimeError::new)?;
 
     // Try to get terminal size using tput
     let width_output = Command::new("tput")

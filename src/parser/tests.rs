@@ -134,7 +134,7 @@ fn test_parse_exported_function() {
             ..
         } => {
             assert_eq!(name, "add");
-            assert_eq!(*is_exported, true);
+            assert!(*is_exported);
             assert_eq!(params.len(), 2);
         }
         _ => panic!("Expected function declaration"),
@@ -423,7 +423,7 @@ fn test_async_fn_vs_async_expr() {
     match &result[0] {
         Stmt::FunctionDecl { name, is_async, .. } => {
             assert_eq!(name, "fetch_data");
-            assert_eq!(*is_async, true);
+            assert!(*is_async);
         }
         _ => panic!("Expected async function declaration"),
     }

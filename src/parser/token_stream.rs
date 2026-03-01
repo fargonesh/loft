@@ -163,7 +163,7 @@ impl TokenStream<'_> {
             }
         }
 
-        return s;
+        s
     }
 
     pub fn read_string(&mut self) -> Result<Token> {
@@ -284,7 +284,7 @@ impl TokenStream<'_> {
             let mut expr_stream = TokenStream::new(expr_input);
 
             // Parse all tokens from the expression
-            while let Some(token_result) = expr_stream.next() {
+            while let Some(token_result) = expr_stream.read_next_token() {
                 tokens.push(token_result?);
             }
         }
@@ -295,7 +295,7 @@ impl TokenStream<'_> {
     pub fn skip_whitespace_and_comments(&mut self) -> Result<()> {
         loop {
             // Skip regular whitespace
-            self.read_while(|c| Self::is_whitespace(c));
+            self.read_while(Self::is_whitespace);
 
             if self.input.eof() {
                 break;
@@ -339,13 +339,12 @@ impl TokenStream<'_> {
                         let mut found_end = false;
                         while !self.input.eof() {
                             let c = self.input.next().unwrap();
-                            if c == '*' && !self.input.eof() {
-                                if self.input.peek().unwrap() == '/' {
+                            if c == '*' && !self.input.eof()
+                                && self.input.peek().unwrap() == '/' {
                                     self.input.next(); // consume '/'
                                     found_end = true;
                                     break;
                                 }
-                            }
                             if is_doc_comment {
                                 comment_text.push(c);
                             }
@@ -443,7 +442,7 @@ impl TokenStream<'_> {
         Ok(Token::Op(op))
     }
 
-    pub fn next(&mut self) -> Option<Result<Token>> {
+    pub fn read_next_token(&mut self) -> Option<Result<Token>> {
         self.parse_next().transpose()
     }
 

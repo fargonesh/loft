@@ -2,6 +2,7 @@ use crate::runtime::builtin::BuiltinStruct;
 use crate::runtime::value::Value;
 use crate::runtime::{RuntimeError, RuntimeResult};
 use libloading::{Library, Symbol};
+use loft_builtin_macros::{loft_builtin, types};
 use rust_decimal::Decimal;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -80,14 +81,15 @@ fn f32_to_value(result: f32) -> RuntimeResult<Value> {
 /// ```loft
 /// let lib = ffi.load("libm.so.6");
 /// ```
+#[loft_builtin(ffi.load)]
+#[types(string)]
 pub fn ffi_load(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
-        return Err(RuntimeError::new("ffi.load() requires a library path"));
+        return Err(RuntimeError::new("ffi_load requires a library path"));
     }
-
     let path = match &args[0] {
         Value::String(s) => s.clone(),
-        _ => return Err(RuntimeError::new("Library path must be a string")),
+        _ => unreachable!(),
     };
 
     // Try to get from cache first, or load and cache it

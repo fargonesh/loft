@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 # Generate tests/examples.rs from the contents of the examples/ directory.
 #
 # Usage (run from the workspace root):

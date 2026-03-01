@@ -509,6 +509,76 @@
           "documentation": "Set the random seed for reproducible random numbers"
         }
       }
+    },
+    "ffi": {
+      "kind": "struct",
+      "documentation": "Foreign Function Interface for loading and calling dynamic libraries",
+      "methods": {
+        "load": {
+          "params": ["path: str"],
+          "return_type": "FfiLibrary",
+          "documentation": "Load a shared library from the given path"
+        }
+      }
+    },
+    "FfiLibrary": {
+      "kind": "struct",
+      "documentation": "A loaded foreign library",
+      "fields": {
+        "path": {
+          "type": "str",
+          "documentation": "The path to the library"
+        }
+      },
+      "methods": {
+        "symbol": {
+          "params": ["name: str"],
+          "return_type": "FfiFunction",
+          "documentation": "Get a function symbol from the library"
+        },
+        "call": {
+          "params": ["symbol_name: str", "signature: str", "...args: any"],
+          "return_type": "any",
+          "documentation": "Call a function directly by symbol name with the given signature"
+        }
+      }
+    },
+    "FfiFunction": {
+      "kind": "struct",
+      "documentation": "A function loaded from a foreign library",
+      "fields": {
+        "name": {
+          "type": "str",
+          "documentation": "The symbol name"
+        },
+        "library_path": {
+          "type": "str",
+          "documentation": "Path to the library containing this function"
+        }
+      },
+      "methods": {
+        "call": {
+          "params": ["signature: str", "...args: any"],
+          "return_type": "any",
+          "documentation": "Call the function with the given signature and arguments.\n\nSignature format: 'return_type(arg_type1, arg_type2, ...)'\nSupported types: i32, i64, f32, f64, void"
+        }
+      }
+    },
+    "test": {
+      "kind": "struct",
+      "documentation": "Testing utilities for Loft",
+      "methods": {
+        "assert": {
+          "params": ["condition: bool", "message?: str"],
+          "return_type": "void",
+          "documentation": "Assert that a condition is true. Throws an error if false."
+        },
+        "assert_eq": {
+          "params": ["left: any", "right: any", "message?: str"],
+          "return_type": "void",
+          "documentation": "Assert that two values are equal. Throws an error if they are not."
+        }
+      }
     }
   },
   "string_methods": {
@@ -817,7 +887,10 @@
     "Option": {
       "kind": "enum",
       "documentation": "A native optional value. Use `Option.Some(value)` to wrap a value or `Option.None` when absent.",
-      "variants": ["Some", "None"],
+      "variants": [
+        { "name": "Some", "fields": ["T"] },
+        "None"
+      ],
       "fields": {},
       "methods": {
         "is_some": {
@@ -850,7 +923,10 @@
     "Result": {
       "kind": "enum",
       "documentation": "A native result type. Use `Result.Ok(value)` for success or `Result.Err(error)` for failure.",
-      "variants": ["Ok", "Err"],
+      "variants": [
+        { "name": "Ok", "fields": ["T"] },
+        { "name": "Err", "fields": ["E"] }
+      ],
       "fields": {},
       "methods": {
         "is_ok": {
@@ -1044,3 +1120,4 @@
     }
   }
 }
+

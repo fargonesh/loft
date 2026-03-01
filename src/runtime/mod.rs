@@ -228,7 +228,7 @@ pub type RuntimeResult<T> = Result<T, RuntimeError>;
 pub struct RuntimeError {
     pub message: String,
     pub path: Option<String>,
-    pub source: Option<NamedSource<String>>,
+    pub source: Option<Box<NamedSource<String>>>,
     pub position: Option<usize>,
     pub len: Option<usize>,
 }
@@ -254,7 +254,7 @@ impl RuntimeError {
         Self {
             message: message.into(),
             path: Some(path.clone()),
-            source: Some(NamedSource::new(path, source_code)),
+            source: Some(Box::new(NamedSource::new(path, source_code))),
             position: Some(position),
             len: Some(len),
         }
@@ -270,7 +270,7 @@ impl RuntimeError {
         Self {
             message: message.into(),
             path: Some(path.clone()),
-            source: Some(NamedSource::new(path, source_code)),
+            source: Some(Box::new(NamedSource::new(path, source_code))),
             position: None,
             len: None,
         }
@@ -291,7 +291,7 @@ impl Diagnostic for RuntimeError {
     }
 
     fn source_code(&self) -> Option<&dyn miette::SourceCode> {
-        self.source.as_ref().map(|s| s as &dyn miette::SourceCode)
+        self.source.as_ref().map(|s| s.as_ref() as &dyn miette::SourceCode)
     }
 
     fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
@@ -314,6 +314,12 @@ impl Diagnostic for RuntimeError {
 #[derive(Debug, Clone)] // Assuming Environment is Clone or I can add it
 pub struct Environment {
     scopes: Vec<HashMap<String, Value>>,
+}
+
+impl Default for Environment {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Environment {
@@ -555,8 +561,10 @@ fn opt_res_expect(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 // ──────────────────────────────────────────────────────────────────────────────
 
-fn init_builtin_enums() -> HashMap<String, Vec<(String, Option<Vec<Type>>)>> {
-    let mut enums: HashMap<String, Vec<(String, Option<Vec<Type>>)>> = HashMap::new();
+type BuiltinEnums = HashMap<String, Vec<(String, Option<Vec<Type>>)>>;
+
+fn init_builtin_enums() -> BuiltinEnums {
+    let mut enums: BuiltinEnums = HashMap::new();
 
     // Option<T>: Some(T) | None
     enums.insert(
@@ -588,6 +596,13 @@ fn init_builtin_enums() -> HashMap<String, Vec<(String, Option<Vec<Type>>)>> {
     enums
 }
 
+type ImplMethod = (
+    Vec<(String, crate::parser::Type)>,
+    Option<crate::parser::Type>,
+    Box<Stmt>,
+    Option<String>,
+);
+
 pub struct Interpreter {
     pub env: Environment,
     source_path: Option<String>,
@@ -596,21 +611,10 @@ pub struct Interpreter {
     traits: HashMap<String, Vec<TraitMethod>>,
     // Track impl blocks: type_name -> method_name -> (params, return_type, body)
     // Format: type_name -> method_name -> (params, return_type, body, trait_name_if_any)
-    impl_methods: HashMap<
-        String,
-        HashMap<
-            String,
-            (
-                Vec<(String, crate::parser::Type)>,
-                Option<crate::parser::Type>,
-                Box<Stmt>,
-                Option<String>,
-            ),
-        >,
-    >,
+    impl_methods: HashMap<String, HashMap<String, ImplMethod>>,
     // Track enum declarations: enum_name -> variants
     // Format: enum_name -> Vec<(variant_name, Option<Vec<Type>>)>
-    enums: HashMap<String, Vec<(String, Option<Vec<Type>>)>>,
+    enums: BuiltinEnums,
     // Module cache: module_path -> exported_values
     module_cache: HashMap<String, HashMap<String, Value>>,
     // Current module's exports
@@ -619,6 +623,12 @@ pub struct Interpreter {
     enabled_features: std::collections::HashSet<String>,
     // Control flow: set when a `return` statement is executed
     returning: Option<Value>,
+}
+
+impl Default for Interpreter {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Interpreter {
@@ -693,7 +703,7 @@ impl Interpreter {
                         match name.as_str() {
                             "all" => args.iter().all(|arg| eval_gated(arg, enabled)),
                             "any" => args.iter().any(|arg| eval_gated(arg, enabled)),
-                            "not" => args.get(0).map_or(false, |arg| !eval_gated(arg, enabled)),
+                            "not" => args.first().is_some_and(|arg| !eval_gated(arg, enabled)),
                             _ => false,
                         }
                     } else {
@@ -926,7 +936,7 @@ impl Interpreter {
                 let type_methods = self
                     .impl_methods
                     .entry(type_name)
-                    .or_insert_with(HashMap::new);
+                    .or_default();
 
                 // Process each method in the impl block
                 for method_stmt in methods {

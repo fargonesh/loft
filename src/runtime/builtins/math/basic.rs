@@ -6,75 +6,55 @@ use rust_decimal::Decimal;
 
 /// Round a number to the nearest integer
 #[loft_builtin(math.round)]
-fn math_round(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new("math.round() requires a number argument"));
-    }
-
+fn math_round(#[required] _this: &Value, #[types(number)] args: &[Value]) -> RuntimeResult<Value> {
     match &args[0] {
         Value::Number(n) => {
             let rounded = n.round();
             Ok(Value::Number(rounded))
         }
-        _ => Err(RuntimeError::new("math.round() argument must be a number")),
+        _ => unreachable!(),
     }
 }
 
 /// Floor a number (round down to nearest integer)
 #[loft_builtin(math.floor)]
-fn math_floor(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new("math.floor() requires a number argument"));
-    }
-
+fn math_floor(#[required] _this: &Value, #[types(number)] args: &[Value]) -> RuntimeResult<Value> {
     match &args[0] {
         Value::Number(n) => {
             let floored = n.floor();
             Ok(Value::Number(floored))
         }
-        _ => Err(RuntimeError::new("math.floor() argument must be a number")),
+        _ => unreachable!(),
     }
 }
 
 /// Ceiling a number (round up to nearest integer)
 #[loft_builtin(math.ceil)]
-fn math_ceil(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new("math.ceil() requires a number argument"));
-    }
-
+fn math_ceil(#[required] _this: &Value, #[types(number)] args: &[Value]) -> RuntimeResult<Value> {
     match &args[0] {
         Value::Number(n) => {
             let ceiled = n.ceil();
             Ok(Value::Number(ceiled))
         }
-        _ => Err(RuntimeError::new("math.ceil() argument must be a number")),
+        _ => unreachable!(),
     }
 }
 
 /// Absolute value of a number
 #[loft_builtin(math.abs)]
-fn math_abs(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new("math.abs() requires a number argument"));
-    }
-
+fn math_abs(#[required] _this: &Value, #[types(number)] args: &[Value]) -> RuntimeResult<Value> {
     match &args[0] {
         Value::Number(n) => {
             let abs = n.abs();
             Ok(Value::Number(abs))
         }
-        _ => Err(RuntimeError::new("math.abs() argument must be a number")),
+        _ => unreachable!(),
     }
 }
 
 /// Sign of a number (-1, 0, or 1)
 #[loft_builtin(math.sign)]
-fn math_sign(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new("math.sign() requires a number argument"));
-    }
-
+fn math_sign(#[required] _this: &Value, #[types(number)] args: &[Value]) -> RuntimeResult<Value> {
     match &args[0] {
         Value::Number(n) => {
             if n.is_zero() {
@@ -85,13 +65,13 @@ fn math_sign(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
                 Ok(Value::Number(Decimal::ONE))
             }
         }
-        _ => Err(RuntimeError::new("math.sign() argument must be a number")),
+        _ => unreachable!(),
     }
 }
 
 /// Minimum of two numbers
 #[loft_builtin(math.min)]
-fn math_min(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+fn math_min(#[required] _this: &Value, #[types(number*)] args: &[Value]) -> RuntimeResult<Value> {
     if args.len() < 2 {
         return Err(RuntimeError::new(
             "math.min() requires two number arguments",

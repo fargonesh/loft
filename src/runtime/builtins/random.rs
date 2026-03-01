@@ -45,25 +45,19 @@ fn random_random(_this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Generate a random integer in range [min, max)
 #[loft_builtin(random.range)]
-fn random_range(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.len() < 2 {
-        return Err(RuntimeError::new(
-            "random.range() requires min and max arguments",
-        ));
-    }
-
+fn random_range(#[required] _this: &Value, #[types(number, number)] args: &[Value]) -> RuntimeResult<Value> {
     let min = match &args[0] {
         Value::Number(n) => n
             .to_i64()
             .ok_or_else(|| RuntimeError::new("min must be an integer"))?,
-        _ => return Err(RuntimeError::new("random.range() min must be a number")),
+        _ => unreachable!(),
     };
 
     let max = match &args[1] {
         Value::Number(n) => n
             .to_i64()
             .ok_or_else(|| RuntimeError::new("max must be an integer"))?,
-        _ => return Err(RuntimeError::new("random.range() max must be a number")),
+        _ => unreachable!(),
     };
 
     if min >= max {
@@ -80,13 +74,7 @@ fn random_range(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Pick a random element from an array
 #[loft_builtin(random.choice)]
-fn random_choice(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new(
-            "random.choice() requires an array argument",
-        ));
-    }
-
+fn random_choice(#[required] _this: &Value, #[types(array)] args: &[Value]) -> RuntimeResult<Value> {
     match &args[0] {
         Value::Array(arr) => {
             if arr.is_empty() {
@@ -201,7 +189,7 @@ mod tests {
         match result.unwrap() {
             Value::Number(n) => {
                 let val = n.to_i64().unwrap();
-                assert!(val >= 1 && val < 10);
+                assert!((1..10).contains(&val));
             }
             _ => panic!("Expected number"),
         }

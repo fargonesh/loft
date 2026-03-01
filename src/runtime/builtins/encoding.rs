@@ -2,25 +2,16 @@ use crate::runtime::builtin::{BuiltinMethod, BuiltinStruct};
 use crate::runtime::value::Value;
 use crate::runtime::{RuntimeError, RuntimeResult};
 use base64::{engine::general_purpose, Engine as _};
-use loft_builtin_macros::loft_builtin;
+use loft_builtin_macros::{loft_builtin, types};
 use rust_decimal::Decimal;
 
 /// Encode a string to base64
 #[loft_builtin(encoding.base64_encode)]
+#[types(string)]
 fn base64_encode(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new(
-            "encoding.base64_encode() requires a string argument",
-        ));
-    }
-
     let input = match &args[0] {
         Value::String(s) => s.as_bytes(),
-        _ => {
-            return Err(RuntimeError::new(
-                "encoding.base64_encode() argument must be a string",
-            ))
-        }
+        _ => unreachable!(),
     };
 
     let encoded = general_purpose::STANDARD.encode(input);
@@ -29,20 +20,11 @@ fn base64_encode(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Decode a base64 string
 #[loft_builtin(encoding.base64_decode)]
+#[types(string)]
 fn base64_decode(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new(
-            "encoding.base64_decode() requires a string argument",
-        ));
-    }
-
     let input = match &args[0] {
         Value::String(s) => s,
-        _ => {
-            return Err(RuntimeError::new(
-                "encoding.base64_decode() argument must be a string",
-            ))
-        }
+        _ => unreachable!(),
     };
 
     let decoded = general_purpose::STANDARD

@@ -205,7 +205,7 @@ impl<'a> Parser<'a> {
     }
 
     fn next(&mut self) -> Result<Option<Token>> {
-        match self.tokens.next() {
+        match self.tokens.read_next_token() {
             Some(Ok(token)) => Ok(Some(token)),
             Some(Err(e)) => Err(e),
             None => Ok(None),
@@ -258,7 +258,7 @@ impl<'a> Parser<'a> {
     pub fn parse(&mut self) -> Result<Vec<Stmt>> {
         let mut statements = Vec::new();
 
-        while let Some(_) = self.peek()? {
+        while (self.peek()?).is_some() {
             statements.push(self.parse_statement()?);
         }
 
@@ -1227,10 +1227,9 @@ impl<'a> Parser<'a> {
         let mut left = self.parse_primary_expr()?;
 
         // Handle postfix operations but NOT struct literals
-        loop {
-            if let Some(token) = self.peek()? {
-                match token {
-                    Token::Punct(ref p) if p == "(" => {
+        while let Some(token) = self.peek()? {
+            match token {
+                Token::Punct(ref p) if p == "(" => {
                         // Function call
                         self.next()?; // consume '('
                         let mut args = Vec::new();
@@ -1282,9 +1281,6 @@ impl<'a> Parser<'a> {
                     }
                     _ => break,
                 }
-            } else {
-                break;
-            }
         }
 
         // Now handle binary operations
@@ -1296,9 +1292,8 @@ impl<'a> Parser<'a> {
         let mut expr = self.parse_pattern_primary()?;
 
         // Handle postfix operations but don't interpret { as struct literal
-        loop {
-            if let Some(token) = self.peek()? {
-                match token {
+        while let Some(token) = self.peek()? {
+            match token {
                     Token::Punct(ref p) if p == "(" => {
                         // Function call or enum constructor
                         self.next()?; // consume '('
@@ -1341,9 +1336,6 @@ impl<'a> Parser<'a> {
                     }
                     _ => break,
                 }
-            } else {
-                break;
-            }
         }
 
         Ok(expr)
@@ -1608,9 +1600,8 @@ impl<'a> Parser<'a> {
 
     // Parse postfix operations like function calls, field access, and indexing
     fn parse_postfix(&mut self, mut expr: Expr) -> Result<Expr> {
-        loop {
-            if let Some(token) = self.peek()? {
-                match token {
+        while let Some(token) = self.peek()? {
+            match token {
                     Token::Punct(ref p) if p == "(" => {
                         expr = self.parse_call(expr)?;
                     }
@@ -1654,9 +1645,6 @@ impl<'a> Parser<'a> {
                     }
                     _ => break,
                 }
-            } else {
-                break;
-            }
         }
         Ok(expr)
     }
@@ -1771,12 +1759,10 @@ impl<'a> Parser<'a> {
         let mut found_arrow = false;
 
         // Look ahead to find ) => pattern
-        loop {
-            match self.next()? {
-                Some(token) => {
-                    tokens_to_restore.push(token.clone());
+        while let Some(token) = self.next()? {
+            tokens_to_restore.push(token.clone());
 
-                    match &token {
+            match &token {
                         Token::Punct(p) if p == ")" && depth == 0 => {
                             // Check next token for =>
                             if let Some(token) = self.next()? {
@@ -1798,9 +1784,6 @@ impl<'a> Parser<'a> {
                     if tokens_to_restore.len() > 100 {
                         break;
                     }
-                }
-                None => break,
-            }
         }
 
         // Restore all tokens in reverse order (inserting at the front)
@@ -2127,7 +2110,7 @@ mod inline_tests {
                 ..
             } => {
                 assert_eq!(name, "add");
-                assert_eq!(*is_exported, true);
+                assert!(*is_exported);
                 assert_eq!(params.len(), 2);
             }
             _ => panic!("Expected function declaration"),
@@ -2416,7 +2399,7 @@ mod inline_tests {
         match &result[0] {
             Stmt::FunctionDecl { name, is_async, .. } => {
                 assert_eq!(name, "fetch_data");
-                assert_eq!(*is_async, true);
+                assert!(*is_async);
             }
             _ => panic!("Expected async function declaration"),
         }

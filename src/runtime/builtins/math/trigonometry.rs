@@ -7,11 +7,7 @@ use rust_decimal::Decimal;
 
 /// Sine function
 #[loft_builtin(math.sin)]
-fn math_sin(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new("math.sin() requires a number argument"));
-    }
-
+fn math_sin(#[required] _this: &Value, #[types(number)] args: &[Value]) -> RuntimeResult<Value> {
     match &args[0] {
         Value::Number(n) => {
             let n_f64 = n
@@ -23,17 +19,13 @@ fn math_sin(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
                 .map(Value::Number)
                 .ok_or_else(|| RuntimeError::new("Result invalid"))
         }
-        _ => Err(RuntimeError::new("math.sin() argument must be a number")),
+        _ => unreachable!(),
     }
 }
 
 /// Cosine function
 #[loft_builtin(math.cos)]
-fn math_cos(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new("math.cos() requires a number argument"));
-    }
-
+fn math_cos(#[required] _this: &Value, #[types(number)] args: &[Value]) -> RuntimeResult<Value> {
     match &args[0] {
         Value::Number(n) => {
             let n_f64 = n
@@ -45,17 +37,13 @@ fn math_cos(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
                 .map(Value::Number)
                 .ok_or_else(|| RuntimeError::new("Result invalid"))
         }
-        _ => Err(RuntimeError::new("math.cos() argument must be a number")),
+        _ => unreachable!(),
     }
 }
 
 /// Tangent function
 #[loft_builtin(math.tan)]
-fn math_tan(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new("math.tan() requires a number argument"));
-    }
-
+fn math_tan(#[required] _this: &Value, #[types(number)] args: &[Value]) -> RuntimeResult<Value> {
     match &args[0] {
         Value::Number(n) => {
             let n_f64 = n
@@ -67,23 +55,19 @@ fn math_tan(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
                 .map(Value::Number)
                 .ok_or_else(|| RuntimeError::new("Result invalid"))
         }
-        _ => Err(RuntimeError::new("math.tan() argument must be a number")),
+        _ => unreachable!(),
     }
 }
 
 /// Arcsine function
 #[loft_builtin(math.asin)]
-fn math_asin(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new("math.asin() requires a number argument"));
-    }
-
+fn math_asin(#[required] _this: &Value, #[types(number)] args: &[Value]) -> RuntimeResult<Value> {
     match &args[0] {
         Value::Number(n) => {
             let n_f64 = n
                 .to_f64()
                 .ok_or_else(|| RuntimeError::new("Invalid number"))?;
-            if n_f64 < -1.0 || n_f64 > 1.0 {
+            if !(-1.0..=1.0).contains(&n_f64) {
                 return Err(RuntimeError::new(
                     "math.asin() argument must be between -1 and 1",
                 ));
@@ -94,7 +78,7 @@ fn math_asin(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
                 .map(Value::Number)
                 .ok_or_else(|| RuntimeError::new("Result invalid"))
         }
-        _ => Err(RuntimeError::new("math.asin() argument must be a number")),
+        _ => unreachable!(),
     }
 }
 
@@ -110,7 +94,7 @@ fn math_acos(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
             let n_f64 = n
                 .to_f64()
                 .ok_or_else(|| RuntimeError::new("Invalid number"))?;
-            if n_f64 < -1.0 || n_f64 > 1.0 {
+            if !(-1.0..=1.0).contains(&n_f64) {
                 return Err(RuntimeError::new(
                     "math.acos() argument must be between -1 and 1",
                 ));
