@@ -47,6 +47,12 @@ pub struct DocGenerator {
     pub impl_methods: HashMap<String, Vec<String>>,
 }
 
+impl Default for DocGenerator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DocGenerator {
     pub fn new() -> Self {
         Self {
@@ -150,11 +156,9 @@ impl DocGenerator {
                 Stmt::TraitDecl { name, methods } => {
                     let method_names: Vec<String> = methods
                         .iter()
-                        .filter_map(|m| match m {
-                            crate::parser::TraitMethod::Signature { name, .. } => {
-                                Some(name.clone())
-                            }
-                            crate::parser::TraitMethod::Default { name, .. } => Some(name.clone()),
+                        .map(|m| match m {
+                            crate::parser::TraitMethod::Signature { name, .. } => name.clone(),
+                            crate::parser::TraitMethod::Default { name, .. } => name.clone(),
                         })
                         .collect();
 
@@ -173,7 +177,7 @@ impl DocGenerator {
                 } => {
                     let type_str = const_type
                         .as_ref()
-                        .map(|t| Self::type_to_string(t))
+                        .map(Self::type_to_string)
                         .unwrap_or_else(|| "unknown".to_string());
 
                     self.items.push(DocItem {
@@ -188,7 +192,7 @@ impl DocGenerator {
                 Stmt::VarDecl { name, var_type, .. } => {
                     let type_str = var_type
                         .as_ref()
-                        .map(|t| Self::type_to_string(t))
+                        .map(Self::type_to_string)
                         .unwrap_or_else(|| "unknown".to_string());
 
                     self.items.push(DocItem {
@@ -214,7 +218,7 @@ impl DocGenerator {
                         if let Stmt::FunctionDecl { name, .. } = method {
                             self.impl_methods
                                 .entry(type_name.clone())
-                                .or_insert_with(Vec::new)
+                                .or_default()
                                 .push(name.clone());
                         }
                     }
@@ -342,8 +346,8 @@ impl DocGenerator {
         ];
 
         for (pattern, extract_next) in patterns {
-            if line.starts_with(pattern) {
-                if extract_next {
+            if line.starts_with(pattern)
+                && extract_next {
                     let rest = line.strip_prefix(pattern).unwrap();
                     // Extract identifier (alphanumeric + underscore)
                     let name: String = rest
@@ -354,7 +358,6 @@ impl DocGenerator {
                         return Some(name);
                     }
                 }
-            }
         }
 
         None
@@ -370,7 +373,7 @@ impl DocGenerator {
                     base,
                     type_args
                         .iter()
-                        .map(|t| Self::type_to_string(t))
+                        .map(Self::type_to_string)
                         .collect::<Vec<_>>()
                         .join(", ")
                 )
@@ -383,7 +386,7 @@ impl DocGenerator {
                     "({}) -> {}",
                     params
                         .iter()
-                        .map(|t| Self::type_to_string(t))
+                        .map(Self::type_to_string)
                         .collect::<Vec<_>>()
                         .join(", "),
                     Self::type_to_string(return_type)
@@ -510,7 +513,7 @@ impl DocGenerator {
                 } else {
                     &[]
                 };
-                let has_subitems = impl_methods.map_or(false, |m| !m.is_empty()) || !impl_traits.is_empty();
+                let has_subitems = impl_methods.is_some_and(|m| !m.is_empty()) || !impl_traits.is_empty();
                 if has_subitems {
                     html.push_str(&format!(
                         "                <li><a href=\"#{}\">{}</a>\n",
@@ -769,7 +772,7 @@ impl DocGenerator {
 
         // Sort items by name length descending to avoid partial replacements
         let mut item_names: Vec<String> = self.items.iter().map(|i| i.name.clone()).collect();
-        item_names.sort_by(|a, b| b.len().cmp(&a.len()));
+        item_names.sort_by_key(|b| std::cmp::Reverse(b.len()));
 
         for (i, name) in item_names.iter().enumerate() {
             // Only replace whole words

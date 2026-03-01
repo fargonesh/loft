@@ -6,11 +6,7 @@ use rust_decimal::Decimal;
 
 /// Split a string by a delimiter
 #[loft_builtin(string.split)]
-fn string_split(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new("split() requires a delimiter argument"));
-    }
-
+fn string_split(#[required] this: &Value, #[types(string)] args: &[Value]) -> RuntimeResult<Value> {
     match (this, &args[0]) {
         (Value::String(s), Value::String(delim)) => {
             let parts: Vec<Value> = s
@@ -19,20 +15,13 @@ fn string_split(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
                 .collect();
             Ok(Value::Array(parts))
         }
-        (Value::String(_), _) => Err(RuntimeError::new("split() delimiter must be a string")),
-        _ => Err(RuntimeError::new("split() can only be called on strings")),
+        _ => unreachable!(),
     }
 }
 
 /// Join an array of strings with a delimiter
 #[loft_builtin(string.join)]
-fn string_join(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.len() < 2 {
-        return Err(RuntimeError::new(
-            "join() requires an array and delimiter arguments",
-        ));
-    }
-
+fn string_join(#[required] _this: &Value, #[types(array, string)] args: &[Value]) -> RuntimeResult<Value> {
     match (&args[0], &args[1]) {
         (Value::Array(arr), Value::String(delim)) => {
             let strings: Result<Vec<String>, RuntimeError> = arr
@@ -50,13 +39,13 @@ fn string_join(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
             let strings = strings?;
             Ok(Value::String(strings.join(delim)))
         }
-        (Value::Array(_), _) => Err(RuntimeError::new("join() delimiter must be a string")),
-        _ => Err(RuntimeError::new("join() first argument must be an array")),
+        _ => unreachable!(),
     }
 }
 
 /// Trim whitespace from both ends of a string
 #[loft_builtin(string.trim)]
+// TODO: Elide with #[required] once 'this' support is verified
 fn string_trim(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::String(s) => Ok(Value::String(s.trim().to_string())),
@@ -66,6 +55,7 @@ fn string_trim(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Trim whitespace from the start of a string
 #[loft_builtin(string.trim_start)]
+// TODO: Elide with #[required] once 'this' support is verified
 fn string_trim_start(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::String(s) => Ok(Value::String(s.trim_start().to_string())),
@@ -77,6 +67,7 @@ fn string_trim_start(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Trim whitespace from the end of a string
 #[loft_builtin(string.trim_end)]
+// TODO: Elide with #[required] once 'this' support is verified
 fn string_trim_end(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::String(s) => Ok(Value::String(s.trim_end().to_string())),
@@ -88,6 +79,7 @@ fn string_trim_end(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Replace all occurrences of a substring with another
 #[loft_builtin(string.replace)]
+// TODO: Elide with #[required] and #[types(string, string)]
 fn string_replace(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.len() < 2 {
         return Err(RuntimeError::new(
@@ -106,6 +98,7 @@ fn string_replace(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Convert string to uppercase
 #[loft_builtin(string.to_upper)]
+// TODO: Elide with #[required] once 'this' support is verified
 fn string_to_upper(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::String(s) => Ok(Value::String(s.to_uppercase())),
@@ -117,6 +110,7 @@ fn string_to_upper(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Convert string to lowercase
 #[loft_builtin(string.to_lower)]
+// TODO: Elide with #[required] once 'this' support is verified
 fn string_to_lower(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
     match this {
         Value::String(s) => Ok(Value::String(s.to_lowercase())),
@@ -128,6 +122,7 @@ fn string_to_lower(this: &Value, _args: &[Value]) -> RuntimeResult<Value> {
 
 /// Check if string starts with a prefix
 #[loft_builtin(string.starts_with)]
+// TODO: Elide with #[required] and #[types(string)]
 fn string_starts_with(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new(
@@ -148,6 +143,7 @@ fn string_starts_with(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Check if string ends with a suffix
 #[loft_builtin(string.ends_with)]
+// TODO: Elide with #[required] and #[types(string)]
 fn string_ends_with(this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     if args.is_empty() {
         return Err(RuntimeError::new("ends_with() requires a suffix argument"));

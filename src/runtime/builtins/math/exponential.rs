@@ -7,13 +7,7 @@ use rust_decimal::Decimal;
 
 /// Power: base^exponent
 #[loft_builtin(math.pow)]
-fn math_pow(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.len() < 2 {
-        return Err(RuntimeError::new(
-            "math.pow() requires base and exponent arguments",
-        ));
-    }
-
+fn math_pow(#[required] _this: &Value, #[types(number, number)] args: &[Value]) -> RuntimeResult<Value> {
     match (&args[0], &args[1]) {
         (Value::Number(base), Value::Number(exp)) => {
             let base_f64 = base
@@ -28,17 +22,13 @@ fn math_pow(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
                 .map(Value::Number)
                 .ok_or_else(|| RuntimeError::new("Result too large or invalid"))
         }
-        _ => Err(RuntimeError::new("math.pow() arguments must be numbers")),
+        _ => unreachable!(),
     }
 }
 
 /// Square root
 #[loft_builtin(math.sqrt)]
-fn math_sqrt(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new("math.sqrt() requires a number argument"));
-    }
-
+fn math_sqrt(#[required] _this: &Value, #[types(number)] args: &[Value]) -> RuntimeResult<Value> {
     match &args[0] {
         Value::Number(n) => {
             let n_f64 = n
@@ -55,17 +45,13 @@ fn math_sqrt(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
                 .map(Value::Number)
                 .ok_or_else(|| RuntimeError::new("Result invalid"))
         }
-        _ => Err(RuntimeError::new("math.sqrt() argument must be a number")),
+        _ => unreachable!(),
     }
 }
 
 /// Exponential function (e^x)
 #[loft_builtin(math.exp)]
-fn math_exp(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new("math.exp() requires a number argument"));
-    }
-
+fn math_exp(#[required] _this: &Value, #[types(number)] args: &[Value]) -> RuntimeResult<Value> {
     match &args[0] {
         Value::Number(n) => {
             let n_f64 = n
@@ -77,17 +63,13 @@ fn math_exp(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
                 .map(Value::Number)
                 .ok_or_else(|| RuntimeError::new("Result too large or invalid"))
         }
-        _ => Err(RuntimeError::new("math.exp() argument must be a number")),
+        _ => unreachable!(),
     }
 }
 
 /// Natural logarithm (ln)
 #[loft_builtin(math.ln)]
-fn math_ln(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new("math.ln() requires a number argument"));
-    }
-
+fn math_ln(#[required] _this: &Value, #[types(number)] args: &[Value]) -> RuntimeResult<Value> {
     match &args[0] {
         Value::Number(n) => {
             let n_f64 = n

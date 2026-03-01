@@ -12,6 +12,12 @@ pub struct TokenFormatter {
     indent_size: usize,
 }
 
+impl Default for TokenFormatter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TokenFormatter {
     pub fn new() -> Self {
         Self { indent_size: 4 }
@@ -378,12 +384,11 @@ impl TokenFormatter {
                 }
 
                 // Ensure closing brace is on its own line
-                if matches!(token, Token::Punct(p) if p == "}") {
-                    if !at_line_start {
+                if matches!(token, Token::Punct(p) if p == "}")
+                    && !at_line_start {
                         output.push('\n');
                         at_line_start = true;
                     }
-                }
 
                 if at_line_start {
                     output.push_str(&" ".repeat(indent_level * self.indent_size));
@@ -432,10 +437,10 @@ impl TokenFormatter {
                 Token::Punct(p) if p == "}" => {
                     // Check next token
                     let next_token = tokens.get(i + 1).map(|tw| &tw.token);
-                    let should_newline = match next_token {
-                        Some(Token::Punct(p)) if p == ";" || p == "," || p == ")" => false,
-                        _ => true,
-                    };
+                    let should_newline = !matches!(
+                        next_token,
+                        Some(Token::Punct(p)) if p == ";" || p == "," || p == ")"
+                    );
 
                     if should_newline {
                         output.push('\n');

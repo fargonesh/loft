@@ -1,46 +1,43 @@
 # loft Language Development TODO
 
-Last Updated: December 20, 2024
+Last Updated: March 1, 2026
 
-### Future Work
-- Performance benchmarks not yet defined
-- Advanced async/await patterns
-- Generic trait implementations
-- Const generics
+## ✅ Completed Items
+- **Parser Error Recovery**: Basic `synchronize` mechanism implemented for statement-level recovery.
+- **Async/Await**: Basic `async` and `await` keywords implemented with `Promise` value type.
+- **Semantic Tokens**: Basic semantic tokens legend and provider implemented in LSP.
+- **FFI Interface**: Support for loading shared libraries and calling functions with numeric arguments.
+- **String Interpolation**: `${}` syntax implemented in `TokenStream`.
+- **JSON Handling**: basic `json.parse()` and `json.stringify()` (via `to_string`) implemented.
 
-## Technical Debt
+## 🚀 Future Work
+- **Performance Benchmarks**: Not yet defined or automated.
+- **Advanced Async/Await**: 
+    - Real task scheduling (currently synchronous simulation).
+    - True lazy futures (currently eager).
+- **Generic Trait Implementations**: Parser supports them, but runtime lacks full implementation for generic types.
+- **Const Generics**: Initial parser support for `const` declarations, but no generic constraints yet.
+- **Memory Management**: 
+    - Move from `Clone` heavy semantics to a more efficient strategy (e.g., Reference Counting or GC).
+    - Current `Value` type uses significant cloning.
+
+## 🛠️ Technical Debt
 
 ### Parser
-- Improve error recovery
-- Support for more expression contexts
-- Optimize parsing performance
+- **Attribute System**: Needs more robust handling and validation beyond gated features.
+- **Incremental Parsing**: LSP currently re-parses full files.
 
 ### Runtime
-- Memory management improvements
-- Garbage collection strategy
-- Better async runtime
+- **Type Safety**: Runtime currently skips much of the type validation even when annotations are present.
+- **Module System**: Improve isolation and circular dependency handling.
 
 ### LSP
-- Optimize for large files
-- Incremental parsing
-- Better semantic tokens
-- Workspace symbol caching
+- **Workspace Symbol Caching**: Currently missing, leading to full scans.
+- **Go to Definition**: Expand beyond basic types and functions to trait methods and cross-module symbols.
 
-## Decision Points
+## ⚖️ Decision Points Status
 
-### Phase 2 Decisions
-- Auto-import behavior: top of file vs inline (Top of file)
-- Completion triggers: aggressive vs conservative (Aggressive)
-- HTTP API design: Fetch-like vs Axios-like vs custom (Fetch-like)
-- JSON handling: typed parsing vs dynamic (Typed, .parse<T>())
-- String interpolation syntax: ${} vs {} (${})
-
-### Phase 3 Decisions
-- Type checking strictness: strict mode vs always on (Strict)
-- Gradual typing: allow mixing typed and untyped code (No mixing, all explicit or implicit)
-- Type inference: infer return types vs require explicit annotations (require explicit)
-
-### Phase 4 Decisions
-- Macro syntax and capabilities (rust proc-macro-like, see quote. syn.)
-- FFI interface design
-- Backward compatibility policy (every major version may impose breaking backwards changes, to be readressed after language reaches maturity, maybe backwards compat to the nearest lts)
+### Phase 2-4 Decisions (Carry-over/Ongoing)
+- **Auto-import behavior**: Finalize convention for module-level vs explicit imports.
+- **Backward Compatibility**: Define the exact LTS policy once 1.0 is reached.
+- **Macro Capabilities**: Expand `loft_builtin_macros` to support user-defined procedural macros.

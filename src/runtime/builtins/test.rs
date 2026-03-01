@@ -5,14 +5,10 @@ use loft_builtin_macros::loft_builtin;
 
 /// Assert that a condition is true
 #[loft_builtin(test.assert)]
-pub fn test_assert(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new("test.assert() requires at least one argument"));
-    }
-
+pub fn test_assert(#[required] _this: &Value, #[types(bool*)] args: &[Value]) -> RuntimeResult<Value> {
     let condition = match &args[0] {
         Value::Boolean(b) => *b,
-        _ => return Err(RuntimeError::new("test.assert() first argument must be a boolean")),
+        _ => unreachable!(),
     };
 
     if !condition {
@@ -32,7 +28,7 @@ pub fn test_assert(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Assert that two values are equal
 #[loft_builtin(test.assert_eq)]
-pub fn test_assert_eq(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
+pub fn test_assert_eq(#[required] _this: &Value, #[required] args: &[Value]) -> RuntimeResult<Value> {
     if args.len() < 2 {
         return Err(RuntimeError::new("test.assert_eq() requires two arguments"));
     }

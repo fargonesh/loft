@@ -227,7 +227,7 @@ pub fn list_topics(stdlib: &StdlibTypes) {
 
     // Primitives
     println!("\n  {}", "PRIMITIVES".bright_white().bold());
-    let mut primitives = vec!["string".to_string(), "array".to_string(), "num".to_string(), "bool".to_string(), "void".to_string()];
+    let mut primitives = ["string".to_string(), "array".to_string(), "num".to_string(), "bool".to_string(), "void".to_string()];
     primitives.sort();
     for chunk in primitives.chunks(5) {
         println!("    {}", chunk.join(", ").to_lowercase());

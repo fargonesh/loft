@@ -121,9 +121,7 @@ enum Commands {
 #[cfg(not(target_arch = "wasm32"))]
 fn should_append_semicolon(input: &str) -> bool {
     let trimmed = input.trim();
-    !vec![
-        "let", "const", "fn", "struct", "impl", "trait", "enum", "if", "while", "for", "match",
-    ]
+    !["let", "const", "fn", "struct", "impl", "trait", "enum", "if", "while", "for", "match"]
     .iter()
     .any(|keyword| trimmed.starts_with(keyword))
         && !trimmed.ends_with(';')
@@ -487,19 +485,16 @@ fn print_help() {
     );
     println!("{}", "Commands:".truecolor(ACID.0, ACID.1, ACID.2).bold());
     println!(
-        "  {}     - {}",
-        "help".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2),
-        "Show this help message"
+        "  {}     - Show this help message",
+        "help".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2)
     );
     println!(
-        "  {}    - {}",
-        "clear".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2),
-        "Clear the screen"
+        "  {}    - Clear the screen",
+        "clear".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2)
     );
     println!(
-        "  {}     - {}",
-        "exit".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2),
-        "Exit the REPL"
+        "  {}     - Exit the REPL",
+        "exit".truecolor(LUMINOUS.0, LUMINOUS.1, LUMINOUS.2)
     );
     println!();
     println!("{}", "Examples:".truecolor(ACID.0, ACID.1, ACID.2).bold());
@@ -599,14 +594,10 @@ fn run_file(path: &str, features: Vec<String>) {
                 Ok(stmts) => {
                     let mut interpreter =
                         Interpreter::with_source(path, &code).with_features(features);
-                    match interpreter.eval_program(stmts) {
-                        Err(e) => {
-                            println!();
-                            print_error(&e);
-                            std::process::exit(1);
-                        }
-
-                        _ => {}
+                    if let Err(e) = interpreter.eval_program(stmts) {
+                        println!();
+                        print_error(&e);
+                        std::process::exit(1);
                     }
                 }
                 Err(e) => {
@@ -794,10 +785,9 @@ fn run_new(name: &str) {
         serde_json::to_string_pretty(&manifest).unwrap(),
     ) {
         Ok(_) => println!(
-            "  {} {} {}",
+            "  {} {} manifest.json",
             "+".bright_green(),
-            "Created".bright_green(),
-            "manifest.json"
+            "Created".bright_green()
         ),
         Err(e) => {
             println!(
@@ -825,10 +815,9 @@ term.println("The answer is:", y);
     if !main_path.exists() {
         match fs::write(&main_path, main_content) {
             Ok(_) => println!(
-                "  {} {} {}",
+                "  {} {} src/main.lf",
                 "+".bright_green(),
-                "Created".bright_green(),
-                "src/main.lf"
+                "Created".bright_green()
             ),
             Err(e) => {
                 println!(
@@ -857,11 +846,11 @@ term.println("The answer is:", y);
     println!();
     if name == "." {
         println!("To get started:");
-        println!("  {} {}", "loft".bright_cyan(), ".");
+        println!("  {} .", "loft".bright_cyan());
     } else {
         println!("To get started:");
         println!("  {} {}", "cd".bright_cyan(), name);
-        println!("  {} {}", "loft".bright_cyan(), ".");
+        println!("  {} .", "loft".bright_cyan());
     }
 }
 
@@ -1397,11 +1386,10 @@ fn run_update(specific_package: Option<&str>) {
         for pkg in &packages {
             if let Some(ver_str) = pkg["version"].as_str() {
                 if let Ok(ver) = semver::Version::parse(ver_str) {
-                    if version_req.matches(&ver) {
-                        if best_match.is_none() || best_match.as_ref().unwrap().1 < ver {
+                    if version_req.matches(&ver)
+                        && (best_match.is_none() || best_match.as_ref().unwrap().1 < ver) {
                             best_match = Some((ver_str.to_string(), ver));
                         }
-                    }
                 }
             }
         }
@@ -1497,7 +1485,6 @@ fn run_update(specific_package: Option<&str>) {
                 "Error".bright_red().bold(),
                 e
             );
-            return;
         });
 
         // Extract tarball
@@ -1612,7 +1599,7 @@ fn run_doc(output_dir: &str) {
 
     // Generate HTML documentation
     let output_path = Path::new(output_dir);
-    match doc_gen.generate_html(&output_path, &manifest.name) {
+    match doc_gen.generate_html(output_path, &manifest.name) {
         Ok(_) => {
             println!();
             println!(
@@ -1670,7 +1657,7 @@ fn run_stdlib_doc(output_dir: &str) {
 
     println!("Generating HTML...");
     let output_path = Path::new(output_dir);
-    match doc_gen.generate_html(&output_path) {
+    match doc_gen.generate_html(output_path) {
         Ok(_) => {
             println!();
             println!(
@@ -2037,25 +2024,23 @@ fn run_format(path: Option<&str>, check: bool) {
                 println!("  {} {}", "v".dimmed(), display_path.dimmed());
             }
             unchanged_count += 1;
+        } else if check {
+            println!("  {} {}", "!".bright_red(), display_path.bright_white());
+            formatted_count += 1;
         } else {
-            if check {
-                println!("  {} {}", "!".bright_red(), display_path.bright_white());
-                formatted_count += 1;
-            } else {
-                match fs::write(file_path, formatted_content) {
-                    Ok(_) => {
-                        println!("  {} {}", "v".bright_green(), display_path.bright_white());
-                        formatted_count += 1;
-                    }
-                    Err(e) => {
-                        println!(
-                            "{}: Failed to write '{}': {}",
-                            "Error".bright_red().bold(),
-                            display_path,
-                            e
-                        );
-                        error_count += 1;
-                    }
+            match fs::write(file_path, formatted_content) {
+                Ok(_) => {
+                    println!("  {} {}", "v".bright_green(), display_path.bright_white());
+                    formatted_count += 1;
+                }
+                Err(e) => {
+                    println!(
+                        "{}: Failed to write '{}': {}",
+                        "Error".bright_red().bold(),
+                        display_path,
+                        e
+                    );
+                    error_count += 1;
                 }
             }
         }
@@ -2151,7 +2136,7 @@ fn run_docs(topic: Option<String>) {
 
         // Start with entrypoint
         let entrypoint = Path::new(&manifest.entrypoint);
-        if entrypoint.as_os_str().len() > 0 && entrypoint.exists() {
+        if !entrypoint.as_os_str().is_empty() && entrypoint.exists() {
             files_to_parse.push(entrypoint.to_path_buf());
         }
 
@@ -2169,11 +2154,10 @@ fn run_docs(topic: Option<String>) {
                         {
                             collect_files(&path, files);
                         }
-                    } else if path.extension().and_then(|s| s.to_str()) == Some("lf") {
-                        if !files.contains(&path) {
+                    } else if path.extension().and_then(|s| s.to_str()) == Some("lf")
+                        && !files.contains(&path) {
                             files.push(path);
                         }
-                    }
                 }
             }
         }

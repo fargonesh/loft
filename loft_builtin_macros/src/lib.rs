@@ -59,6 +59,16 @@ pub fn loft_builtin(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 }
 
+#[proc_macro_attribute]
+pub fn required(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    item
+}
+
+#[proc_macro_attribute]
+pub fn types(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    item
+}
+
 fn extract_doc_comments(attrs: &[syn::Attribute]) -> String {
     attrs
         .iter()
@@ -80,29 +90,110 @@ fn extract_doc_comments(attrs: &[syn::Attribute]) -> String {
         .to_string()
 }
 
-fn handle_function(path: String, func: ItemFn) -> TokenStream {
-    let _fn_name = &func.sig.ident;
+fn handle_function(_path: String, mut func: ItemFn) -> TokenStream {
+    // Parse arguments and look for attributes
+    let mut check_logic = Vec::new();
+    let mut required_args = 0;
+    let mut type_checks = Vec::new();
+
+    for arg in func.sig.inputs.iter_mut() {
+        if let syn::FnArg::Typed(pat_type) = arg {
+            // Check if it's the `args` parameter (usually `&[Value]`)
+            let is_args_param = if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
+                pat_ident.ident == "args"
+            } else {
+                false
+            };
+
+            let mut i = 0;
+            while i < pat_type.attrs.len() {
+                let attr = &pat_type.attrs[i];
+                if attr.path().is_ident("required") {
+                    required_args += 1;
+                    pat_type.attrs.remove(i);
+                } else if attr.path().is_ident("types") && is_args_param {
+                    if let Meta::List(list) = &attr.meta {
+                        let tokens = &list.tokens;
+                        let type_str = tokens.to_string().replace(" ", "");
+                        
+                        let types: Vec<String> = type_str.split(',')
+                            .map(|s| s.trim().to_string())
+                            .collect();
+                        
+                        for (idx, type_name) in types.iter().enumerate() {
+                            let is_varargs = type_name.ends_with('*');
+                            let base_type = if is_varargs {
+                                type_name[..type_name.len()-1].to_string()
+                            } else {
+                                type_name.clone()
+                            };
+
+                            let type_match = match base_type.as_str() {
+                                "bool" => quote! { Value::Boolean(_) },
+                                "string" => quote! { Value::String(_) },
+                                "number" => quote! { Value::Number(_) },
+                                "array" => quote! { Value::Array(_) },
+                                "object" => quote! { Value::Struct { .. } },
+                                _ => quote! { _ },
+                            };
+
+                            let error_msg = format!("Argument must be of type {}", base_type);
+                            
+                            if is_varargs {
+                                type_checks.push(quote! {
+                                    for val in &args[#idx..] {
+                                        if !matches!(val, #type_match) {
+                                            return Err(RuntimeError::new(#error_msg));
+                                        }
+                                    }
+                                });
+                            } else {
+                                type_checks.push(quote! {
+                                    if let Some(val) = args.get(#idx) {
+                                        if !matches!(val, #type_match) {
+                                            return Err(RuntimeError::new(#error_msg));
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    }
+                    pat_type.attrs.remove(i);
+                } else {
+                    i += 1;
+                }
+            }
+        }
+    }
+
+    if required_args > 0 {
+        let min_args = if required_args > 0 { required_args - 1 } else { 0 };
+        let min_args_val = min_args as usize;
+        let error_msg = format!("Function requires at least {} arguments", min_args);
+        check_logic.push(quote! {
+            if args.is_empty() && #min_args_val > 0 {
+                 return Err(RuntimeError::new(#error_msg));
+            }
+            if args.len() < #min_args_val {
+                return Err(RuntimeError::new(#error_msg));
+            }
+        });
+    }
+    
+    check_logic.extend(type_checks);
+
     let fn_vis = &func.vis;
     let fn_attrs = &func.attrs;
     let fn_sig = &func.sig;
     let fn_block = &func.block;
     
-    // Extract documentation comments for metadata
-    let _doc_string = extract_doc_comments(fn_attrs);
-    
-    // Parse the path to extract information
-    let parts: Vec<&str> = path.split('.').collect();
-    let _metadata = if parts.len() >= 2 {
-        format!("builtin: {}, method: {}", parts[0], parts[1])
-    } else {
-        format!("method: {}", path)
-    };
-    
-    // For now, just pass through the function as-is
-    // In a more complete implementation, we could generate conversion code
     let expanded = quote! {
         #(#fn_attrs)*
-        #fn_vis #fn_sig #fn_block
+        #[allow(clippy::duplicated_attributes)]
+        #fn_vis #fn_sig {
+            #(#check_logic)*
+            #fn_block
+        }
     };
     
     TokenStream::from(expanded)

@@ -248,3 +248,13 @@ jobs:
 
       - name: Verify tests/examples.rs matches script output
         run: bash scripts/gen_example_tests.sh --check
+
+  check-stdlib-coverage:
+    name: Check Stdlib Documentation Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run stdlib coverage check
+        run: node scripts/check_stdlib_coverage.js

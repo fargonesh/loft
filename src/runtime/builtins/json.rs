@@ -1,21 +1,17 @@
 use crate::runtime::builtin::{BuiltinMethod, BuiltinStruct};
 use crate::runtime::value::Value;
 use crate::runtime::{RuntimeError, RuntimeResult};
-use loft_builtin_macros::loft_builtin;
+use loft_builtin_macros::{loft_builtin, required};
 use rust_decimal::Decimal;
 use serde_json;
 use std::collections::HashMap;
 
 /// Parse a JSON string into a loft value
 #[loft_builtin(json.parse)]
-fn json_parse(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new("json.parse() requires a string argument"));
-    }
-
+fn json_parse(#[required] _this: &Value, #[types(string)] args: &[Value]) -> RuntimeResult<Value> {
     let json_str = match &args[0] {
         Value::String(s) => s,
-        _ => return Err(RuntimeError::new("json.parse() argument must be a string")),
+        _ => unreachable!(),
     };
 
     let json_value: serde_json::Value = serde_json::from_str(json_str)
@@ -26,13 +22,8 @@ fn json_parse(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Convert a loft value to a JSON string
 #[loft_builtin(json.stringify)]
-fn json_stringify(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new(
-            "json.stringify() requires a value argument",
-        ));
-    }
-
+#[required]
+fn json_stringify(#[required] _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     let json_value = loft_value_to_json(&args[0])?;
     let json_str = serde_json::to_string(&json_value)
         .map_err(|e| RuntimeError::new(format!("Failed to stringify JSON: {}", e)))?;
@@ -42,13 +33,8 @@ fn json_stringify(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Convert a loft value to a pretty-printed JSON string
 #[loft_builtin(json.stringify_pretty)]
-fn json_stringify_pretty(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new(
-            "json.stringify_pretty() requires a value argument",
-        ));
-    }
-
+#[required]
+fn json_stringify_pretty(#[required] _this: &Value, args: &[Value]) -> RuntimeResult<Value> {
     let json_value = loft_value_to_json(&args[0])?;
     let json_str = serde_json::to_string_pretty(&json_value)
         .map_err(|e| RuntimeError::new(format!("Failed to stringify JSON: {}", e)))?;

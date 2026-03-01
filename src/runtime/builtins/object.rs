@@ -1,59 +1,37 @@
 use crate::runtime::builtin::{BuiltinMethod, BuiltinStruct};
 use crate::runtime::value::Value;
 use crate::runtime::{RuntimeError, RuntimeResult};
-use loft_builtin_macros::loft_builtin;
+use loft_builtin_macros::{loft_builtin, required, types};
 use rust_decimal::Decimal;
 use std::collections::HashMap;
 
 /// Get all keys from an object
 #[loft_builtin(object.keys)]
-fn object_keys(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new(
-            "object.keys() requires an object argument",
-        ));
-    }
-
+fn object_keys(#[required] _this: &Value, #[types(object)] args: &[Value]) -> RuntimeResult<Value> {
     match &args[0] {
         Value::Struct { fields, .. } => {
             let keys: Vec<Value> = fields.keys().map(|k| Value::String(k.clone())).collect();
             Ok(Value::Array(keys))
         }
-        _ => Err(RuntimeError::new(
-            "object.keys() argument must be an object",
-        )),
+        _ => unreachable!(),
     }
 }
 
 /// Get all values from an object
 #[loft_builtin(object.values)]
-fn object_values(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new(
-            "object.values() requires an object argument",
-        ));
-    }
-
+fn object_values(#[required] _this: &Value, #[types(object)] args: &[Value]) -> RuntimeResult<Value> {
     match &args[0] {
         Value::Struct { fields, .. } => {
             let values: Vec<Value> = fields.values().cloned().collect();
             Ok(Value::Array(values))
         }
-        _ => Err(RuntimeError::new(
-            "object.values() argument must be an object",
-        )),
+        _ => unreachable!(),
     }
 }
 
 /// Get all entries from an object as [key, value] pairs
 #[loft_builtin(object.entries)]
-fn object_entries(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new(
-            "object.entries() requires an object argument",
-        ));
-    }
-
+fn object_entries(#[required] _this: &Value, #[types(object)] args: &[Value]) -> RuntimeResult<Value> {
     match &args[0] {
         Value::Struct { fields, .. } => {
             let entries: Vec<Value> = fields
@@ -62,54 +40,44 @@ fn object_entries(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
                 .collect();
             Ok(Value::Array(entries))
         }
-        _ => Err(RuntimeError::new(
-            "object.entries() argument must be an object",
-        )),
+        _ => unreachable!(),
     }
 }
 
 /// Check if object has a property
 #[loft_builtin(object.has)]
-fn object_has(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.len() < 2 {
-        return Err(RuntimeError::new(
-            "object.has() requires object and key arguments",
-        ));
-    }
-
+fn object_has(#[required] _this: &Value, #[types(object, string)] args: &[Value]) -> RuntimeResult<Value> {
     match (&args[0], &args[1]) {
         (Value::Struct { fields, .. }, Value::String(key)) => {
             Ok(Value::Boolean(fields.contains_key(key)))
         }
-        (Value::Struct { .. }, _) => Err(RuntimeError::new("object.has() key must be a string")),
-        _ => Err(RuntimeError::new(
-            "object.has() first argument must be an object",
-        )),
+        _ => unreachable!(),
     }
 }
 
 /// Assign properties from source objects to target object
 #[loft_builtin(object.assign)]
+#[required]
+#[types(type*)]
 fn object_assign(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new(
-            "object.assign() requires at least one argument",
-        ));
-    }
-
-    let mut result_fields = HashMap::new();
+    let result_fields;
 
     // Start with first object
     if let Value::Struct { fields, .. } = &args[0] {
         result_fields = fields.clone();
+    } else {
+        return Err(RuntimeError::new("object.assign() target must be an object"));
     }
 
     // Merge in additional objects
+    let mut result_fields = result_fields;
     for arg in &args[1..] {
         if let Value::Struct { fields, .. } = arg {
             for (key, value) in fields {
                 result_fields.insert(key.clone(), value.clone());
             }
+        } else {
+            return Err(RuntimeError::new("object.assign() sources must be objects"));
         }
     }
 
@@ -121,13 +89,9 @@ fn object_assign(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
 
 /// Create an object from entries [[key, value], ...]
 #[loft_builtin(object.from_entries)]
+#[required]
+#[types(array)]
 fn object_from_entries(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new(
-            "object.from_entries() requires an entries array",
-        ));
-    }
-
     match &args[0] {
         Value::Array(entries) => {
             let mut fields = HashMap::new();
@@ -150,26 +114,18 @@ fn object_from_entries(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
                 fields,
             })
         }
-        _ => Err(RuntimeError::new(
-            "object.from_entries() argument must be an array",
-        )),
+        _ => unreachable!(),
     }
 }
 
 /// Get the number of properties in an object
 #[loft_builtin(object.size)]
+#[required]
+#[types(object)]
 fn object_size(_this: &Value, args: &[Value]) -> RuntimeResult<Value> {
-    if args.is_empty() {
-        return Err(RuntimeError::new(
-            "object.size() requires an object argument",
-        ));
-    }
-
     match &args[0] {
         Value::Struct { fields, .. } => Ok(Value::Number(Decimal::from(fields.len()))),
-        _ => Err(RuntimeError::new(
-            "object.size() argument must be an object",
-        )),
+        _ => unreachable!(),
     }
 }
 
