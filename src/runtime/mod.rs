@@ -1067,9 +1067,27 @@ impl Interpreter {
                         }
                     }
                     Value::BuiltinFn(builtin_fn) => builtin_fn(&arg_vals),
-                    Value::BoundMethod { object, method, .. } => {
-                        // Call the bound method with the object as 'this'
-                        method(&object, &arg_vals)
+                    Value::BoundMethod {
+                        object,
+                        method_name,
+                        method,
+                        ..
+                    } => {
+                        // Special case for term.print and term.println
+                        // We intercept these to apply user-defined Printable trait implementations
+                        if (method_name == "print" || method_name == "println")
+                            && matches!(&*object, Value::Builtin(b) if b.name == "term")
+                        {
+                            let mut stringified_args = Vec::with_capacity(arg_vals.len());
+                            for arg in arg_vals {
+                                stringified_args.push(Value::String(self.value_to_string(&arg)?));
+                            }
+                            // Call the bound method with the object as 'this' and the stringified arguments
+                            method(&object, &stringified_args)
+                        } else {
+                            // Call the bound method with the object as 'this'
+                            method(&object, &arg_vals)
+                        }
                     }
                     Value::UserMethod {
                         object,
@@ -1516,23 +1534,33 @@ impl Interpreter {
 
     fn value_to_string(&mut self, value: &Value) -> RuntimeResult<String> {
         if let Value::Struct { name, .. } = value {
+            let mut body_to_eval = None;
             // Check for user-defined methods in impl blocks
             if let Some(methods) = self.impl_methods.get(name) {
-                if let Some((_params, _return_type, body, _)) = methods.get("to_string") {
-                    // Create new scope for method
-                    self.env.push_scope();
-
-                    // Bind 'self'
-                    self.env.set("self".to_string(), value.clone());
-
-                    // Execute method body
-                    let result = self.eval_stmt(*body.clone())?;
-
-                    self.env.pop_scope();
-
-                    if let Value::String(s) = result {
-                        return Ok(s);
+                // Try 'print' first (Printable trait), then 'to_string' (ToString trait)
+                for method_name in &["print", "to_string"] {
+                    if let Some((_params, _return_type, body, _)) = methods.get(*method_name) {
+                        body_to_eval = Some((*body).clone());
+                        break;
                     }
+                }
+            }
+
+            if let Some(body) = body_to_eval {
+                // Create new scope for method
+                self.env.push_scope();
+
+                // Bind 'self'
+                self.env.set("self".to_string(), value.clone());
+
+                // Execute method body
+                let mut result = self.eval_stmt(*body)?;
+                result = self.returning.take().unwrap_or(result);
+
+                self.env.pop_scope();
+
+                if let Value::String(s) = result {
+                    return Ok(s);
                 }
             }
         }
@@ -1590,6 +1618,14 @@ impl Interpreter {
 
                     return Ok(result);
                 }
+            }
+        }
+
+        // Handle string concatenation specially to use our custom value_to_string
+        if op == "+" {
+            if let Value::String(l_str) = &left {
+                let r_str = self.value_to_string(&right)?;
+                return Ok(Value::String(format!("{}{}", l_str, r_str)));
             }
         }
 

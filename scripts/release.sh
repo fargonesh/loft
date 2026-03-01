@@ -19,16 +19,11 @@ if [ "$2" == "--tag" ]; then
     TAG_MODE=true
 fi
 
-# Ensure we are on a clean main branch
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-if [ "$CURRENT_BRANCH" != "main" ] && [ "$TAG_MODE" = false ]; then
-    echo "Warning: You are not on the main branch. It is recommended to release from main."
-    read -p "Continue anyway? (y/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
-    fi
-fi
+# Fetch and checkout origin/main to be up to date
+echo "Updating from origin/main..."
+git fetch origin
+git checkout main
+git reset --hard origin/main
 
 echo "Preparing release $VERSION..."
 
@@ -46,23 +41,40 @@ cargo check > /dev/null 2>&1
 if [ "$TAG_MODE" = true ]; then
     echo "Creating tag v$VERSION..."
     git add Cargo.toml registry/Cargo.toml loft_builtin_macros/Cargo.toml Cargo.lock
-    git commit -m "chore: release v$VERSION"
+    git commit -m "release: v$VERSION"
     git tag -a "v$VERSION" -m "Release v$VERSION"
     echo "Pushing tag to origin..."
     git push origin "v$VERSION"
     echo "Release v$VERSION tagged and pushed!"
 else
-    BRANCH_NAME="$VERSION"
+    BRANCH_NAME="release/v$VERSION"
     echo "Creating branch $BRANCH_NAME..."
     git checkout -b "$BRANCH_NAME"
+    
+    # Generate release notes from commits since last tag
+    REPO="fargonesh/loft"
+    LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+    if [ -n "$LAST_TAG" ]; then
+        echo "Generating release notes since $LAST_TAG..."
+        # Format: [@author](https://github.com/author): Title ([short_hash](https://github.com/owner/repo/commit/hash))
+        RELEASE_NOTES=$(git log "$LAST_TAG..HEAD" --pretty=format:"[@%an](https://github.com/%an): %s ([%h](https://github.com/$REPO/commit/%H))")
+    else
+        echo "No previous tag found. Generating release notes from all commits..."
+        RELEASE_NOTES=$(git log --pretty=format:"[@%an](https://github.com/%an): %s ([%h](https://github.com/$REPO/commit/%H))")
+    fi
+
     git add Cargo.toml registry/Cargo.toml loft_builtin_macros/Cargo.toml Cargo.lock
-    git commit -m "chore: bump version to $VERSION"
+    git commit -m "release: v$VERSION"
     echo "Pushing branch to origin..."
     git push origin "$BRANCH_NAME"
     
     if command -v gh &> /dev/null; then
         echo "Creating Pull Request..."
-        gh pr create --title "v$VERSION" --body "Release candidate $VERSION" --base main --head "$BRANCH_NAME"
+        PR_BODY="Release candidate $VERSION
+
+### Changes:
+$RELEASE_NOTES"
+        gh pr create --title "release: v$VERSION" --body "$PR_BODY" --base main --head "$BRANCH_NAME"
     else
         echo "GitHub CLI (gh) not found. Please create the PR manually."
     fi

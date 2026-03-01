@@ -817,6 +817,7 @@
     "Option": {
       "kind": "enum",
       "documentation": "A native optional value. Use `Option.Some(value)` to wrap a value or `Option.None` when absent.",
+      "variants": ["Some", "None"],
       "fields": {},
       "methods": {
         "is_some": {
@@ -849,6 +850,7 @@
     "Result": {
       "kind": "enum",
       "documentation": "A native result type. Use `Result.Ok(value)` for success or `Result.Err(error)` for failure.",
+      "variants": ["Ok", "Err"],
       "fields": {},
       "methods": {
         "is_ok": {

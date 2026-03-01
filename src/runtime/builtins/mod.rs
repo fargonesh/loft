@@ -11,6 +11,7 @@ pub mod object;
 pub mod random;
 pub mod string;
 pub mod term;
+pub mod test;
 pub mod time;
 pub mod traits;
 #[cfg(not(target_arch = "wasm32"))]
