@@ -64,13 +64,13 @@ fn example_mutable_capture() {
 }
 
 #[test]
-fn example_optional_return() {
-    run_example("examples/optional_return.lf", None);
+fn example_option_result() {
+    run_example("examples/option_result.lf", None);
 }
 
 #[test]
-fn example_option_result() {
-    run_example("examples/option_result.lf", None);
+fn example_optional_return() {
+    run_example("examples/optional_return.lf", None);
 }
 
 #[test]
