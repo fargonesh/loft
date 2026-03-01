@@ -67,6 +67,7 @@ else
     git commit -m "release: v$VERSION"
     echo "Pushing branch to origin..."
     git push origin "$BRANCH_NAME"
+    git push origin --tags
     
     if command -v gh &> /dev/null; then
         echo "Creating Pull Request..."
