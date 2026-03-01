@@ -51,18 +51,6 @@ else
     echo "Creating branch $BRANCH_NAME..."
     git checkout -b "$BRANCH_NAME"
     
-    # Generate release notes from commits since last tag
-    REPO="fargonesh/loft"
-    LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-    if [ -n "$LAST_TAG" ]; then
-        echo "Generating release notes since $LAST_TAG..."
-        # Format: [@author](https://github.com/author): Title ([short_hash](https://github.com/owner/repo/commit/hash))
-        RELEASE_NOTES=$(git log "$LAST_TAG..HEAD" --pretty=format:"[@%an](https://github.com/%an): %s ([%h](https://github.com/$REPO/commit/%H))")
-    else
-        echo "No previous tag found. Generating release notes from all commits..."
-        RELEASE_NOTES=$(git log --pretty=format:"[@%an](https://github.com/%an): %s ([%h](https://github.com/$REPO/commit/%H))")
-    fi
-
     git add Cargo.toml registry/Cargo.toml loft_builtin_macros/Cargo.toml Cargo.lock
     git commit -m "release: v$VERSION"
     echo "Pushing branch to origin..."
