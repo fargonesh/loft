@@ -63,6 +63,19 @@ struct StdlibType {
     fields: HashMap<String, StdlibField>,
     #[serde(default)]
     methods: HashMap<String, StdlibMethod>,
+    #[serde(default)]
+    variants: Vec<StdlibVariant>,
+    #[serde(default)]
+    implemented_traits: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+struct StdlibVariant {
+    name: String,
+    #[serde(default)]
+    fields: Option<Vec<String>>,
+    #[serde(default)]
+    documentation: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -78,6 +91,12 @@ struct TraitMethodInfo {
     params: Vec<(String, String)>,
     return_type: String,
     has_default_impl: bool,
+}
+
+#[derive(Debug, Clone)]
+struct EnumVariantInfo {
+    name: String,
+    fields: Option<Vec<String>>,
 }
 
 // Symbol information for LSP features
@@ -110,6 +129,9 @@ enum SymbolKind {
     },
     Trait {
         methods: Vec<TraitMethodInfo>,
+    },
+    Enum {
+        variants: Vec<EnumVariantInfo>,
     },
     Constant {
         const_type: String,
@@ -2020,6 +2042,34 @@ impl LoftLanguageServer {
                         is_exported: false, // TODO: Detect if trait is preceded by 'teach' keyword
                     });
                 }
+                Stmt::EnumDecl { name, variants } => {
+                    let variant_infos: Vec<EnumVariantInfo> = variants
+                        .iter()
+                        .map(|(n, fields)| EnumVariantInfo {
+                            name: n.clone(),
+                            fields: fields.as_ref().map(|types| {
+                                types
+                                    .iter()
+                                    .map(|t| Self::type_to_string(t))
+                                    .collect()
+                            }),
+                        })
+                        .collect();
+
+                    symbols.push(SymbolInfo {
+                        name: name.clone(),
+                        kind: SymbolKind::Enum {
+                            variants: variant_infos,
+                        },
+                        detail: Some(format!("enum {}", name)),
+                        documentation: None,
+                        scope_level,
+                        range: None, // TODO: extract from AST node position
+                        selection_range: None,
+                        source_uri: None,
+                        is_exported: false, // TODO: Detect if enum is preceded by 'teach' keyword
+                    });
+                }
                 Stmt::Block(stmts) => {
                     // Recursively extract symbols from blocks with increased scope level
                     symbols.extend(Self::extract_symbols(stmts, scope_level + 1, stdlib_types));
@@ -2435,9 +2485,63 @@ impl LoftLanguageServer {
             return Ok(Some(CompletionResponse::Array(items)));
         }
 
+        // Check if it's a builtin type (like Option, Result) being accessed statically (Option::Some)
+        if let Some(type_data) = self.stdlib_types.types.get(object_name) {
+            // Add variants
+            for variant in &type_data.variants {
+                let insert_text = if let Some(_) = &variant.fields {
+                    format!("{}($0)", variant.name)
+                } else {
+                    variant.name.clone()
+                };
+
+                items.push(CompletionItem {
+                    label: variant.name.clone(),
+                    kind: Some(CompletionItemKind::ENUM_MEMBER),
+                    detail: Some(format!("{}::{}", object_name, variant.name)),
+                    documentation: Some(Documentation::MarkupContent(MarkupContent {
+                        kind: MarkupKind::Markdown,
+                        value: format!("Variant of {} - {}", object_name, variant.documentation),
+                    })),
+                    insert_text: Some(insert_text),
+                    insert_text_format: Some(InsertTextFormat::SNIPPET),
+                    ..Default::default()
+                });
+            }
+
+            return Ok(Some(CompletionResponse::Array(items)));
+        }
+
         // Check if it's a string type - add string methods
         let docs = self.documents.read().await;
         if let Some(doc_data) = docs.get(uri) {
+            // Check if symbol is an Enum
+            if let Some(symbol) = doc_data.symbols.iter().find(|s| s.name == object_name) {
+                if let SymbolKind::Enum { variants } = &symbol.kind {
+                    for variant in variants {
+                        let insert_text = if let Some(_) = &variant.fields {
+                            format!("{}($0)", variant.name)
+                        } else {
+                            variant.name.clone()
+                        };
+
+                        items.push(CompletionItem {
+                            label: variant.name.clone(),
+                            kind: Some(CompletionItemKind::ENUM_MEMBER),
+                            detail: Some(format!("{}::{}", object_name, variant.name)),
+                            documentation: Some(Documentation::MarkupContent(MarkupContent {
+                                kind: MarkupKind::Markdown,
+                                value: format!("Enum variant of {}", object_name),
+                            })),
+                            insert_text: Some(insert_text),
+                            insert_text_format: Some(InsertTextFormat::SNIPPET),
+                            ..Default::default()
+                        });
+                    }
+                    return Ok(Some(CompletionResponse::Array(items)));
+                }
+            }
+
             // Find the variable/symbol and its type
             if let Some(symbol) = doc_data.symbols.iter().find(|s| s.name == object_name) {
                 self.client
@@ -2567,6 +2671,29 @@ impl LoftLanguageServer {
                                 ..Default::default()
                             });
                         }
+                        
+                        // Add variants as completions for enums
+                        for variant in &stdlib_type.variants {
+                            let insert_text = if let Some(_) = &variant.fields {
+                                format!("{}($0)", variant.name)
+                            } else {
+                                variant.name.clone()
+                            };
+
+                            items.push(CompletionItem {
+                                label: variant.name.clone(),
+                                kind: Some(CompletionItemKind::ENUM_MEMBER),
+                                detail: Some(format!("{}::{}", type_name, variant.name)),
+                                documentation: Some(Documentation::MarkupContent(MarkupContent {
+                                    kind: MarkupKind::Markdown,
+                                    value: format!("Variant of {}\n\n{}", type_name, variant.documentation),
+                                })),
+                                insert_text: Some(insert_text),
+                                insert_text_format: Some(InsertTextFormat::SNIPPET),
+                                ..Default::default()
+                            });
+                        }
+
                         // Add methods as completions
                         for (method_name, method_info) in &stdlib_type.methods {
                             items.push(CompletionItem {
@@ -2701,6 +2828,25 @@ impl LoftLanguageServer {
                         if methods.len() == 1 { "" } else { "s" }
                     ));
                 }
+            }
+            SymbolKind::Enum { variants } => {
+                // Code block with enum definition
+                text.push_str("```loft\n");
+                text.push_str("enum ");
+                text.push_str(&symbol.name);
+                text.push_str(" {\n");
+                for variant in variants {
+                    text.push_str("    ");
+                    text.push_str(&variant.name);
+                    if let Some(fields) = &variant.fields {
+                        text.push_str("(");
+                        text.push_str(&fields.join(", "));
+                        text.push_str(")");
+                    }
+                    text.push_str(",\n");
+                }
+                text.push_str("}\n```\n\n");
+                text.push_str("_(enum)_");
             }
             SymbolKind::Trait { methods } => {
                 // Code block with trait signature
@@ -3350,6 +3496,77 @@ impl LanguageServer for LoftLanguageServer {
                         method.return_type,
                         method.documentation
                     ));
+                }
+            }
+
+            return Ok(Some(Hover {
+                contents: HoverContents::Markup(MarkupContent {
+                    kind: MarkupKind::Markdown,
+                    value: hover_text,
+                }),
+                range: None,
+            }));
+        }
+
+        // Check if it's a builtin type (struct or enum)
+        if let Some(type_def) = self.stdlib_types.types.get(&word) {
+            let mut hover_text = format!("```loft\n{} {}\n```\n\n_(builtin {})_", type_def.kind, word, type_def.kind);
+
+            if !type_def.documentation.is_empty() {
+                hover_text.push_str("\n\n---\n\n");
+                hover_text.push_str(&type_def.documentation);
+            }
+
+             // Show variants if it's an enum
+            if !type_def.variants.is_empty() {
+                hover_text.push_str("\n\n---\n\n**Variants:**");
+                for variant in &type_def.variants {
+                    hover_text.push_str(&format!("\n- `{}`", variant.name));
+                    if let Some(fields) = &variant.fields {
+                         hover_text.push_str(&format!("({})", fields.join(", ")));
+                    }
+                    if !variant.documentation.is_empty() {
+                         hover_text.push_str(&format!(" - {}", variant.documentation));
+                    }
+                }
+            }
+
+            if !type_def.implemented_traits.is_empty() {
+                hover_text.push_str("\n\n---\n\n**Implements:**");
+                for trait_name in &type_def.implemented_traits {
+                     hover_text.push_str(&format!("\n- `{}`", trait_name));
+                }
+            }
+
+            if !type_def.fields.is_empty() {
+                hover_text.push_str("\n\n---\n\n**Fields:**");
+                for (name, field) in type_def.fields.iter().take(5) {
+                    hover_text.push_str(&format!(
+                        "\n- `{}`: `{}` - {}",
+                        name, field.field_type, field.documentation
+                    ));
+                }
+                 if type_def.fields.len() > 5 {
+                    hover_text.push_str(&format!(
+                        "\n- _...and {} more_",
+                        type_def.fields.len() - 5
+                    ));
+                }
+            }
+
+            if !type_def.methods.is_empty() {
+                hover_text.push_str("\n\n---\n\n**Methods:**");
+                for (name, method) in type_def.methods.iter().take(8) {
+                    hover_text.push_str(&format!(
+                        "\n- `{}({})` -> `{}`",
+                        name,
+                        method.params.join(", "),
+                        method.return_type
+                    ));
+                }
+                if type_def.methods.len() > 8 {
+                    hover_text
+                        .push_str(&format!("\n- _...and {} more_", type_def.methods.len() - 8));
                 }
             }
 
@@ -4165,6 +4382,9 @@ impl LanguageServer for LoftLanguageServer {
                     SymbolKind::Variable { .. } | SymbolKind::Constant { .. } => {
                         (CompletionItemKind::VARIABLE, symbol.name.clone())
                     }
+                    SymbolKind::Enum { .. } => {
+                        (CompletionItemKind::ENUM, symbol.name.clone())
+                    }
                     SymbolKind::Function { params, .. } => {
                         let params_snippet = params
                             .iter()
@@ -4204,6 +4424,9 @@ impl LanguageServer for LoftLanguageServer {
                 let (kind, insert_text) = match &symbol.kind {
                     SymbolKind::Variable { .. } | SymbolKind::Constant { .. } => {
                         (CompletionItemKind::VARIABLE, symbol.name.clone())
+                    }
+                    SymbolKind::Enum { .. } => {
+                        (CompletionItemKind::ENUM, symbol.name.clone())
                     }
                     SymbolKind::Function { params, .. } => {
                         let params_snippet = params
@@ -4549,6 +4772,7 @@ impl LanguageServer for LoftLanguageServer {
                     SymbolKind::Variable { .. } | SymbolKind::Constant { .. } => {
                         tower_lsp::lsp_types::SymbolKind::VARIABLE
                     }
+                    SymbolKind::Enum { .. } => tower_lsp::lsp_types::SymbolKind::ENUM,
                     SymbolKind::Function { .. } => tower_lsp::lsp_types::SymbolKind::FUNCTION,
                     SymbolKind::Struct { .. } => tower_lsp::lsp_types::SymbolKind::STRUCT,
                     SymbolKind::Trait { .. } => tower_lsp::lsp_types::SymbolKind::INTERFACE,
@@ -5262,7 +5486,7 @@ impl LanguageServer for LoftLanguageServer {
                                     SymbolKind::Variable { .. } | SymbolKind::Constant { .. } => {
                                         variable_token
                                     }
-                                    SymbolKind::Struct { .. } | SymbolKind::Trait { .. } => {
+                                    SymbolKind::Struct { .. } | SymbolKind::Trait { .. } | SymbolKind::Enum { .. } => {
                                         type_token
                                     }
                                 }
@@ -5838,6 +6062,7 @@ impl LanguageServer for LoftLanguageServer {
                         SymbolKind::Constant { .. } => tower_lsp::lsp_types::SymbolKind::CONSTANT,
                         SymbolKind::Struct { .. } => tower_lsp::lsp_types::SymbolKind::STRUCT,
                         SymbolKind::Trait { .. } => tower_lsp::lsp_types::SymbolKind::INTERFACE,
+                        SymbolKind::Enum { .. } => tower_lsp::lsp_types::SymbolKind::ENUM,
                     };
 
                     #[allow(deprecated)]
@@ -8140,5 +8365,50 @@ fn main() -> void {
             "Expected at least 1 reference, found: {}",
             locations.len()
         );
+    }
+
+    #[tokio::test]
+    async fn test_enum_support() {
+        let (service, _) = LspService::new(|client| LoftLanguageServer::new(client));
+        let server = service.inner();
+
+        let uri = "file:///test_enum.loft".to_string();
+        let source = r#"
+enum Color {
+    Red,
+    Green,
+    Blue
+}
+
+fn main() -> void {
+    let c = Color::Red;
+}
+"#;
+
+        server.did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: Uri::from_str(&uri).unwrap(),
+                language_id: "loft".to_string(),
+                version: 1,
+                text: source.to_string(),
+            },
+        }).await;
+
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+        let docs = server.documents.read().await;
+        let doc = docs.get(&uri).unwrap();
+        
+        let enum_symbol = doc.symbols.iter().find(|s| s.name == "Color");
+        assert!(enum_symbol.is_some(), "Enum symbol 'Color' not found");
+        
+        if let SymbolKind::Enum { variants } = &enum_symbol.unwrap().kind {
+            assert_eq!(variants.len(), 3);
+            assert!(variants.iter().any(|v| v.name == "Red"));
+            assert!(variants.iter().any(|v| v.name == "Green"));
+            assert!(variants.iter().any(|v| v.name == "Blue"));
+        } else {
+            panic!("Symbol 'Color' is not an Enum");
+        }
     }
 }
