@@ -697,7 +697,7 @@ async fn main() {
     let public_url =
         std::env::var("PUBLIC_URL").unwrap_or_else(|_| "https://loft.fargone.sh".to_string());
 
-    let state = AppState::new(storage_dir, client_id, client_secret, public_url);
+    let state = AppState::new(storage_dir.clone(), client_id, client_secret, public_url);
 
     // On startup, build missing docs for all published versions
     if let Ok(entries) = fs::read_dir(&state.storage_dir) {
@@ -827,7 +827,7 @@ async fn main() {
                 if std::path::Path::new(&index_path).exists() {
                     return Ok(axum::response::Response::builder()
                         .header("Content-Type", "text/html")
-                        .body(axum::body::boxed(axum::body::Full::from(fs::read(index_path).unwrap())))
+                        .body(axum::body::Body::from(fs::read(index_path).unwrap()))
                         .unwrap());
                 }
             }
@@ -841,7 +841,7 @@ async fn main() {
         if std::path::Path::new(&index_path).exists() {
             return Ok(axum::response::Response::builder()
                 .header("Content-Type", "text/html")
-                .body(axum::body::boxed(axum::body::Full::from(fs::read(index_path).unwrap())))
+                .body(axum::body::Body::from(fs::read(index_path).unwrap()))
                 .unwrap());
         }
         Err(StatusCode::NOT_FOUND)
@@ -861,7 +861,7 @@ async fn main() {
         .route("/tokens", post(create_token).get(list_tokens))
         .route("/tokens/:id", delete(revoke_token))
         .route("/d/:name", get(serve_latest_docs))
-        .route("/d/:name@:version", get(serve_versioned_docs))
+        .route("/d/:name/:version", get(serve_versioned_docs))
         .nest_service("/docs", ServeDir::new("../book/book"))
         .nest_service("/stdlib", ServeDir::new("../stdlib-docs"))
         .nest_service(

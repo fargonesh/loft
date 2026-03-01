@@ -238,6 +238,30 @@ jobs:
           command: clippy
           args: -- -D warnings
 
+  registry:
+    name: Registry Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Run clippy (registry)
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --manifest-path registry/Cargo.toml -- -D warnings
+
+      - name: Run tests (registry)
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --manifest-path registry/Cargo.toml
 
   check-generated-tests:
     name: Check generated tests are up to date

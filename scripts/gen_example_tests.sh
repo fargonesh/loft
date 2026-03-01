@@ -101,7 +101,7 @@ HEADER
       "$IGNORED_FILE")  ignored_files+=("$name") ;;
       *)                normal_files+=("$name") ;;
     esac
-  done < <(find "$EXAMPLES_DIR" -maxdepth 1 -name '*.lf' -print0 | sort -z)
+  done < <(LC_ALL=C find "$EXAMPLES_DIR" -maxdepth 1 -name '*.lf' -print0 | LC_ALL=C sort -z)
 
   # ---- normal tests --------------------------------------------------------
   printf '// ---------------------------------------------------------------------------\n'
