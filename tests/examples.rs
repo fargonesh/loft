@@ -59,6 +59,16 @@ fn example_factorial() {
 }
 
 #[test]
+fn example_for_loop() {
+    run_example("examples/for_loop.lf", None);
+}
+
+#[test]
+fn example_for_loops() {
+    run_example("examples/for_loops.lf", None);
+}
+
+#[test]
 fn example_mutable_capture() {
     run_example("examples/mutable_capture.lf", None);
 }

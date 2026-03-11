@@ -724,6 +724,31 @@ impl Interpreter {
         for stmt in stmts {
             last_value = self.eval_stmt(stmt)?;
         }
+
+        // After evaluating all statements, if a 'main' function exists, call it
+        if let Some(Value::Function {
+            params,
+            body,
+            is_async,
+            ..
+        }) = self.env.get("main").cloned()
+        {
+            if params.is_empty() {
+                // Call main function
+                self.env.push_scope();
+                let result = self.eval_stmt(*body)?;
+                let result = self.returning.take().unwrap_or(result);
+                self.env.pop_scope();
+
+                // If async, wrap result in a Promise
+                if is_async {
+                    return Ok(Value::Promise(Box::new(result)));
+                } else {
+                    return Ok(result);
+                }
+            }
+        }
+
         Ok(last_value)
     }
 
