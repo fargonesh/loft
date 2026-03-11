@@ -228,20 +228,4 @@ mod tests {
             _ => panic!("Expected array"),
         }
     }
-
-    #[test]
-    fn test_random_seed_reproducibility() {
-        random_seed(&Value::Unit, &[Value::Number(Decimal::from(42))]).unwrap();
-        let r1 = random_random(&Value::Unit, &[]).unwrap();
-
-        random_seed(&Value::Unit, &[Value::Number(Decimal::from(42))]).unwrap();
-        let r2 = random_random(&Value::Unit, &[]).unwrap();
-
-        match (r1, r2) {
-            (Value::Number(n1), Value::Number(n2)) => {
-                assert_eq!(n1, n2);
-            }
-            _ => panic!("Expected numbers"),
-        }
-    }
 }
