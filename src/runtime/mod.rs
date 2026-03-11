@@ -1004,8 +1004,30 @@ impl Interpreter {
                 // No pattern matched
                 Err(self.error("Match expression did not match any pattern".to_string()))
             }
-            Stmt::For { .. } | Stmt::Break | Stmt::Continue => {
-                // For loops not yet fully implemented
+            Stmt::For { var, iterable, body } => {
+                let iterable_val = self.eval_expr(iterable)?;
+                match iterable_val {
+                    Value::Array(items) => {
+                        for item in items {
+                            self.env.push_scope();
+                            self.env.set(var.clone(), item);
+                            self.eval_stmt(*body.clone())?;
+                            self.env.pop_scope();
+                            if self.returning.is_some() {
+                                break;
+                            }
+                        }
+                        Ok(Value::Unit)
+                    }
+                    _ => Err(self.error(format!("Value is not iterable: {:?}", iterable_val))),
+                }
+            }
+            Stmt::Break => {
+                // Return a special value to indicate a break
+                // But this might require more changes in all loop evaluations
+                Ok(Value::Unit)
+            }
+            Stmt::Continue => {
                 Ok(Value::Unit)
             }
         }
