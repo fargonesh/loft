@@ -4,16 +4,16 @@
 fn main() {
     let numbers = [1, 2, 3, 4, 5];
     
-    print("Iterating over numbers:");
+    term.println("Iterating over numbers:");
     for n in numbers {
-        print(n);
+        term.println(n);
     }
 
     let nested = [[1, 2], [3, 4], [5, 6]];
-    print("Nested loops:");
+    term.println("Nested loops:");
     for pair in nested {
         for n in pair {
-            print(n);
+            term.println(n);
         }
     }
 
@@ -28,9 +28,9 @@ fn main() {
         Person { name: "Bob", age: 25 }
     ];
 
-    print("Iterating over people (testing field access):");
+    term.println("Iterating over people (testing field access):");
     for p in people {
-        print(p.name);
-        print(p.age);
+        term.println(p.name);
+        term.println(p.age);
     }
 }

@@ -1210,7 +1210,9 @@ impl<'a> Parser<'a> {
         };
 
         self.expect_keyword("in")?;
-        let iterable = self.parse_expression()?;
+        
+        // Parse the iterable, preventing it from consuming the { as a struct literal
+        let iterable = self.parse_match_subject()?;
 
         let body = Box::new(self.parse_block_statement()?);
 
@@ -1511,31 +1513,6 @@ impl<'a> Parser<'a> {
         Ok(left)
     }
 
-    fn parse_binary_expr_no_postfix(&mut self, min_prec: u8) -> Result<Expr> {
-        let mut left = self.parse_primary_expr()?;
-
-        while let Some(token) = self.peek()? {
-            if let Token::Op(op) = token {
-                let prec = self.get_precedence(&op);
-                if prec < min_prec {
-                    break;
-                }
-
-                self.next()?; // consume operator
-                let right = self.parse_binary_expr_no_postfix(prec + 1)?;
-                left = Expr::BinOp {
-                    op,
-                    left: Box::new(left),
-                    right: Box::new(right),
-                };
-            } else {
-                break;
-            }
-        }
-
-        Ok(left)
-    }
-
     fn parse_primary_expr(&mut self) -> Result<Expr> {
         let token_opt = self.next()?;
         match token_opt {
@@ -1606,8 +1583,8 @@ impl<'a> Parser<'a> {
                         break;
                     }
 
-                    // Use parse_binary_expr_no_postfix to avoid consuming postfix ops
-                    elements.push(self.parse_binary_expr_no_postfix(0)?);
+                    // Use parse_expression to correctly handle postfix operations like struct literals
+                    elements.push(self.parse_expression()?);
 
                     if let Some(token) = self.peek()? {
                         if self.is_punct(&token, ",") {
