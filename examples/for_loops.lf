@@ -1,0 +1,36 @@
+// examples/for_loops.lf
+// Demonstration of for loops and nesting
+
+fn main() {
+    let numbers = [1, 2, 3, 4, 5];
+    
+    print("Iterating over numbers:");
+    for n in numbers {
+        print(n);
+    }
+
+    let nested = [[1, 2], [3, 4], [5, 6]];
+    print("Nested loops:");
+    for pair in nested {
+        for n in pair {
+            print(n);
+        }
+    }
+
+    // Testing the field access in loop body (parser fix)
+    def Person {
+        name: String,
+        age: Number
+    }
+
+    let people = [
+        Person { name: "Alice", age: 30 },
+        Person { name: "Bob", age: 25 }
+    ];
+
+    print("Iterating over people (testing field access):");
+    for p in people {
+        print(p.name);
+        print(p.age);
+    }
+}

@@ -205,6 +205,10 @@ impl<'a> Parser<'a> {
     }
 
     fn next(&mut self) -> Result<Option<Token>> {
+        if !self.tokens.buffer.is_empty() {
+            return Ok(Some(self.tokens.buffer.remove(0)));
+        }
+
         match self.tokens.read_next_token() {
             Some(Ok(token)) => Ok(Some(token)),
             Some(Err(e)) => Err(e),
@@ -319,10 +323,23 @@ impl<'a> Parser<'a> {
                     self.next()?; // consume #
                     self.parse_attribute_statement()
                 }
-                Token::Keyword(k) if k == "let" => self.parse_var_decl(false),
+                Token::Keyword(k) if k == "let" => {
+                    // Check for mut: let mut x = ...
+                    self.next()?; // consume 'let'
+                    if let Some(Token::Keyword(k)) = self.peek()? {
+                        if k == "mut" {
+                            self.next()?; // consume 'mut'
+                            self.parse_var_decl_after_keyword(true)
+                        } else {
+                            self.parse_var_decl_after_keyword(false)
+                        }
+                    } else {
+                        self.parse_var_decl_after_keyword(false)
+                    }
+                }
                 Token::Keyword(k) if k == "mut" => {
                     self.next()?; // consume mut
-                    self.parse_var_decl(true)
+                    self.parse_var_decl_after_keyword(true)
                 }
                 Token::Keyword(k) if k == "const" => self.parse_const_decl(),
                 Token::Keyword(k) if k == "fn" => self.parse_function_decl(false, false),
@@ -374,29 +391,55 @@ impl<'a> Parser<'a> {
                 }
                 Token::Punct(p) if p == "{" => self.parse_block_statement(),
                 _ => {
-                    // Try to detect assignment: identifier = expression
-                    // We need to look ahead to distinguish assignment from expression
+                    // Try to parse identifier-based expressions that might be part of an assignment
+                    // or just a field access/method call.
                     if let Token::Ident(name) = &token {
-                        // Peek ahead to see if next token is '='
-                        // Save the current token for later if needed
                         let name_clone = name.clone();
                         self.next()?; // consume the identifier
 
+                        // Start building the expression, handle field access and postfixes
+                        let mut left = Expr::Ident(name_clone);
+                        left = self.parse_postfix(left)?;
+
+                        // Now check if the next token is an assignment operator
                         if let Some(Token::Op(op)) = self.peek()? {
                             if op == "=" {
-                                // This is an assignment statement
-                                self.next()?; // consume '='
-                                let value = self.parse_expression()?;
-                                self.maybe_consume_semicolon();
-                                return Ok(Stmt::Assign {
-                                    name: name_clone,
-                                    value,
-                                });
+                                // This is an assignment to a field or variable
+                                // For now, we only support assignment to a simple variable in Stmt::Assign
+                                // If it's a field access, we might need a different Stmt variant
+                                if let Expr::Ident(var_name) = left {
+                                    self.next()?; // consume '='
+                                    let value = self.parse_expression()?;
+                                    self.maybe_consume_semicolon();
+                                    return Ok(Stmt::Assign {
+                                        name: var_name,
+                                        value,
+                                    });
+                                } else {
+                                    // It's a field access assignment or similar, 
+                                    // which should probably be handled as an expression
+                                    // but if your language treats it as a statement:
+                                    self.next()?; // consume '='
+                                    let value = self.parse_expression()?;
+                                    self.maybe_consume_semicolon();
+                                    // We need to return something, if we don't have Stmt::AssignField
+                                    // we can just treat it as Expr(BinOp(left, "=", value)) if we want
+                                    // but let's stick to what we have or add more if needed.
+                                    // For now, let's treat it as an expression statement.
+                                    return Ok(Stmt::Expr(Expr::BinOp {
+                                        op: "=".to_string(),
+                                        left: Box::new(left),
+                                        right: Box::new(value),
+                                    }));
+                                }
                             }
                         }
 
-                        // Not an assignment, put the identifier back and parse as expression
-                        self.tokens.push_back(Token::Ident(name_clone));
+                        // Not an assignment, we already have the full postfix expression
+                        // We just need to handle it as an expression statement
+                        let expr = self.parse_binary_expr_with_left(left, 0)?;
+                        self.maybe_consume_semicolon();
+                        return Ok(Stmt::Expr(expr));
                     }
 
                     // Parse as expression (token will be consumed by parse_expression)
@@ -471,13 +514,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_var_decl(&mut self, mutable: bool) -> Result<Stmt> {
-        // Expect 'let'
-        let keyword_token = self.next()?;
-        if !matches!(keyword_token, Some(Token::Keyword(ref k)) if k == "let") {
-            return Err(self.tokens.croak("Expected 'let'".to_string(), None));
-        }
-
+    fn parse_var_decl_after_keyword(&mut self, mutable: bool) -> Result<Stmt> {
         let name_token = self.next()?;
         let name = match name_token {
             Some(Token::Ident(name)) => name,
