@@ -88,6 +88,7 @@ struct AppState {
     storage_dir: String,
     oauth_client: LoftOauthClient,
     jwt_secret: String,
+    loft_bin: String,
 }
 
 impl AppState {
@@ -118,6 +119,7 @@ impl AppState {
             storage_dir,
             oauth_client,
             jwt_secret: std::env::var("JWT_SECRET").unwrap_or_else(|_| "secret".to_string()),
+            loft_bin: std::env::var("LOFT_BIN").unwrap_or_else(|_| "loft".to_string()),
         }
     }
 
@@ -623,7 +625,7 @@ async fn publish_package(
     fs::create_dir_all(&docs_output).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Run loft doc command from extracted directory
-    let doc_result = std::process::Command::new("loft")
+    let doc_result = std::process::Command::new(&state.loft_bin)
         .arg("doc")
         .arg("-o")
         .arg(&docs_output)
@@ -646,7 +648,7 @@ async fn publish_package(
             );
         }
         Err(e) => {
-            eprintln!("! Could not run doc generator: {}", e);
+            eprintln!("! Could not run doc generator (LOFT_BIN='{}'): {}", state.loft_bin, e);
         }
     }
 
@@ -728,7 +730,7 @@ async fn main() {
                                             let mut archive = Archive::new(gz);
                                             if archive.unpack(&temp_extract_dir).is_ok() {
                                                 fs::create_dir_all(&docs_dir).ok();
-                                                let doc_result = std::process::Command::new("loft")
+                                                let doc_result = std::process::Command::new(&state.loft_bin)
                                                     .arg("doc")
                                                     .arg("-o")
                                                     .arg(&docs_dir)
@@ -742,7 +744,7 @@ async fn main() {
                                                         eprintln!("⚠ Startup: Doc gen failed for {}@{}: {}", package_name, version, String::from_utf8_lossy(&output.stderr));
                                                     }
                                                     Err(e) => {
-                                                        eprintln!("⚠ Startup: Could not run doc generator: {}", e);
+                                                        eprintln!("⚠ Startup: Could not run doc generator (LOFT_BIN='{}'): {}", state.loft_bin, e);
                                                     }
                                                 }
                                             }

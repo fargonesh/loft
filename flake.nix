@@ -30,7 +30,8 @@
           ];
         in
         pkgs.writeShellScriptBin "loft-serve" ''
-          export PATH="${lib.makeBinPath runtimeDeps}:$PATH"
+          export PATH="${lib.makeBinPath runtimeDeps}:${loftPkg}/bin:$PATH"
+          export LOFT_BIN="${loftPkg}/bin/loft"
           export SHELL="${pkgs.bash}/bin/bash"
           export CC="cc"
 
