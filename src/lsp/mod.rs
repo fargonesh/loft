@@ -1190,7 +1190,12 @@ impl LoftLanguageServer {
                     lines,
                 );
             }
-            Stmt::For { body, iterable, .. } => {
+            Stmt::For {
+                var,
+                body,
+                iterable,
+                ..
+            } => {
                 Self::check_expr_with_imports(
                     iterable,
                     symbols,
@@ -1199,9 +1204,27 @@ impl LoftLanguageServer {
                     diagnostics,
                     lines,
                 );
+
+                // Create a temporary scope including the loop variable
+                let mut extended_symbols = symbols.to_vec();
+                extended_symbols.push(SymbolInfo {
+                    name: var.clone(),
+                    kind: SymbolKind::Variable {
+                        var_type: None,
+                        mutable: false,
+                    },
+                    detail: Some(format!("loop variable {}", var)),
+                    documentation: None,
+                    scope_level: 0, // Scope level not strictly used here for existence check
+                    range: None,
+                    selection_range: None,
+                    source_uri: None,
+                    is_exported: false,
+                });
+
                 Self::check_stmt_with_imports(
                     body,
-                    symbols,
+                    &extended_symbols,
                     used_vars,
                     used_imports,
                     diagnostics,
@@ -1263,9 +1286,27 @@ impl LoftLanguageServer {
                 Self::check_expr(condition, symbols, used_vars, diagnostics, lines);
                 Self::check_stmt(body, symbols, used_vars, diagnostics, lines);
             }
-            Stmt::For { body, iterable, .. } => {
+            Stmt::For { var, body, iterable } => {
                 Self::check_expr(iterable, symbols, used_vars, diagnostics, lines);
-                Self::check_stmt(body, symbols, used_vars, diagnostics, lines);
+
+                // Create a temporary scope including the loop variable
+                let mut extended_symbols = symbols.to_vec();
+                extended_symbols.push(SymbolInfo {
+                    name: var.clone(),
+                    kind: SymbolKind::Variable {
+                        var_type: None,
+                        mutable: false,
+                    },
+                    detail: Some(format!("loop variable {}", var)),
+                    documentation: None,
+                    scope_level: 0,
+                    range: None,
+                    selection_range: None,
+                    source_uri: None,
+                    is_exported: false,
+                });
+
+                Self::check_stmt(body, &extended_symbols, used_vars, diagnostics, lines);
             }
             Stmt::Block(stmts) => {
                 Self::check_stmt_list(stmts, symbols, used_vars, diagnostics, lines);
@@ -1964,6 +2005,32 @@ impl LoftLanguageServer {
                     });
 
                     // Recursively extract symbols from function body
+                    if let Stmt::Block(body_stmts) = body.as_ref() {
+                        symbols.extend(Self::extract_symbols(
+                            body_stmts,
+                            scope_level + 1,
+                            stdlib_types,
+                        ));
+                    }
+                }
+                Stmt::For { var, body, .. } => {
+                    // Add loop variable to symbols
+                    symbols.push(SymbolInfo {
+                        name: var.clone(),
+                        kind: SymbolKind::Variable {
+                            var_type: None, // Could potentially infer from iterable
+                            mutable: false, // Loft loop variables are typically immutable
+                        },
+                        detail: Some(format!("loop variable {}", var)),
+                        documentation: None,
+                        scope_level,
+                        range: None,
+                        selection_range: None,
+                        source_uri: None,
+                        is_exported: false,
+                    });
+
+                    // Recursively extract symbols from loop body
                     if let Stmt::Block(body_stmts) = body.as_ref() {
                         symbols.extend(Self::extract_symbols(
                             body_stmts,
